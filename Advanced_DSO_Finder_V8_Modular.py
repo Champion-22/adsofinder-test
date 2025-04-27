@@ -505,23 +505,28 @@ def main():
             type_obj = obj.get('Type','?')
             mag = obj.get('Magnitude') # This might be None or a float
 
-            # --- Correction Start ---
             # Create mag_s: Always a string, either formatted number or 'N/A'
             mag_s = f"{mag:.1f}" if mag is not None else t.get('magnitude_unknown', 'N/A')
 
             # Use a known-safe template directly to avoid issues with potentially
             # incorrect format specifiers in the translation file for 'results_expander_title'.
-            # This template expects three strings (or objects convertible to strings).
             safe_title_template = "{} ({}) - Mag: {}"
             title = safe_title_template.format(name, type_obj, mag_s)
-            # --- Correction End ---
 
             is_exp = (st.session_state.expanded_object_name == name)
             obj_c = results_ph.container()
             with obj_c.expander(title, expanded=is_exp):
                 c1,c2,c3 = st.columns([2,2,1])
                 c1.markdown(t.get('results_coords_header',"**Details:**")); c1.markdown(f"**{t.get('results_export_constellation','Const')}:** {obj.get('Constellation','?')}"); size=obj.get('Size (arcmin)'); c1.markdown(f"**{t.get('results_size_label','Size:')}** {t.get('results_size_value','{:.1f}\'').format(size) if size is not None else '?'}"); c1.markdown(f"**RA:** {obj.get('RA','?')}"); c1.markdown(f"**Dec:** {obj.get('Dec','?')}")
-                c2.markdown(t.get('results_max_alt_header',"**Max Alt:**")); max_a_disp=obj.get('Max Altitude (°)',0); az=obj.get('Azimuth at Max (°)',0); direction=obj.get('Direction at Max','?'); az_fmt=t.get('results_azimuth_label',"(Az:{:.1f}°)").format(az); dir_fmt=t.get('results_direction_label',",Dir:{}").format(direction); c2.markdown(f"**{max_a_disp:.1f}°** {az_fmt}{dir_fmt}")
+                c2.markdown(t.get('results_max_alt_header',"**Max Alt:**")); max_a_disp=obj.get('Max Altitude (°)',0); az=obj.get('Azimuth at Max (°)',0); direction=obj.get('Direction at Max','?')
+                # --- Correction Start (Line 524 equivalent) ---
+                # Use known-safe format strings directly for az_fmt and dir_fmt
+                safe_az_fmt_template = "(Az:{:.1f}°)"
+                safe_dir_fmt_template = ",Dir:{}"
+                az_fmt = safe_az_fmt_template.format(az)
+                dir_fmt = safe_dir_fmt_template.format(direction)
+                # --- Correction End ---
+                c2.markdown(f"**{max_a_disp:.1f}°** {az_fmt}{dir_fmt}") # Combine the formatted parts
                 c2.markdown(t.get('results_best_time_header',"**Best Time (Loc):**")); peak_t=obj.get('Time at Max (UTC)'); local_t, local_tz = get_local_time_str(peak_t, st.session_state.selected_timezone); c2.markdown(f"{local_t} ({local_tz})")
                 c2.markdown(t.get('results_cont_duration_header',"**Max Dur:**")); dur=obj.get('Max Cont. Duration (h)',0); c2.markdown(t.get('results_duration_value',"{:.1f}h").format(dur))
                 gq=urllib.parse.quote_plus(f"{name} astronomy"); gu=f"https://google.com/search?q={gq}"; c3.markdown(f"[{t.get('google_link_text','Google')}]({gu})", unsafe_allow_html=True)
