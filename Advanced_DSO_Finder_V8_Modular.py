@@ -397,7 +397,7 @@ def main():
         bug_subject = urllib.parse.quote("Bug Report: Advanced DSO Finder")
         bug_body = urllib.parse.quote(t.get('bug_report_body', "\n\n(Describe bug and steps to reproduce)"))
         bug_link = f"mailto:{bug_email}?subject={bug_subject}&body={bug_body}"
-        st.sidebar.link_button(t.get('bug_report_button', '🐞 Report Issue'), bug_link) # Corrected call
+        st.sidebar.link_button(t.get('bug_report_button', '🐞 Report Issue'), bug_link)
 
 
     # --- Main Area ---
@@ -500,15 +500,16 @@ def main():
         results_ph.radio(t.get('graph_type_label',"Plot Type:"), list(plot_map.keys()), format_func=lambda k:plot_map[k], key='plot_type_selection', horizontal=True)
 
         for i, obj in enumerate(results_data):
-            name=obj.get('Name','?')
-            type_obj=obj.get('Type','?')
-            mag=obj.get('Magnitude')
-            # Corrected formatting for title
+            # Corrected formatting for title (Moved into loop, split lines)
+            name = obj.get('Name','?')
+            type_obj = obj.get('Type','?')
+            mag = obj.get('Magnitude')
             mag_s = f"{mag:.1f}" if mag is not None else t.get('magnitude_unknown', 'N/A')
             title_template = t.get('results_expander_title',"{} ({}) - Mag: {}")
-            title = title_template.format(name, type_obj, mag_s)
+            title = title_template.format(name, type_obj, mag_s) # Corrected line
 
-            is_exp = (st.session_state.expanded_object_name == name); obj_c = results_ph.container()
+            is_exp = (st.session_state.expanded_object_name == name)
+            obj_c = results_ph.container()
             with obj_c.expander(title, expanded=is_exp):
                 c1,c2,c3 = st.columns([2,2,1])
                 c1.markdown(t.get('results_coords_header',"**Details:**")); c1.markdown(f"**{t.get('results_export_constellation','Const')}:** {obj.get('Constellation','?')}"); size=obj.get('Size (arcmin)'); c1.markdown(f"**{t.get('results_size_label','Size:')}** {t.get('results_size_value','{:.1f}\'').format(size) if size is not None else '?'}"); c1.markdown(f"**RA:** {obj.get('RA','?')}"); c1.markdown(f"**Dec:** {obj.get('Dec','?')}")
@@ -593,9 +594,9 @@ def main():
                  with st.spinner(t.get('results_spinner_plotting',"Plotting...")):
                      try: fig=create_plot(c_data, min_a_cust, max_a_cust, st.session_state.plot_type_selection, t)
                      except Exception as e: st.error(f"Plot Err:{e}"); traceback.print_exc(); fig=None
+                     # Corrected syntax for inner if block
                      if fig:
                          st.pyplot(fig)
-                         # Corrected syntax for inner if block
                          if st.button(t.get('results_close_graph_button',"Close"), key="close_custom"):
                              st.session_state.show_custom_plot=False
                              st.session_state.custom_target_plot_data=None
@@ -605,7 +606,7 @@ def main():
                           st.error(t.get('results_graph_not_created',"Plot failed."))
         elif st.session_state.custom_target_error: err_ph.error(st.session_state.custom_target_error)
 
-    # Donation Link
+    # Donation Link (Integrated)
     st.markdown("---")
     st.markdown(t.get('donation_text', "Like the app? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)"), unsafe_allow_html=True)
 
