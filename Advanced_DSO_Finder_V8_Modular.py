@@ -519,13 +519,11 @@ def main():
                 c1,c2,c3 = st.columns([2,2,1])
                 c1.markdown(t.get('results_coords_header',"**Details:**")); c1.markdown(f"**{t.get('results_export_constellation','Const')}:** {obj.get('Constellation','?')}"); size=obj.get('Size (arcmin)'); c1.markdown(f"**{t.get('results_size_label','Size:')}** {t.get('results_size_value','{:.1f}\'').format(size) if size is not None else '?'}"); c1.markdown(f"**RA:** {obj.get('RA','?')}"); c1.markdown(f"**Dec:** {obj.get('Dec','?')}")
                 c2.markdown(t.get('results_max_alt_header',"**Max Alt:**")); max_a_disp=obj.get('Max Altitude (°)',0); az=obj.get('Azimuth at Max (°)',0); direction=obj.get('Direction at Max','?')
-                # --- Correction Start (Line 524 equivalent) ---
                 # Use known-safe format strings directly for az_fmt and dir_fmt
                 safe_az_fmt_template = "(Az:{:.1f}°)"
                 safe_dir_fmt_template = ",Dir:{}"
                 az_fmt = safe_az_fmt_template.format(az)
                 dir_fmt = safe_dir_fmt_template.format(direction)
-                # --- Correction End ---
                 c2.markdown(f"**{max_a_disp:.1f}°** {az_fmt}{dir_fmt}") # Combine the formatted parts
                 c2.markdown(t.get('results_best_time_header',"**Best Time (Loc):**")); peak_t=obj.get('Time at Max (UTC)'); local_t, local_tz = get_local_time_str(peak_t, st.session_state.selected_timezone); c2.markdown(f"{local_t} ({local_tz})")
                 c2.markdown(t.get('results_cont_duration_header',"**Max Dur:**")); dur=obj.get('Max Cont. Duration (h)',0); c2.markdown(t.get('results_duration_value',"{:.1f}h").format(dur))
@@ -619,9 +617,12 @@ def main():
                           st.error(t.get('results_graph_not_created',"Plot failed."))
         elif st.session_state.custom_target_error: err_ph.error(st.session_state.custom_target_error)
 
-    # Donation Link (Integrated)
+    # --- Correction Start: Use st.link_button for Ko-fi ---
     st.markdown("---")
-    st.markdown(t.get('donation_text', "Like the app? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)"), unsafe_allow_html=True)
+    kofi_url = "https://ko-fi.com/advanceddsofinder"
+    kofi_text = t.get('donation_button_text', "Support on Ko-fi ☕") # Get translated button text, default if not found
+    st.link_button(kofi_text, kofi_url)
+    # --- Correction End ---
 
 
 # Run App
