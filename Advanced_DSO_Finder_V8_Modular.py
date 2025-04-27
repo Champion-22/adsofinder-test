@@ -6,7 +6,6 @@ from datetime import datetime, date, time, timedelta, timezone
 import traceback # Keep traceback for error handling in main
 import os
 # Removed urllib imports if only used by moved functions
-# Removed matplotlib imports
 import pandas as pd # <<< Re-added pandas import for type hinting
 
 # --- Library Imports ---
@@ -289,6 +288,8 @@ def main():
         st.session_state.window_start_time = None
         st.session_state.window_end_time = None
         st.session_state.expanded_object_name = None # Collapse all result expanders
+        # Reset cosmology display states if managed centrally (alternative to per-button toggle)
+        # st.session_state.cosmology_display_state = {}
 
         # Proceed only if observer, catalog data, and ref_time are valid
         if observer_run and df_catalog_data is not None and ref_time is not None:
@@ -421,6 +422,10 @@ def main():
     # 10. Display Custom Target Section (using imported UI function)
     # Pass the placeholder, observer object (needed for plot calculations), and translations
     ui_components.create_custom_target_section(t, results_placeholder, observer_run)
+
+    # --- NEU: Aufruf des manuellen Kosmologie-Rechners ---
+    # Dieser wird jetzt immer angezeigt, unabhängig von den Suchergebnissen
+    ui_components.create_manual_cosmology_calculator(t)
 
     # 11. Display Donation Link (using imported UI function)
     ui_components.display_donation_link(t)
