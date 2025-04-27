@@ -10,8 +10,6 @@ import pandas as pd
 import math
 
 # --- Library Imports ---
-# NOTE: Unresolved import errors below usually mean the package is not installed
-# in the selected Python environment or the editor is not using the right environment.
 try:
     from astropy.time import Time
     import numpy as np
@@ -309,12 +307,11 @@ def main():
                     try:
                         found_tz = tf.timezone_at(lng=lon, lat=lat)
                         if found_tz:
-                             pytz.timezone(found_tz); st.session_state.selected_timezone = found_tz; tz_msg=f"{t.get('timezone_auto_set_label','Detected TZ:')} **{found_tz}**"
+                            pytz.timezone(found_tz); st.session_state.selected_timezone = found_tz; tz_msg=f"{t.get('timezone_auto_set_label','Detected TZ:')} **{found_tz}**"
                         else: st.session_state.selected_timezone='UTC'; tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **UTC** ({t.get('timezone_auto_fail_msg','Failed')})"
                     except pytz.UnknownTimeZoneError:
                          st.session_state.selected_timezone='UTC'
                          invalid_tz_name = locals().get('found_tz', 'Unknown')
-                         # Use standard string formatting for robustness
                          tz_msg = t.get('timezone_auto_fail_label','TZ:') + " **UTC** (Invalid: '{}')".format(invalid_tz_name)
                     except Exception as e: print(f"TZ Error: {e}"); st.session_state.selected_timezone='UTC'; tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **UTC** (Error)"
                 else: tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **{INITIAL_TIMEZONE}** (N/A)"; st.session_state.selected_timezone=INITIAL_TIMEZONE
@@ -372,13 +369,13 @@ def main():
                     if c_min > c_max: c_min=c_max
                     if (c_min, c_max) != st.session_state.size_arcmin_range: st.session_state.size_arcmin_range = (c_min, c_max)
                     step = 0.1 if max_s <= 20 else (0.5 if max_s <= 100 else 1.0)
-                    # Re-checked syntax for slider format
+                    # Corrected line 604: Removed format argument
                     st.slider(
-                        t.get('size_filter_label',"Size (arcmin):"),
+                        label=t.get('size_filter_label',"Size (arcmin):"),
                         min_value=min_s,
                         max_value=max_s,
                         step=step,
-                        format="%.1f", # Ensure format is correct
+                        # format="%.1f", # REMOVED problematic format argument
                         key='size_arcmin_range',
                         help=t.get('size_filter_help',"..."),
                         disabled=size_disabled
@@ -507,7 +504,6 @@ def main():
                 mc1, mc2 = results_ph.columns([1,3])
                 with mc1: st.markdown(moon_svg, unsafe_allow_html=True)
                 with mc2:
-                    # Corrected multi-statement line
                     st.metric(label=t.get('moon_metric_label',"Moon Illum."), value=f"{moon_pct:.0f}%")
                     moon_thresh=st.session_state.moon_phase_slider
                     if moon_pct > moon_thresh:
@@ -541,7 +537,6 @@ def main():
                         if fig:
                             st.pyplot(fig)
                             close_key=f"close_{name}_{i}"
-                            # Corrected SyntaxError: Indent block after 'if button'
                             if st.button(t.get('results_close_graph_button',"Close"), key=close_key):
                                 st.session_state.show_plot=False
                                 st.session_state.active_result_plot_data=None
@@ -613,10 +608,11 @@ def main():
                      else: st.error(t.get('results_graph_not_created',"Plot failed."))
         elif st.session_state.custom_target_error: err_ph.error(st.session_state.custom_target_error)
 
-    # --- Donation Link (Integrated) ---
+    # Donation Link (Integrated)
     st.markdown("---")
     st.markdown(t.get('donation_text', "Like the app? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)"), unsafe_allow_html=True)
 
-# --- Run App ---
+
+# Run App
 if __name__ == "__main__":
     main()
