@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import os
 import io # Used for handling potential byte strings in coordinates
+import traceback # <<< Added missing import
 
 def parse_coord_string(coord_str: str | bytes | None) -> float | None:
     """
@@ -102,7 +103,7 @@ def load_ongc_data(filepath: str) -> pd.DataFrame | None:
     Returns:
         Ein Pandas DataFrame mit den verarbeiteten Katalogdaten oder None bei Fehlern.
         Stellt sicher, dass RA/Dec als numerische Gradwerte vorhanden sind ('RA_deg', 'Dec_deg').
-        Konvertiert 'Mag', 'MajAx', 'MinAx', 'PosAng', 'B-Mag', 'V-Mag', 'J-Mag', 'H-Mag', 'K-Mag', 'z' zu numerischen Typen.
+        Konvertiert relevante Spalten zu numerischen Typen und erstellt eine 'Mag'-Spalte.
     """
     print(f"Versuche Katalog zu laden von: {filepath}")
     if not os.path.exists(filepath):
@@ -110,9 +111,6 @@ def load_ongc_data(filepath: str) -> pd.DataFrame | None:
         return None
 
     try:
-        # Versuche, die CSV zu laden, mit ';' als Trennzeichen und Header in Zeile 1 (index 0)
-        # low_memory=False kann bei gemischten Typen helfen
-        # encoding='latin-1' oder 'iso-8859-1' ist oft robuster für ältere Astro-Kataloge
         try:
             df = pd.read_csv(filepath, sep=';', header=0, low_memory=False, encoding='utf-8')
             print("Katalog erfolgreich mit UTF-8 geladen.")
@@ -124,119 +122,80 @@ def load_ongc_data(filepath: str) -> pd.DataFrame | None:
         print(f"Katalog geladen. {len(df)} Zeilen, Spalten: {df.columns.tolist()}")
 
         # --- Spaltennamen prüfen und ggf. anpassen ---
-        # Der ONGC-Katalog hat normalerweise Spalten 'RA' und 'Dec' für die String-Repräsentation
         ra_col_str = 'RA'
-        dec_col_str = 'Decl' # Im ONGC heisst die Spalte oft 'Decl'
-
-        if ra_col_str not in df.columns:
-            print(f"Fehler: Benötigte Spalte '{ra_col_str}' nicht im Katalog gefunden.")
-            return None
+        dec_col_str = 'Decl'
+        if ra_col_str not in df.columns: print(f"Fehler: Spalte '{ra_col_str}' nicht gefunden."); return None
         if dec_col_str not in df.columns:
-            print(f"Fehler: Benötigte Spalte '{dec_col_str}' nicht im Katalog gefunden.")
-            # Versuch mit alternativem Namen 'Dec'
-            if 'Dec' in df.columns:
-                 dec_col_str = 'Dec'
-                 print("Warnung: Spalte 'Decl' nicht gefunden, verwende stattdessen 'Dec'.")
-            else:
-                 print(f"Fehler: Weder '{dec_col_str}' noch 'Dec' im Katalog gefunden.")
-                 return None
+            if 'Dec' in df.columns: dec_col_str = 'Dec'; print("Warnung: Spalte 'Decl' nicht gefunden, verwende 'Dec'.")
+            else: print(f"Fehler: Weder '{dec_col_str}' noch 'Dec' gefunden."); return None
 
         # --- Koordinaten parsen ---
-        # Wende die parse_coord_string Funktion auf die RA/Dec Spalten an
-        # Erstelle neue Spalten für die numerischen Gradwerte
         print("Parse RA Koordinaten...")
         df['RA_deg'] = df[ra_col_str].apply(parse_coord_string)
         print("Parse Dec Koordinaten...")
         df['Dec_deg'] = df[dec_col_str].apply(parse_coord_string)
-
-        # Überprüfe, wie viele Koordinaten erfolgreich geparst wurden
-        parsed_ra_count = df['RA_deg'].notna().sum()
-        parsed_dec_count = df['Dec_deg'].notna().sum()
-        total_count = len(df)
+        parsed_ra_count = df['RA_deg'].notna().sum(); parsed_dec_count = df['Dec_deg'].notna().sum(); total_count = len(df)
         print(f"RA Parsing erfolgreich für {parsed_ra_count}/{total_count} Einträge.")
         print(f"Dec Parsing erfolgreich für {parsed_dec_count}/{total_count} Einträge.")
-
-        # Optional: Filtere Einträge ohne gültige Koordinaten heraus
-        original_len = len(df)
-        df = df.dropna(subset=['RA_deg', 'Dec_deg'])
-        filtered_len = len(df)
-        if original_len > filtered_len:
-            print(f"Info: {original_len - filtered_len} Einträge wegen fehlender/ungültiger Koordinaten entfernt.")
-
-        if df.empty:
-            print("Fehler: Nach Koordinaten-Parsing sind keine gültigen Einträge mehr vorhanden.")
-            return None
+        original_len = len(df); df = df.dropna(subset=['RA_deg', 'Dec_deg']); filtered_len = len(df)
+        if original_len > filtered_len: print(f"Info: {original_len - filtered_len} Einträge wegen fehlender/ungültiger Koordinaten entfernt.")
+        if df.empty: print("Fehler: Nach Koordinaten-Parsing sind keine gültigen Einträge mehr vorhanden."); return None
 
         # --- Numerische Spalten konvertieren ---
-        # Liste der Spalten, die numerisch sein sollten (füge 'z' hinzu)
-        numeric_cols = ['Mag', 'MajAx', 'MinAx', 'PosAng', 'B-Mag', 'V-Mag', 'J-Mag', 'H-Mag', 'K-Mag', 'z']
+        numeric_cols = ['MajAx', 'MinAx', 'PosAng', 'B-Mag', 'V-Mag', 'J-Mag', 'H-Mag', 'K-Mag', 'z']
         for col in numeric_cols:
             if col in df.columns:
-                # pd.to_numeric mit errors='coerce' wandelt ungültige Werte in NaN um
                 df[col] = pd.to_numeric(df[col], errors='coerce')
-                # Optional: NaN-Werte in numerischen Spalten behandeln (z.B. mit 0 oder Median füllen),
-                # aber oft ist es besser, sie als NaN zu belassen und später zu filtern.
-                # Beispiel: df[col] = df[col].fillna(np.nan) # Stellt sicher, dass es NaN ist
                 print(f"Spalte '{col}' zu numerisch konvertiert (ungültige Werte -> NaN).")
             else:
                 print(f"Warnung: Optionale numerische Spalte '{col}' nicht im Katalog gefunden.")
-                # Optional: Fehlende Spalte als NaN hinzufügen
-                # df[col] = np.nan
+                df[col] = np.nan # Fehlende Spalte hinzufügen
 
-        # --- Datentypen optimieren (optional, spart Speicher) ---
-        # Beispiel: Wenn Magnitude immer im Bereich -10 bis 30 liegt, könnte float32 reichen
-        # for col in ['Mag', 'B-Mag', 'V-Mag', 'J-Mag', 'H-Mag', 'K-Mag']:
-        #     if col in df.columns:
-        #         df[col] = df[col].astype(pd.Float32Dtype()) # Nullable Float32
-        # for col in ['MajAx', 'MinAx', 'PosAng', 'z']:
-        #      if col in df.columns:
-        #         df[col] = df[col].astype(pd.Float64Dtype()) # Nullable Float64 für höhere Präzision bei z
+        # --- Magnitude-Spalte ('Mag') erstellen/sicherstellen ---
+        if 'Mag' not in df.columns:
+            print("Warnung: Spalte 'Mag' nicht im Katalog gefunden. Versuche aus 'V-Mag' oder 'B-Mag' zu erstellen.")
+            if 'V-Mag' in df.columns:
+                print("Verwende 'V-Mag' als primäre Magnitude ('Mag').")
+                df['Mag'] = df['V-Mag']
+            elif 'B-Mag' in df.columns:
+                print("Warnung: 'V-Mag' nicht gefunden, verwende 'B-Mag' als Magnitude ('Mag').")
+                df['Mag'] = df['B-Mag']
+            else:
+                print("Warnung: Weder 'Mag', 'V-Mag' noch 'B-Mag' gefunden. Setze 'Mag' auf NaN.")
+                df['Mag'] = np.nan
+        else:
+             print("Spalte 'Mag' gefunden. Konvertiere zu numerisch (ungültige Werte -> NaN).")
+             df['Mag'] = pd.to_numeric(df['Mag'], errors='coerce')
 
-        # --- Index zurücksetzen (optional, falls durch dropna Lücken entstanden sind) ---
+        valid_mag_count = df['Mag'].notna().sum()
+        if valid_mag_count == 0: print("Kritische Warnung: Konnte keine gültigen Werte für die 'Mag'-Spalte finden/erstellen!")
+        else: print(f"Gültige Werte in 'Mag'-Spalte: {valid_mag_count}/{len(df)}")
+
+        # --- Index zurücksetzen ---
         df = df.reset_index(drop=True)
 
         print(f"Katalogverarbeitung abgeschlossen. {len(df)} gültige Einträge.")
         return df
 
-    except FileNotFoundError:
-        print(f"Fehler: Katalogdatei nicht gefunden unter {filepath}")
-        return None
-    except pd.errors.EmptyDataError:
-        print(f"Fehler: Katalogdatei ist leer: {filepath}")
-        return None
-    except pd.errors.ParserError:
-        print(f"Fehler: Katalogdatei konnte nicht geparst werden (Formatproblem?): {filepath}")
-        return None
+    except FileNotFoundError: print(f"Fehler: Katalogdatei nicht gefunden unter {filepath}"); return None
+    except pd.errors.EmptyDataError: print(f"Fehler: Katalogdatei ist leer: {filepath}"); return None
+    except pd.errors.ParserError: print(f"Fehler: Katalogdatei konnte nicht geparst werden (Formatproblem?): {filepath}"); return None
     except Exception as e:
         print(f"Unerwarteter Fehler beim Laden/Verarbeiten des Katalogs: {e}")
-        import traceback
+        # Use imported traceback here
         traceback.print_exc()
         return None
 
-# Beispielaufruf (nur zum Testen des Moduls, wenn es direkt ausgeführt wird)
+# Beispielaufruf (nur zum Testen des Moduls)
 if __name__ == "__main__":
-    # Finde den Pfad zur Beispieldatei relativ zum Skriptverzeichnis
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Gehe ein Verzeichnis nach oben, wenn die Module in Unterordnern liegen
-    # base_dir = os.path.dirname(script_dir)
-    # catalog_path = os.path.join(base_dir, "ongc.csv") # Annahme: ongc.csv liegt im Hauptverzeichnis
-    catalog_path = os.path.join(script_dir, "ongc.csv") # Annahme: ongc.csv liegt im selben Verzeichnis
-
+    catalog_path = os.path.join(script_dir, "ongc.csv")
     print(f"Teste Ladevorgang für: {catalog_path}")
     df_loaded = load_ongc_data(catalog_path)
-
     if df_loaded is not None:
-        print("\nKatalog erfolgreich geladen und verarbeitet.")
-        print("Erste 5 Zeilen:")
-        print(df_loaded.head())
-        print("\nInfo:")
-        df_loaded.info()
-        print("\nStatistik für numerische Spalten:")
-        # Wähle nur Spalten aus, die wahrscheinlich numerisch sind
-        numeric_cols_info = ['Mag', 'MajAx', 'MinAx', 'PosAng', 'B-Mag', 'V-Mag', 'J-Mag', 'H-Mag', 'K-Mag', 'z', 'RA_deg', 'Dec_deg']
-        print(df_loaded[[col for col in numeric_cols_info if col in df_loaded.columns]].describe())
-        # Prüfe auf NaN-Werte in wichtigen Spalten
-        print("\nNaN-Werte in Schlüsselspalten:")
-        print(df_loaded[['Name', 'RA_deg', 'Dec_deg', 'Mag']].isna().sum())
-    else:
-        print("\nKatalog konnte nicht geladen werden.")
+        print("\nKatalog erfolgreich geladen und verarbeitet."); print("Erste 5 Zeilen:"); print(df_loaded.head()); print("\nInfo:"); df_loaded.info()
+        numeric_cols_info = ['Mag', 'V-Mag', 'B-Mag', 'MajAx', 'MinAx', 'PosAng', 'z', 'RA_deg', 'Dec_deg']
+        print("\nStatistik für numerische Spalten:"); print(df_loaded[[col for col in numeric_cols_info if col in df_loaded.columns]].describe())
+        print("\nNaN-Werte in Schlüsselspalten:"); print(df_loaded[['Name', 'RA_deg', 'Dec_deg', 'Mag']].isna().sum())
+    else: print("\nKatalog konnte nicht geladen werden.")
+
