@@ -37,11 +37,10 @@ try:
     from localization import translations
     # <<< ADDED IMPORT FOR ASTRO CALCULATIONS >>>
     import astro_calculations
+    from astro_calculations import CARDINAL_DIRECTIONS
 except ModuleNotFoundError as e:
     st.error(f"Error: Could not find a required module file ({e}). Make sure 'localization.py' and 'astro_calculations.py' exist in the same directory.")
     st.stop()
-    from astro_calculations import CARDINAL_DIRECTIONS
-
 
 # --- Page Config (MUST BE FIRST Streamlit command) ---
 st.set_page_config(page_title="Advanced DSO Finder", layout="wide")
