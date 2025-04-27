@@ -195,9 +195,9 @@ def main():
     def cached_load_ongc_data(path):
         print(f"Cache miss: Loading ONGC data from {path}")
         # Pass lang to data handling function
-        return data_handling.load_ongc_data(path, lang)
+        return data_handling.load_ongc_data(path) # Pass lang if data_handling requires it
 
-    df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH) # Removed lang, assume data_handling uses its own 't' if needed
+    df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH) # Removed lang, check data_handling signature
 
     st.title("Advanced DSO Finder")
 
@@ -292,12 +292,14 @@ def main():
             if loc_valid_tz and lat is not None and lon is not None:
                 if tf:
                     try:
-                        found_tz = tf.timezone_at(lng=lon, lat=lat)
-                        if found_tz: pytz.timezone(found_tz); st.session_state.selected_timezone = found_tz; tz_msg=f"{t.get('timezone_auto_set_label','Detected TZ:')} **{found_tz}**"
+                        found_tz_val = tf.timezone_at(lng=lon, lat=lat) # Use different var name
+                        if found_tz_val:
+                            pytz.timezone(found_tz_val); st.session_state.selected_timezone = found_tz_val; tz_msg=f"{t.get('timezone_auto_set_label','Detected TZ:')} **{found_tz_val}**"
                         else: st.session_state.selected_timezone='UTC'; tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **UTC** ({t.get('timezone_auto_fail_msg','Failed')})"
                     except pytz.UnknownTimeZoneError:
                          st.session_state.selected_timezone='UTC'
-                         invalid_tz_name = locals().get('found_tz', 'Unknown')
+                         # Ensure found_tz_val is used if defined, else use placeholder
+                         invalid_tz_name = locals().get('found_tz_val', 'Unknown')
                          tz_msg = t.get('timezone_auto_fail_label','TZ:') + " **UTC** (Invalid: '{}')".format(invalid_tz_name)
                     except Exception as e: print(f"TZ Error: {e}"); st.session_state.selected_timezone='UTC'; tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **UTC** (Error)"
                 else: tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **{INITIAL_TIMEZONE}** (N/A)"; st.session_state.selected_timezone=INITIAL_TIMEZONE
@@ -520,7 +522,6 @@ def main():
                         if fig:
                             st.pyplot(fig)
                             close_key=f"close_{name}_{i}"
-                            # Corrected SyntaxError: Indent block after 'if button'
                             if st.button(t.get('results_close_graph_button',"Close"), key=close_key):
                                 st.session_state.show_plot=False
                                 st.session_state.active_result_plot_data=None
@@ -601,7 +602,7 @@ def main():
                           st.error(t.get('results_graph_not_created',"Plot failed."))
         elif st.session_state.custom_target_error: err_ph.error(st.session_state.custom_target_error)
 
-    # Donation Link
+    # Donation Link (Integrated)
     st.markdown("---")
     st.markdown(t.get('donation_text', "Like the app? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)"), unsafe_allow_html=True)
 
