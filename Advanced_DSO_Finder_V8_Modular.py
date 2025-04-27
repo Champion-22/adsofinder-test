@@ -91,7 +91,9 @@ tf = get_timezone_finder() # Initialize timezone finder
 def initialize_session_state():
     """Initializes all required session state keys if they don't exist."""
     defaults = {
-        'language': 'de',
+        # --- Correction: Use uppercase default language key ---
+        'language': 'DE', # Default to uppercase 'DE'
+        # --- End Correction ---
         'plot_object_name': None, # Name of the object currently plotted (from results)
         'show_plot': False,       # Flag to show the results plot
         'active_result_plot_data': None, # Data dict for the active results plot
@@ -136,14 +138,16 @@ def initialize_session_state():
         'window_start_time': None, # Astropy Time object for observation window start
         'window_end_time': None,   # Astropy Time object for observation window end
         'selected_date_widget': date.today(), # Date selected in the 'Specific Night' picker
-        # State for cosmology display toggle within results
-        # We need a way to manage potentially many keys, maybe a dict?
-        # 'cosmology_display_state': {} # Example: {'NGC123': True, 'M31': False}
-        # Or rely on button clicks to trigger recalculation/display in ui_components
     }
+    # Initialize session state keys if they don't exist
     for key, default_value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = default_value
+    # --- Correction: Ensure language key in session state is uppercase ---
+    if 'language' in st.session_state:
+        st.session_state.language = st.session_state.language.upper()
+    # --- End Correction ---
+
 
 # --- Helper Functions REMAINING in main script ---
 # Most helpers moved to ui_components or astro_calculations
@@ -151,14 +155,17 @@ def initialize_session_state():
 # --- Main App Logic ---
 def main():
     # 1. Initialize state and load language translations
-    initialize_session_state()
-    lang = st.session_state.language
+    initialize_session_state() # Ensures state exists and language is uppercase
+    # --- Correction: Use uppercase language key from state ---
+    lang = st.session_state.language # Now guaranteed to be uppercase ('DE', 'EN', 'FR', etc.)
     if lang not in translations:
-        print(f"Warning: Language '{lang}' not found in translations. Falling back to 'en'.")
-        lang = 'en'
-        st.session_state.language = lang # Correct state if invalid lang was somehow set
-    # Load translation dict 't' for the selected language
-    t = translations.get(lang, translations['en'])
+        print(f"Warning: Language '{lang}' not found in translations dictionary. Falling back to 'EN'.")
+        lang = 'EN' # Fallback to uppercase 'EN'
+        st.session_state.language = lang # Update state if fallback occurred
+    # Load translation dict 't' using the (now guaranteed uppercase) language key
+    # Use .get() for safety, although 'EN' should always exist if localization.py is correct
+    t = translations.get(lang, translations.get('EN', {})) # Fallback to EN dict or empty dict
+    # --- End Correction ---
 
     # 2. Load Catalog Data (Cached)
     # Define caching function locally or ensure data_handling is imported correctly
