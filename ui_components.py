@@ -32,10 +32,12 @@ try:
     # Import only necessary functions/constants from astro_calculations
     from astro_calculations import (
         CARDINAL_DIRECTIONS, calculate_lcdm_distances,
-        convert_mpc_to_gly, convert_mpc_to_km, convert_km_to_ly, # Keep unit conversions if used here
-        H0_DEFAULT, OMEGA_M_DEFAULT, OMEGA_LAMBDA_DEFAULT # Import constants
+        convert_mpc_to_gly, convert_mpc_to_km, convert_km_to_ly,
+        # Optional: Import more unit conversions if needed for display
+        # convert_km_to_au, convert_km_to_ls,
+        H0_DEFAULT, OMEGA_M_DEFAULT, OMEGA_LAMBDA_DEFAULT # Import default cosmology constants
     )
-    # Note: translations 't' will be passed as an argument
+    # Note: translations 't' will be passed as an argument from the main script
 except ModuleNotFoundError as e:
     st.error(f"Module Not Found Error in UI module: {e}. Ensure astro_calculations.py is present.")
     st.stop()
@@ -45,18 +47,18 @@ except ImportError as e:
 
 
 # --- Constants ---
-ALL_DIRECTIONS_KEY = 'All'
+ALL_DIRECTIONS_KEY = 'All' # Key for representing 'All Directions' filter
 
 # --- UI Helper Functions (Plotting, Formatting, SVG, Comparisons) ---
 
-# --- Moved UI Helpers from Redshift_Calculator ---
+# --- UI Helpers from Redshift_Calculator (Moved here) ---
 def format_large_number(number):
     """Formats large numbers with spaces as thousands separators."""
     if number == 0: return "0"
     if not np.isfinite(number): return str(number) # Handle NaN/Inf
     try:
-        # Format with comma, then replace comma with space
-        formatted = f"{number:,.0f}".replace(",", " ")
+        # Format with comma, then replace comma with space (or adjust locale if needed)
+        formatted = f"{number:,.0f}".replace(",", " ") # Using space as separator
         return formatted
     except (ValueError, TypeError):
         return str(number) # Fallback for unexpected types
@@ -78,12 +80,6 @@ def get_comoving_comparison(mpc):
     if mpc < 1000: return "example_comoving_lss"
     if mpc < 8000: return "example_comoving_quasars"
     return "example_comoving_cmb"
-
-# Optional: Include other unit conversions if needed specifically for display
-# KM_PER_AU = 1.495978707e+8
-# KM_PER_LS = C_KM_PER_S # C_KM_PER_S needs to be defined or imported if used here
-# def convert_km_to_au(d_km: float) -> float: ...
-# def convert_km_to_ls(d_km: float) -> float: ...
 # --- End of Moved UI Helpers ---
 
 
@@ -126,17 +122,17 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
     fig = None
     try:
         # --- Datenvalidierung ---
-        if not isinstance(plot_data, dict): st.error(t.get('plot_error_invalid_data_type', "...")); return None
+        if not isinstance(plot_data, dict): st.error(t.get('plot_error_invalid_data_type', "Plot Fehler: Ungültiger plot_data Typ.")); return None
         times = plot_data.get('times'); altitudes = plot_data.get('altitudes'); azimuths = plot_data.get('azimuths'); obj_name = plot_data.get('Name', t.get('plot_object_default_name', 'Objekt'))
-        if not isinstance(times, Time) or not isinstance(altitudes, np.ndarray): st.error(t.get('plot_error_missing_time_alt', "...")); return None
-        if plot_type == 'Sky Path' and not isinstance(azimuths, np.ndarray): st.error(t.get('plot_error_missing_azimuth', "...")); return None
-        if len(times) != len(altitudes) or (azimuths is not None and len(times) != len(azimuths)): st.error(t.get('plot_error_mismatched_lengths', "...")); return None
-        if len(times) < 1: st.error(t.get('plot_error_no_data_points', "...")); return None
+        if not isinstance(times, Time) or not isinstance(altitudes, np.ndarray): st.error(t.get('plot_error_missing_time_alt', "Plot Fehler: Fehlende oder ungültige Zeit/Höhen-Daten.")); return None
+        if plot_type == 'Sky Path' and not isinstance(azimuths, np.ndarray): st.error(t.get('plot_error_missing_azimuth', "Plot Fehler: Fehlende Azimut-Daten für Himmelspfad.")); return None
+        if len(times) != len(altitudes) or (azimuths is not None and len(times) != len(azimuths)): st.error(t.get('plot_error_mismatched_lengths', "Plot Fehler: Zeit-, Höhen- und Azimut-Arrays haben unterschiedliche Längen.")); return None
+        if len(times) < 1: st.error(t.get('plot_error_no_data_points', "Plot Fehler: Nicht genügend Datenpunkte zum Plotten.")); return None
         plot_times = times.plot_date
 
         # --- Theming ---
         try: theme_opts = st.get_option("theme.base"); is_dark_theme = (theme_opts == "dark")
-        except Exception: print("Warnung: Theme nicht erkannt."); is_dark_theme = False
+        except Exception: print("Warnung: Streamlit Theme nicht erkannt. Nehme helles Theme an."); is_dark_theme = False
         if is_dark_theme: plt.style.use('dark_background'); fc = '#0E1117'; pc = 'deepskyblue'; gc = '#444'; lc = '#CCC'; tc = '#FFF'; lfc = '#262730'; min_c = 'tomato'; max_c = 'orange'; sc = '#555'
         else: plt.style.use('default'); fc = '#FFFFFF'; pc = 'dodgerblue'; gc = 'darkgray'; lc = '#333'; tc = '#000'; lfc = '#F0F0F0'; min_c = 'red'; max_c = 'darkorange'; sc = '#888'
 
@@ -144,28 +140,28 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
         fig, ax = plt.subplots(figsize=(10, 6), facecolor=fc, constrained_layout=True); ax.set_facecolor(fc)
         if plot_type == 'Altitude Plot':
             ax.plot(plot_times, altitudes, color=pc, alpha=0.9, lw=1.5, label=obj_name)
-            ax.axhline(min_altitude_deg, color=min_c, linestyle='--', linewidth=1.2, label=t.get('graph_min_altitude_label', "...").format(min_altitude_deg), alpha=0.8)
-            if max_altitude_deg < 90: ax.axhline(max_altitude_deg, color=max_c, linestyle=':', linewidth=1.2, label=t.get('graph_max_altitude_label', "...").format(max_altitude_deg), alpha=0.8)
-            ax.set_xlabel(t.get('graph_xlabel_time', "..."), color=lc, fontsize=11); ax.set_ylabel(t.get('graph_ylabel_alt', "..."), color=lc, fontsize=11); ax.set_title(t.get('graph_title_alt_time', "...").format(obj_name), color=tc, fontsize=13, weight='bold'); ax.set_ylim(0, 90); ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M')); fig.autofmt_xdate(rotation=30); ax.grid(True, linestyle='-', alpha=0.5, color=gc); ax.tick_params(axis='x', colors=lc); ax.tick_params(axis='y', colors=lc); [spine.set_color(sc) for spine in ax.spines.values()]; [spine.set_linewidth(0.5) for spine in ax.spines.values()]
+            ax.axhline(min_altitude_deg, color=min_c, linestyle='--', linewidth=1.2, label=t.get('graph_min_altitude_label', "Min Höhe ({:.0f}°)").format(min_altitude_deg), alpha=0.8)
+            if max_altitude_deg < 90: ax.axhline(max_altitude_deg, color=max_c, linestyle=':', linewidth=1.2, label=t.get('graph_max_altitude_label', "Max Höhe ({:.0f}°)").format(max_altitude_deg), alpha=0.8)
+            ax.set_xlabel(t.get('graph_xlabel_time', "Zeit (UTC)"), color=lc, fontsize=11); ax.set_ylabel(t.get('graph_ylabel_alt', "Höhe (°)"), color=lc, fontsize=11); ax.set_title(t.get('graph_title_alt_time', "Höhe vs. Zeit: {}").format(obj_name), color=tc, fontsize=13, weight='bold'); ax.set_ylim(0, 90); ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M')); fig.autofmt_xdate(rotation=30); ax.grid(True, linestyle='-', alpha=0.5, color=gc); ax.tick_params(axis='x', colors=lc); ax.tick_params(axis='y', colors=lc); [spine.set_color(sc) for spine in ax.spines.values()]; [spine.set_linewidth(0.5) for spine in ax.spines.values()]
         elif plot_type == 'Sky Path':
-            if azimuths is None: st.error(t.get('plot_error_missing_azimuth', "...")); plt.close(fig); return None
+            if azimuths is None: st.error(t.get('plot_error_missing_azimuth', "Plot Fehler: Fehlende Azimut-Daten für Himmelspfad.")); plt.close(fig); return None
             ax.remove(); ax = fig.add_subplot(111, projection='polar', facecolor=fc); az_rad = np.deg2rad(azimuths); radius = 90 - altitudes; time_delta = times.jd.max() - times.jd.min(); time_normalized = (times.jd - times.jd.min()) / (time_delta + 1e-9) if time_delta > 0 else np.zeros_like(times.jd); colors = plt.cm.viridis(time_normalized)
             scatter = ax.scatter(az_rad, radius, c=colors, s=15, alpha=0.8, edgecolors='none', label=obj_name); ax.plot(az_rad, radius, color=pc, alpha=0.4, lw=0.8)
-            ax.plot(np.linspace(0, 2 * np.pi, 100), np.full(100, 90 - min_altitude_deg), color=min_c, linestyle='--', linewidth=1.2, label=t.get('graph_min_altitude_label',"...").format(min_altitude_deg), alpha=0.8)
-            if max_altitude_deg < 90: ax.plot(np.linspace(0, 2 * np.pi, 100), np.full(100, 90 - max_altitude_deg), color=max_c, linestyle=':', linewidth=1.2, label=t.get('graph_max_altitude_label',"...").format(max_altitude_deg), alpha=0.8)
-            ax.set_theta_zero_location('N'); ax.set_theta_direction(-1); ax.set_yticks(np.arange(0, 91, 15)); ax.set_yticklabels([f"{90-a}°" for a in np.arange(0, 91, 15)], color=lc); ax.set_ylim(0, 90); ax.set_title(t.get('graph_title_sky_path',"...").format(obj_name), va='bottom', color=tc, fontsize=13, weight='bold', y=1.1); ax.grid(True, linestyle=':', alpha=0.5, color=gc); ax.spines['polar'].set_color(sc); ax.spines['polar'].set_linewidth(0.5)
-            try: cbar = fig.colorbar(scatter, ax=ax, label=t.get('graph_colorbar_label', "..."), pad=0.1, shrink=0.7); cbar.set_ticks([0, 1]); start_label = times[0].to_datetime(timezone.utc).strftime('%H:%M') if len(times)>0 else 'S'; end_label = times[-1].to_datetime(timezone.utc).strftime('%H:%M') if len(times)>0 else 'E'; cbar.ax.set_yticklabels([start_label, end_label]); cbar.set_label(t.get('graph_colorbar_label', "..."), color=lc, fontsize=10); cbar.ax.yaxis.set_tick_params(color=lc, labelsize=9); plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color=lc); cbar.outline.set_edgecolor(sc); cbar.outline.set_linewidth(0.5)
+            ax.plot(np.linspace(0, 2 * np.pi, 100), np.full(100, 90 - min_altitude_deg), color=min_c, linestyle='--', linewidth=1.2, label=t.get('graph_min_altitude_label',"Min Höhe ({:.0f}°)").format(min_altitude_deg), alpha=0.8)
+            if max_altitude_deg < 90: ax.plot(np.linspace(0, 2 * np.pi, 100), np.full(100, 90 - max_altitude_deg), color=max_c, linestyle=':', linewidth=1.2, label=t.get('graph_max_altitude_label',"Max Höhe ({:.0f}°)").format(max_altitude_deg), alpha=0.8)
+            ax.set_theta_zero_location('N'); ax.set_theta_direction(-1); ax.set_yticks(np.arange(0, 91, 15)); ax.set_yticklabels([f"{90-a}°" for a in np.arange(0, 91, 15)], color=lc); ax.set_ylim(0, 90); ax.set_title(t.get('graph_title_sky_path',"Himmelspfad: {}").format(obj_name), va='bottom', color=tc, fontsize=13, weight='bold', y=1.1); ax.grid(True, linestyle=':', alpha=0.5, color=gc); ax.spines['polar'].set_color(sc); ax.spines['polar'].set_linewidth(0.5)
+            try: cbar = fig.colorbar(scatter, ax=ax, label=t.get('graph_colorbar_label', "Zeit (UTC)"), pad=0.1, shrink=0.7); cbar.set_ticks([0, 1]); start_label = times[0].to_datetime(timezone.utc).strftime('%H:%M') if len(times)>0 else 'S'; end_label = times[-1].to_datetime(timezone.utc).strftime('%H:%M') if len(times)>0 else 'E'; cbar.ax.set_yticklabels([start_label, end_label]); cbar.set_label(t.get('graph_colorbar_label', "Zeit (UTC)"), color=lc, fontsize=10); cbar.ax.yaxis.set_tick_params(color=lc, labelsize=9); plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color=lc); cbar.outline.set_edgecolor(sc); cbar.outline.set_linewidth(0.5)
             except Exception as e: print(f"Warnung: Farbleiste: {e}")
-        else: st.error(t.get('plot_error_unknown_type', "...").format(plot_type)); plt.close(fig); return None
+        else: st.error(t.get('plot_error_unknown_type', "Plot Fehler: Unbekannter Plot-Typ: '{}'").format(plot_type)); plt.close(fig); return None
         leg = ax.legend(loc='lower right', fontsize='small', facecolor=lfc, framealpha=0.8, edgecolor=sc); [text.set_color(lc) for text in leg.get_texts()]
         return fig
-    except Exception as e: st.error(t.get('plot_error_unexpected', "...").format(e)); traceback.print_exc(); plt.close(fig); return None
+    except Exception as e: st.error(t.get('plot_error_unexpected', "Plot Fehler: Unerwarteter Fehler bei Plot-Erstellung: {}").format(e)); traceback.print_exc(); plt.close(fig); return None
+
 
 # --- Main UI Component Functions ---
 
 def create_sidebar(t: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFinder | None) -> None:
     """Erstellt die Sidebar UI Elemente."""
-    # ... (Sidebar code remains unchanged) ...
     with st.sidebar:
         st.header(t.get('settings_header', "Einstellungen"))
 
@@ -181,21 +177,31 @@ def create_sidebar(t: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFi
                 st.error(new_msg); st.session_state.catalog_status_msg = new_msg
 
         # Sprachauswahl
-        language_options = {'de': 'Deutsch', 'en': 'English', 'fr': 'Français'}
-        lang_keys = list(language_options.keys())
+        # --- Correction: Use uppercase keys ---
+        language_options = {'DE': 'Deutsch', 'EN': 'English', 'FR': 'Français'}
+        lang_keys = list(language_options.keys()) # ['DE', 'EN', 'FR']
         try:
-            current_lang_key = st.session_state.language
+            # Ensure session state language is also uppercase
+            current_lang_key = st.session_state.language.upper()
+            if current_lang_key not in lang_keys: # Handle case where state might be invalid initially
+                current_lang_key = 'EN' # Default to EN
+                st.session_state.language = current_lang_key
             current_lang_idx = lang_keys.index(current_lang_key)
-        except ValueError: current_lang_idx = 0
+        except ValueError:
+            current_lang_idx = lang_keys.index('EN') if 'EN' in lang_keys else 0
 
         selected_lang_key = st.radio(
             t.get('language_select_label', "Sprache"),
-            lang_keys, format_func=lambda k: language_options[k],
-            key='language_radio', index=current_lang_idx, horizontal=True
+            lang_keys, # Options are uppercase keys
+            format_func=lambda k: language_options[k], # Display text is looked up
+            key='language_radio',
+            index=current_lang_idx,
+            horizontal=True
         )
+        # Compare uppercase selection with uppercase state
         if selected_lang_key != st.session_state.language:
-            st.session_state.language = selected_lang_key
-            st.session_state.location_search_status_msg = "" # Suchmeldung zurücksetzen
+            st.session_state.language = selected_lang_key # Store uppercase
+            st.session_state.location_search_status_msg = ""
             print(f"Sprache geändert zu: {selected_lang_key}. Rerun.")
             st.rerun()
 
@@ -423,9 +429,9 @@ def create_sidebar(t: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFi
         mailto_link = f"mailto:{bug_email_address}?subject={bug_email_subject}&body={bug_email_body}"
         st.sidebar.link_button(t.get('bug_report_button', '🐞 Problem melden / Vorschlag machen'), mailto_link)
 
-# Pass Observer class as type hint
 def display_search_parameters(t: dict, observer_run: Observer | None, ref_time: Time) -> tuple[float, float]:
     """Zeigt die Zusammenfassung der Suchparameter im Hauptbereich an."""
+    # ... (code remains unchanged) ...
     st.subheader(t.get('search_params_header', "Zusammenfassung Suchparameter"))
     p1, p2 = st.columns(2)
 
@@ -684,7 +690,9 @@ def display_results(t: dict, results_ph: st.container, observer_run: Observer | 
                     t.get('results_export_redshift', "Rotverschiebung (z)"): obj_csv_data.get('z') # Rotverschiebung hinzufügen
                 })
             df_export = pd.DataFrame(export_rows)
-            decimal_separator = ',' if st.session_state.language == 'de' else '.' # Dezimaltrennzeichen anpassen
+            # --- Correction: Use uppercase language key for decimal separator ---
+            decimal_separator = ',' if st.session_state.language == 'DE' else '.'
+            # --- End Correction ---
             csv_string = df_export.to_csv(index=False, sep=';', encoding='utf-8-sig', decimal=decimal_separator)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M"); csv_filename = t.get('results_csv_filename',"dso_ergebnisse_{}.csv").format(timestamp)
             csv_placeholder.download_button(label=t.get('results_save_csv_button',"💾 Ergebnisse als CSV speichern"), data=csv_string, file_name=csv_filename, mime='text/csv', key='csv_download_button')
@@ -753,20 +761,22 @@ def create_manual_cosmology_calculator(t: dict) -> None:
         # Eingabefelder für z und kosmologische Parameter
         col1, col2 = st.columns(2)
         with col1:
+            # Verwende eindeutigen Schlüssel für manuelle Eingabe
             z_manual_input = st.number_input(
                 label=t("redshift_z"),
                 min_value=-0.99, # Physisch nicht sinnvoll, aber erlaubt Blueshift-Eingabe
-                value=1.0, # Beispielwert
+                value=st.session_state.get("manual_z_input_value", 1.0), # State für Wert
                 step=0.1,
                 format="%.5f",
-                key="manual_z_input",
+                key="manual_z_input_value", # Schlüssel für Wert
                 help=t('redshift_z_tooltip', default="Kosmologische Rotverschiebung eingeben.")
             )
         with col2:
             st.markdown(f"**{t('cosmo_params')}**")
-            h0_manual_input = st.number_input(label=t("hubble_h0"), min_value=1.0, value=H0_DEFAULT, step=0.1, format="%.1f", key="manual_h0")
-            omega_m_manual_input = st.number_input(label=t("omega_m"), min_value=0.0, max_value=2.0, value=OMEGA_M_DEFAULT, step=0.01, format="%.3f", key="manual_omega_m")
-            omega_lambda_manual_input = st.number_input(label=t("omega_lambda"), min_value=0.0, max_value=2.0, value=OMEGA_LAMBDA_DEFAULT, step=0.01, format="%.3f", key="manual_omega_lambda")
+            # Verwende eindeutige Schlüssel und State für manuelle Parameter
+            h0_manual_input = st.number_input(label=t("hubble_h0"), min_value=1.0, value=st.session_state.get("manual_h0_value", H0_DEFAULT), step=0.1, format="%.1f", key="manual_h0_value")
+            omega_m_manual_input = st.number_input(label=t("omega_m"), min_value=0.0, max_value=2.0, value=st.session_state.get("manual_omega_m_value", OMEGA_M_DEFAULT), step=0.01, format="%.3f", key="manual_omega_m_value")
+            omega_lambda_manual_input = st.number_input(label=t("omega_lambda"), min_value=0.0, max_value=2.0, value=st.session_state.get("manual_omega_lambda_value", OMEGA_LAMBDA_DEFAULT), step=0.01, format="%.3f", key="manual_omega_lambda_value")
 
             # Warnung, wenn Universum nicht flach ist
             if not math.isclose(omega_m_manual_input + omega_lambda_manual_input, 1.0, abs_tol=1e-3):
@@ -785,9 +795,8 @@ def create_manual_cosmology_calculator(t: dict) -> None:
             error_text_manual = t(error_key_manual, **error_args_manual)
             if error_key_manual == "warn_blueshift": st.warning(error_text_manual)
             else: st.error(error_text_manual)
-            # Berechnung hier nicht stoppen, da es nur eine Warnung sein könnte
         else:
-            # Ergebnisse extrahieren und anzeigen
+            # Ergebnisse extrahieren und anzeigen (nur wenn kein Fehler)
             lookback_gyr_res_man = cosmo_results_manual['lookback_gyr']
             comoving_mpc_res_man = cosmo_results_manual['comoving_mpc']
             luminosity_mpc_res_man = cosmo_results_manual['luminosity_mpc']
@@ -799,7 +808,8 @@ def create_manual_cosmology_calculator(t: dict) -> None:
             ang_diam_gly_res_man = convert_mpc_to_gly(ang_diam_mpc_res_man)
             comoving_km_res_man = convert_mpc_to_km(comoving_mpc_res_man)
             comoving_ly_res_man = convert_km_to_ly(comoving_km_res_man)
-            # Optional: Weitere Einheiten
+            # Optional: Weitere Einheiten importieren und verwenden
+            # from astro_calculations import convert_km_to_au, convert_km_to_ls
             # comoving_au_res_man = convert_km_to_au(comoving_km_res_man) if 'convert_km_to_au' in globals() else None
             # comoving_ls_res_man = convert_km_to_ls(comoving_km_res_man) if 'convert_km_to_ls' in globals() else None
             comoving_km_ausgeschrieben_man = format_large_number(comoving_km_res_man) # Use local helper
@@ -821,7 +831,7 @@ def create_manual_cosmology_calculator(t: dict) -> None:
                 st.caption(f"*{t(comoving_example_key_man)}*")
                 # Detailliertere Einheiten
                 st.text(f"  {comoving_km_res_man:,.3e} {t('unit_km_sci')}")
-                # st.text(f"  {comoving_km_ausgeschrieben_man} {t('unit_km_full')}") # Optional
+                st.text(f"  {comoving_km_ausgeschrieben_man} {t('unit_km_full')}") # Optional
                 st.text(f"  {comoving_ly_res_man:,.3e} {t('unit_LJ')}")
                 # if comoving_au_res_man: st.text(f"  {comoving_au_res_man:,.3e} {t('unit_AE')}")
                 # if comoving_ls_res_man: st.text(f"  {comoving_ls_res_man:,.3e} {t('unit_Ls')}")
