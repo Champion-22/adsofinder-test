@@ -2,7 +2,7 @@
 
 # --- Übersetzungsdaten ---
 # Enthält Texte für verschiedene UI-Elemente in unterstützten Sprachen.
-# Schlüssel werden im Code verwendet (z.B. t('app_title')), der Wert ist der angezeigte Text.
+# Schlüssel werden im Code verwendet (z.B. t.get('app_title')), der Wert ist der angezeigte Text.
 translations = {
     'DE': {
         # App Allgemein
@@ -162,22 +162,24 @@ translations = {
         "find_button_label": "🔭 Beobachtbare Objekte finden",
         "info_initial_prompt": "Bitte gültigen Standort in der Sidebar setzen, um Suche zu ermöglichen.",
         "spinner_searching": "Suche beobachtbare Objekte...",
-        "error_window_unexpected": "Unerwarteter Fehler bei Fensterberechnung:",
-        "info_window_calculated": "Beobachtungsfenster: {} bis {} UTC",
-        "info_window_polar_day": "Kein dunkles Fenster gefunden (Polartag?).",
-        "info_window_polar_night": "Kein klares Fenster gefunden (Polarnacht?).",
-        "info_window_polar_night_full": "Dauerhaft dunkel im Fenster: {} bis {} UTC",
-        "info_window_polar_night_start": "Fenster: {} bis {} UTC (Polarnacht beginnt)",
-        "info_window_polar_day_end": "Fenster: {} bis {} UTC (Polartag endet)",
-        "error_no_window": "Kein gültiges Beobachtungsfenster gefunden.",
+        # --- Korrektur: Keyword-Platzhalter verwenden ---
+        "error_window_unexpected": "Unerwarteter Fehler bei Fensterberechnung: {e}", # Beispiel mit Keyword
+        "info_window_calculated": "Beobachtungsfenster: {start_utc} bis {end_utc} UTC",
+        "info_window_polar_day": "Kein dunkles Fenster gefunden (Polartag?).", # Keine Platzhalter benötigt
+        "info_window_polar_night": "Kein klares Fenster gefunden (Polarnacht?).", # Keine Platzhalter benötigt
+        "info_window_polar_night_full": "Dauerhaft dunkel im Fenster: {start_utc} bis {end_utc} UTC",
+        "info_window_polar_night_start": "Fenster: {start_utc} bis {end_utc} UTC (Polarnacht beginnt)",
+        "info_window_polar_day_end": "Fenster: {start_utc} bis {end_utc} UTC (Polartag endet)",
+        "error_no_window": "Kein gültiges Beobachtungsfenster gefunden.", # Keine Platzhalter benötigt
+        # --- Ende Korrektur ---
         "error_cannot_search_no_window": "Suche ohne gültiges Beobachtungsfenster nicht möglich.",
         "warning_window_too_short": "Beobachtungsfenster sehr kurz, Ergebnisse evtl. limitiert.",
         "warning_window_too_short_calc": "Beobachtungsfenster sehr kurz. Ergebnisse basieren auf wenigen Zeitpunkten.",
         "warning_no_objects_after_filters": "Keine Objekte entsprechen den Magnitude-, Typ- oder Größenfiltern.",
         "warning_no_objects_found_final": "Keine Objekte gefunden, die allen Kriterien entsprechen (inkl. Höhe/Richtung).",
-        "success_objects_found": "{} Objekte gefunden, die Kriterien entsprechen.",
-        "info_showing_list_duration": "Zeige Top {} Ergebnisse (sortiert nach Dauer & Höhe).",
-        "info_showing_list_magnitude": "Zeige Top {} Ergebnisse (sortiert nach Helligkeit).",
+        "success_objects_found": "{} Objekte gefunden, die Kriterien entsprechen.", # OK mit positional
+        "info_showing_list_duration": "Zeige Top {} Ergebnisse (sortiert nach Dauer & Höhe).", # OK mit positional
+        "info_showing_list_magnitude": "Zeige Top {} Ergebnisse (sortiert nach Helligkeit).", # OK mit positional
         "error_search_unexpected": "Unerwarteter Fehler während der Suche:",
         "error_prereq_catalog": "Fehler: Katalogdaten nicht geladen.",
         "error_prereq_location": "Fehler: Standort ungültig.",
@@ -187,23 +189,23 @@ translations = {
         # Ergebnisliste & Details
         "results_list_header": "Ergebnisse",
         "moon_metric_label": "Mondbeleuchtung",
-        "moon_warning_message": "Warnung: Mond ({:.0f}%) heller als Schwelle ({}%)!",
-        "moon_phase_error": "Mondphase konnte nicht berechnet werden: {}",
+        "moon_warning_message": "Warnung: Mond ({:.0f}%) heller als Schwelle ({}%)!", # OK mit positional
+        "moon_phase_error": "Mondphase konnte nicht berechnet werden: {}", # OK mit positional
         "moon_phase_info_cannot_calc": "Mondphasenberechnung benötigt gültigen Standort und Zeitfenster.",
         "graph_type_label": "Plot-Typ wählen:",
         "graph_type_sky_path": "Himmelspfad (Polar)",
         "graph_type_alt_time": "Höhe vs. Zeit",
-        "results_expander_title": "{} ({}) - Mag: {}", # Platzhalter für Name, Typ, Mag
+        "results_expander_title": "{} ({}) - Mag: {}", # OK mit positional
         "magnitude_unknown": "k.A.",
         "results_details_header": "Details:",
         "results_size_label": "Größe:",
-        "results_size_value": "{:.1f}′", # Arcminutes
+        "results_size_value": "{:.1f}′", # OK mit positional
         "results_max_alt_header": "Max. Höhe:",
-        "results_azimuth_label": "(Az:{:.1f}°)",
-        "results_direction_label": ", Dir:{}",
+        "results_azimuth_label": "(Az:{:.1f}°)", # OK mit positional
+        "results_direction_label": ", Dir:{}", # OK mit positional
         "results_best_time_header": "Beste Zeit (Lokal):",
         "results_cont_duration_header": "Max. kont. Dauer:",
-        "results_duration_value": "{:.1f} Stunden",
+        "results_duration_value": "{:.1f} Stunden", # OK mit positional
         "google_link_text": "Google",
         "simbad_link_text": "SIMBAD",
         "results_graph_button": "📈 Plot",
@@ -211,8 +213,8 @@ translations = {
         "results_close_graph_button": "Plot schließen",
         "results_graph_not_created": "Plot konnte nicht erstellt werden.",
         "results_save_csv_button": "💾 Ergebnisse als CSV speichern",
-        "results_csv_filename": "dso_ergebnisse_{}.csv", # Timestamp wird eingefügt
-        "results_csv_export_error": "Fehler beim Erstellen der CSV-Datei: {}",
+        "results_csv_filename": "dso_ergebnisse_{}.csv", # OK mit positional
+        "results_csv_export_error": "Fehler beim Erstellen der CSV-Datei: {}", # OK mit positional
         "results_export_name": "Name",
         "results_export_type": "Typ",
         "results_export_constellation": "Sternbild",
@@ -235,15 +237,15 @@ translations = {
         "plot_error_missing_azimuth": "Plot Fehler: Fehlende Azimut-Daten für Himmelspfad.",
         "plot_error_mismatched_lengths": "Plot Fehler: Zeit-, Höhen- und Azimut-Arrays haben unterschiedliche Längen.",
         "plot_error_no_data_points": "Plot Fehler: Nicht genügend Datenpunkte zum Plotten.",
-        "graph_min_altitude_label": "Min Höhe ({:.0f}°)",
-        "graph_max_altitude_label": "Max Höhe ({:.0f}°)",
+        "graph_min_altitude_label": "Min Höhe ({:.0f}°)", # OK mit positional
+        "graph_max_altitude_label": "Max Höhe ({:.0f}°)", # OK mit positional
         "graph_xlabel_time": "Zeit (UTC)",
         "graph_ylabel_alt": "Höhe (°)",
-        "graph_title_alt_time": "Höhe vs. Zeit: {}",
-        "graph_title_sky_path": "Himmelspfad: {}",
+        "graph_title_alt_time": "Höhe vs. Zeit: {}", # OK mit positional
+        "graph_title_sky_path": "Himmelspfad: {}", # OK mit positional
         "graph_colorbar_label": "Zeit (UTC)",
-        "plot_error_unknown_type": "Plot Fehler: Unbekannter Plot-Typ: '{}'",
-        "plot_error_unexpected": "Plot Fehler: Unerwarteter Fehler bei Plot-Erstellung: {}",
+        "plot_error_unknown_type": "Plot Fehler: Unbekannter Plot-Typ: '{}'", # OK mit positional
+        "plot_error_unexpected": "Plot Fehler: Unerwarteter Fehler bei Plot-Erstellung: {}", # OK mit positional
 
         # Custom Target Section
         "custom_target_expander": "Eigenes RA/Dec Ziel plotten",
@@ -263,25 +265,28 @@ translations = {
         "custom_target_error_unexpected": "Unerwarteter Fehler beim Plotten:",
 
         # Kosmologie (aus Redshift Calculator und erweitert)
+        "manual_cosmology_expander": "🌌 Manueller Kosmologie-Rechner", # Für manuellen Rechner
         "results_cosmology_button": "🌌 Kosmologie",
         "cosmology_results_header": "Kosmologische Daten",
         "cosmology_not_applicable": "Kosmologische Daten nicht anwendbar für z ≤ 0.",
         "cosmology_invalid_z": "Ungültiger Rotverschiebungswert im Katalog.",
         "error_module_missing_cosmo": "Fehler: Funktion 'calculate_lcdm_distances' nicht in 'astro_calculations' gefunden.",
         "error_calc_failed_cosmo": "Kosmologie-Berechnung fehlgeschlagen",
-        "redshift_z": "Rotverschiebung (z)", # Wiederverwendet
-        "cosmo_params": "Kosmologische Parameter", # Wiederverwendet
-        "hubble_h0": "Hubble-Konstante (H₀) [km/s/Mpc]", # Wiederverwendet
-        "omega_m": "Materiedichte (Ωm)", # Wiederverwendet
-        "omega_lambda": "Dunkle Energie (ΩΛ)", # Wiederverwendet
-        "flat_universe_warning": "Ωm + ΩΛ ≉ 1. Berechnungen gehen von flachem Universum aus (Ωk=0).", # Wiederverwendet
-        "error_invalid_input": "Ungültige Eingabe. Bitte Zahlen verwenden.", # Wiederverwendet
-        "error_h0_positive": "Hubble-Konstante muss positiv sein.", # Wiederverwendet
-        "error_omega_negative": "Omega-Parameter dürfen nicht negativ sein.", # Wiederverwendet
-        "warn_blueshift": "Warnung: Rotverschiebung negativ (Blueshift). Kosmologische Distanzen sind 0 oder nicht direkt anwendbar.", # Wiederverwendet
-        "error_dep_scipy": "Abhängigkeit 'scipy' nicht gefunden. Bitte installieren.", # Wiederverwendet
-        "error_calc_failed": "Berechnung fehlgeschlagen: {e}", # Wiederverwendet
-        "warn_integration_accuracy": "Warnung: Relative Integrationsgenauigkeit evtl. nicht erreicht (Fehler: DC={err_dc:.2e}, LT={err_lt:.2e}).", # Wiederverwendet
+        "redshift_z": "Rotverschiebung (z)",
+        "redshift_z_tooltip": "Kosmologische Rotverschiebung eingeben.",
+        "cosmo_params": "Kosmologische Parameter",
+        "hubble_h0": "Hubble-Konstante (H₀) [km/s/Mpc]",
+        "omega_m": "Materiedichte (Ωm)",
+        "omega_lambda": "Dunkle Energie (ΩΛ)",
+        "flat_universe_warning": "Ωm + ΩΛ ≉ 1. Berechnungen gehen von flachem Universum aus (Ωk=0).",
+        "results_for": "Ergebnisse für z = {z:.5f}", # OK with keyword
+        "error_invalid_input": "Ungültige Eingabe. Bitte Zahlen verwenden.",
+        "error_h0_positive": "Hubble-Konstante muss positiv sein.",
+        "error_omega_negative": "Omega-Parameter dürfen nicht negativ sein.",
+        "warn_blueshift": "Warnung: Rotverschiebung negativ (Blueshift). Kosmologische Distanzen sind 0 oder nicht direkt anwendbar.",
+        "error_dep_scipy": "Abhängigkeit 'scipy' nicht gefunden. Bitte installieren.",
+        "error_calc_failed": "Berechnung fehlgeschlagen: {e}", # OK with keyword
+        "warn_integration_accuracy": "Warnung: Relative Integrationsgenauigkeit evtl. nicht erreicht (Fehler: DC={err_dc:.2e}, LT={err_lt:.2e}).", # OK with keywords
         "lookback_time": "Rückblickzeit",
         "cosmo_distances": "Kosmologische Distanzen",
         "comoving_distance_title": "**Mitbewegte Distanz:**",
@@ -315,6 +320,7 @@ translations = {
         # Donation Link
         "donation_button_text": "Entwicklung unterstützen via Ko-fi ☕",
     },
+    # --- Englische Übersetzungen ---
     'EN': {
         # App General
         "app_title": "Advanced DSO Finder",
@@ -462,14 +468,16 @@ translations = {
         "find_button_label": "🔭 Find Observable Objects",
         "info_initial_prompt": "Please set a valid location in the sidebar to enable search.",
         "spinner_searching": "Searching for observable objects...",
-        "error_window_unexpected": "Unexpected error calculating observation window:",
-        "info_window_calculated": "Observation window: {} to {} UTC",
+        # --- Correction: Use keyword placeholders ---
+        "error_window_unexpected": "Unexpected error calculating observation window: {e}",
+        "info_window_calculated": "Observation window: {start_utc} to {end_utc} UTC",
         "info_window_polar_day": "No dark window found (polar day?).",
         "info_window_polar_night": "No clear window found (polar night?).",
-        "info_window_polar_night_full": "Permanently dark in window: {} to {} UTC",
-        "info_window_polar_night_start": "Window: {} to {} UTC (polar night starts)",
-        "info_window_polar_day_end": "Window: {} to {} UTC (polar day ends)",
+        "info_window_polar_night_full": "Permanently dark in window: {start_utc} to {end_utc} UTC",
+        "info_window_polar_night_start": "Window: {start_utc} to {end_utc} UTC (polar night starts)",
+        "info_window_polar_day_end": "Window: {start_utc} to {end_utc} UTC (polar day ends)",
         "error_no_window": "No valid observation window found.",
+        # --- End Correction ---
         "error_cannot_search_no_window": "Cannot perform search without a valid observation window.",
         "warning_window_too_short": "Observation window is very short, results may be limited.",
         "warning_window_too_short_calc": "Observation window is very short. Results based on limited time points.",
@@ -563,6 +571,7 @@ translations = {
         "custom_target_error_unexpected": "Unexpected error plotting custom target:",
 
         # Cosmology (from Redshift Calculator and expanded)
+        "manual_cosmology_expander": "🌌 Manual Cosmology Calculator", # For manual calculator
         "results_cosmology_button": "🌌 Cosmology",
         "cosmology_results_header": "Cosmological Data",
         "cosmology_not_applicable": "Cosmological data not applicable for z ≤ 0.",
@@ -570,18 +579,20 @@ translations = {
         "error_module_missing_cosmo": "Error: Function 'calculate_lcdm_distances' not found in 'astro_calculations'.",
         "error_calc_failed_cosmo": "Cosmology calculation failed",
         "redshift_z": "Redshift (z)",
+        "redshift_z_tooltip": "Enter the cosmological redshift.",
         "cosmo_params": "Cosmological Parameters",
         "hubble_h0": "Hubble Constant (H₀) [km/s/Mpc]",
         "omega_m": "Matter Density (Ωm)",
         "omega_lambda": "Dark Energy Density (ΩΛ)",
         "flat_universe_warning": "Ωm + ΩΛ ≉ 1. Calculations assume a flat universe (Ωk=0).",
+        "results_for": "Results for z = {z:.5f}", # OK with keyword
         "error_invalid_input": "Invalid input. Please use numbers.",
         "error_h0_positive": "Hubble constant must be positive.",
         "error_omega_negative": "Omega parameters cannot be negative.",
         "warn_blueshift": "Warning: Redshift is negative (Blueshift). Cosmological distances are 0 or not directly applicable here.",
         "error_dep_scipy": "Dependency 'scipy' not found. Please install.",
-        "error_calc_failed": "Calculation failed: {e}",
-        "warn_integration_accuracy": "Warning: Relative integration accuracy might not be achieved (Error: DC={err_dc:.2e}, LT={err_lt:.2e}).",
+        "error_calc_failed": "Calculation failed: {e}", # OK with keyword
+        "warn_integration_accuracy": "Warning: Relative integration accuracy might not be achieved (Error: DC={err_dc:.2e}, LT={err_lt:.2e}).", # OK with keywords
         "lookback_time": "Lookback Time",
         "cosmo_distances": "Cosmological Distances",
         "comoving_distance_title": "**Comoving Distance:**",
@@ -615,6 +626,7 @@ translations = {
         # Donation Link
         "donation_button_text": "Support Development via Ko-fi ☕",
     },
+    # --- Französische Übersetzungen ---
     'FR': {
         # App Général
         "app_title": "Advanced DSO Finder",
@@ -762,14 +774,16 @@ translations = {
         "find_button_label": "🔭 Trouver Objets Observables",
         "info_initial_prompt": "Veuillez définir une localisation valide dans la barre latérale pour activer la recherche.",
         "spinner_searching": "Recherche d'objets observables...",
-        "error_window_unexpected": "Erreur inattendue lors du calcul de la fenêtre :",
-        "info_window_calculated": "Fenêtre d'observation : {} à {} UTC",
+        # --- Correction: Use keyword placeholders ---
+        "error_window_unexpected": "Erreur inattendue lors du calcul de la fenêtre : {e}",
+        "info_window_calculated": "Fenêtre d'observation : {start_utc} à {end_utc} UTC",
         "info_window_polar_day": "Pas de fenêtre sombre trouvée (jour polaire ?).",
         "info_window_polar_night": "Pas de fenêtre claire trouvée (nuit polaire ?).",
-        "info_window_polar_night_full": "Nuit permanente dans la fenêtre : {} à {} UTC",
-        "info_window_polar_night_start": "Fenêtre : {} à {} UTC (début nuit polaire)",
-        "info_window_polar_day_end": "Fenêtre : {} à {} UTC (fin jour polaire)",
+        "info_window_polar_night_full": "Nuit permanente dans la fenêtre : {start_utc} à {end_utc} UTC",
+        "info_window_polar_night_start": "Fenêtre : {start_utc} à {end_utc} UTC (début nuit polaire)",
+        "info_window_polar_day_end": "Fenêtre : {start_utc} à {end_utc} UTC (fin jour polaire)",
         "error_no_window": "Aucune fenêtre d'observation valide trouvée.",
+        # --- End Correction ---
         "error_cannot_search_no_window": "Recherche impossible sans fenêtre d'observation valide.",
         "warning_window_too_short": "Fenêtre d'observation très courte, résultats limités.",
         "warning_window_too_short_calc": "Fenêtre d'observation très courte. Résultats basés sur peu de points temporels.",
@@ -863,6 +877,7 @@ translations = {
         "custom_target_error_unexpected": "Erreur inattendue lors du tracé :",
 
         # Cosmologie
+        "manual_cosmology_expander": "🌌 Calculateur Cosmologique Manuel", # Pour manuellen Rechner
         "results_cosmology_button": "🌌 Cosmologie",
         "cosmology_results_header": "Données Cosmologiques",
         "cosmology_not_applicable": "Données cosmologiques non applicables pour z ≤ 0.",
@@ -870,18 +885,20 @@ translations = {
         "error_module_missing_cosmo": "Erreur : Fonction 'calculate_lcdm_distances' introuvable dans 'astro_calculations'.",
         "error_calc_failed_cosmo": "Échec du calcul cosmologique",
         "redshift_z": "Décalage vers le rouge (z)",
+        "redshift_z_tooltip": "Entrer le décalage cosmologique vers le rouge.",
         "cosmo_params": "Paramètres Cosmologiques",
         "hubble_h0": "Constante de Hubble (H₀) [km/s/Mpc]",
         "omega_m": "Densité de matière (Ωm)",
         "omega_lambda": "Densité d'énergie noire (ΩΛ)",
         "flat_universe_warning": "Ωm + ΩΛ ≉ 1. Calculs supposent univers plat (Ωk=0).",
+        "results_for": "Résultats pour z = {z:.5f}", # OK with keyword
         "error_invalid_input": "Entrée invalide. Veuillez utiliser des chiffres.",
         "error_h0_positive": "Constante de Hubble doit être positive.",
         "error_omega_negative": "Paramètres Omega ne peuvent être négatifs.",
         "warn_blueshift": "Avertissement : Décalage vers le rouge négatif (Blueshift). Distances cosmologiques sont 0 ou non applicables.",
         "error_dep_scipy": "Dépendance 'scipy' introuvable. Veuillez l'installer.",
-        "error_calc_failed": "Le calcul a échoué : {e}",
-        "warn_integration_accuracy": "Avertissement : Précision relative d'intégration potentiellement non atteinte (Erreur : DC={err_dc:.2e}, LT={err_lt:.2e}).",
+        "error_calc_failed": "Le calcul a échoué : {e}", # OK with keyword
+        "warn_integration_accuracy": "Avertissement : Précision relative d'intégration potentiellement non atteinte (Erreur : DC={err_dc:.2e}, LT={err_lt:.2e}).", # OK with keywords
         "lookback_time": "Temps de regard en arrière",
         "cosmo_distances": "Distances Cosmologiques",
         "comoving_distance_title": "**Distance comobile :**",
@@ -915,7 +932,6 @@ translations = {
         # Lien Donation
         "donation_button_text": "Soutenir le développement via Ko-fi ☕",
     },
-    # Füge hier bei Bedarf weitere Sprachen hinzu
 }
 
 
