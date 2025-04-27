@@ -10,8 +10,6 @@ import pandas as pd
 import math
 
 # --- Library Imports ---
-# NOTE: Unresolved import errors below usually mean the package is not installed
-# in the selected Python environment or the editor is not using the right environment.
 try:
     from astropy.time import Time
     import numpy as np
@@ -50,7 +48,6 @@ INITIAL_HEIGHT = 550
 INITIAL_TIMEZONE = "Europe/Zurich"
 INITIAL_MIN_ALT = 20
 INITIAL_MAX_ALT = 90
-
 
 # --- Path to Catalog File ---
 try:
@@ -197,7 +194,7 @@ def main():
     @st.cache_data
     def cached_load_ongc_data(path):
         print(f"Cache miss: Loading ONGC data from {path}")
-        return data_handling.load_ongc_data(path) # Assume data_handling handles internal errors/translations
+        return data_handling.load_ongc_data(path)
 
     df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH)
 
@@ -356,7 +353,7 @@ def main():
                     if c_min > c_max: c_min=c_max
                     if (c_min, c_max) != st.session_state.size_arcmin_range: st.session_state.size_arcmin_range = (c_min, c_max)
                     step = 0.1 if max_s <= 20 else (0.5 if max_s <= 100 else 1.0)
-                    # Corrected line 604: Removed format argument
+                    # Removed format parameter from slider
                     st.slider(
                         label=t.get('size_filter_label',"Size (arcmin):"),
                         min_value=min_s,
@@ -393,12 +390,12 @@ def main():
             st.radio(t.get('results_options_sort_method_label',"Sort By:"), list(sort_map.keys()), format_func=lambda k:sort_map[k], key='sort_method', horizontal=True)
 
         st.sidebar.markdown("---")
-        st.sidebar.markdown(f"**{t.get('bug_report', 'Found a bug?')}**") # Corrected call
+        st.sidebar.markdown(f"**{t.get('bug_report', 'Found a bug?')}**") # Use .get()
         bug_email = "debrun2005@gmail.com"
         bug_subject = urllib.parse.quote("Bug Report: Advanced DSO Finder")
         bug_body = urllib.parse.quote(t.get('bug_report_body', "\n\n(Describe bug and steps to reproduce)"))
         bug_link = f"mailto:{bug_email}?subject={bug_subject}&body={bug_body}"
-        st.sidebar.link_button(t.get('bug_report_button', '🐞 Report Issue'), bug_link)
+        st.sidebar.link_button(t.get('bug_report_button', '🐞 Report Issue'), bug_link) # Use .get()
 
 
     # --- Main Area ---
@@ -501,7 +498,8 @@ def main():
         results_ph.radio(t.get('graph_type_label',"Plot Type:"), list(plot_map.keys()), format_func=lambda k:plot_map[k], key='plot_type_selection', horizontal=True)
 
         for i, obj in enumerate(results_data):
-            name=obj.get('Name','?'); type_obj=obj.get('Type','?'); mag=obj.get('Magnitude'); mag_s=f"{mag:.1f}" if mag is not None else "?"; title=t.get('results_expander_title',"{} ({})-Mag: {}").format(name,type_obj,mag_s)
+            name=obj.get('Name','?'); type_obj=obj.get('Type','?'); mag=obj.get('Magnitude'); mag_s=f"{mag:.1f}" if mag is not None else t.get('magnitude_unknown', 'N/A') # Use translated N/A
+            title=t.get('results_expander_title',"{} ({}) - Mag: {}").format(name,type_obj,mag_s) # Corrected line
             is_exp = (st.session_state.expanded_object_name == name); obj_c = results_ph.container()
             with obj_c.expander(title, expanded=is_exp):
                 c1,c2,c3 = st.columns([2,2,1])
@@ -601,7 +599,7 @@ def main():
                           st.error(t.get('results_graph_not_created',"Plot failed."))
         elif st.session_state.custom_target_error: err_ph.error(st.session_state.custom_target_error)
 
-    # Donation Link (Integrated)
+    # Donation Link
     st.markdown("---")
     st.markdown(t.get('donation_text', "Like the app? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)"), unsafe_allow_html=True)
 
