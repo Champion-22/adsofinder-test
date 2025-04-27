@@ -189,14 +189,15 @@ def main():
     lang = st.session_state.language
     if lang not in translations:
         lang = 'de'; st.session_state.language = lang
-    t = translations.get(lang, translations['en'])
+    t = translations.get(lang, translations['en']) # Use .get() for safety
 
     @st.cache_data
     def cached_load_ongc_data(path):
         print(f"Cache miss: Loading ONGC data from {path}")
-        return data_handling.load_ongc_data(path)
+        # Pass language to data loading function
+        return data_handling.load_ongc_data(path, lang) # Pass lang here
 
-    df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH)
+    df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH, lang) # Pass lang for caching
 
     st.title("Advanced DSO Finder")
 
@@ -255,11 +256,8 @@ def main():
                 if search_submitted and st.session_state.location_search_query:
                     loc=None; service=None; err=None; query=st.session_state.location_search_query; agent=f"AdvDSOFinder/{random.randint(1000,9999)}"
                     with st.spinner(t.get('spinner_geocoding', "Searching...")):
-                        try:
-                            geo=Nominatim(user_agent=agent); loc=geo.geocode(query, timeout=10); service="Nominatim"
-                            print("Nominatim success.")
-                        except (GeocoderTimedOut, GeocoderServiceError) as e:
-                            print(f"Nominatim fail: {e}"); status_ph.info(t.get('location_search_info_fallback', "Fallback 1..."))
+                        try: geo=Nominatim(user_agent=agent); loc=geo.geocode(query, timeout=10); service="Nominatim"; print("Nominatim success.")
+                        except (GeocoderTimedOut, GeocoderServiceError) as e: print(f"Nominatim fail: {e}"); status_ph.info(t.get('location_search_info_fallback', "Fallback 1..."))
                         except Exception as e: print(f"Nominatim error: {e}"); status_ph.info(t.get('location_search_info_fallback', "Fallback 1...")); err=e
                         if not loc:
                            try: fgeo=ArcGIS(timeout=15); loc=fgeo.geocode(query,timeout=15); service="ArcGIS"; print("ArcGIS success.")
@@ -356,12 +354,12 @@ def main():
                     if c_min > c_max: c_min=c_max
                     if (c_min, c_max) != st.session_state.size_arcmin_range: st.session_state.size_arcmin_range = (c_min, c_max)
                     step = 0.1 if max_s <= 20 else (0.5 if max_s <= 100 else 1.0)
+                    # Corrected: Removed format parameter from st.slider
                     st.slider(
-                        t.get('size_filter_label',"Size (arcmin):"),
+                        label=t.get('size_filter_label',"Size (arcmin):"),
                         min_value=min_s,
                         max_value=max_s,
                         step=step,
-                        format="%.1f arcmin",
                         key='size_arcmin_range',
                         help=t.get('size_filter_help',"..."),
                         disabled=size_disabled
@@ -393,7 +391,7 @@ def main():
             st.radio(t.get('results_options_sort_method_label',"Sort By:"), list(sort_map.keys()), format_func=lambda k:sort_map[k], key='sort_method', horizontal=True)
 
         st.sidebar.markdown("---")
-        st.sidebar.markdown(f"**{t('bug_report', 'Found a bug?')}**")
+        st.sidebar.markdown(f"**{t.get('bug_report', 'Found a bug?')}**") # Corrected: Use .get()
         bug_email = "debrun2005@gmail.com"
         bug_subject = urllib.parse.quote("Bug Report: Advanced DSO Finder")
         bug_body = urllib.parse.quote(t.get('bug_report_body', "\n\n(Describe bug and steps to reproduce)"))
@@ -595,6 +593,7 @@ def main():
                      # Corrected syntax for inner if block
                      if fig:
                          st.pyplot(fig)
+                         # Corrected block for button press
                          if st.button(t.get('results_close_graph_button',"Close"), key="close_custom"):
                              st.session_state.show_custom_plot=False
                              st.session_state.custom_target_plot_data=None
@@ -607,6 +606,7 @@ def main():
     # Donation Link (Integrated)
     st.markdown("---")
     st.markdown(t.get('donation_text', "Like the app? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)"), unsafe_allow_html=True)
+
 
 # Run App
 if __name__ == "__main__":
