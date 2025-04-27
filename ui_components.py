@@ -378,10 +378,18 @@ def create_sidebar(trans: dict, df_catalog_data: pd.DataFrame | None, tf: Timezo
         mailto_link = f"mailto:{bug_email_address}?subject={bug_email_subject}&body={bug_email_body}"
         st.sidebar.link_button(trans.get('bug_report_button', '🐞 Problem melden / Vorschlag machen'), mailto_link)
 
+
 # --- Rename parameter t to trans ---
 def display_search_parameters(trans: dict, observer_run: Observer | None, ref_time: Time) -> tuple[float, float]:
     """Zeigt die Zusammenfassung der Suchparameter im Hauptbereich an."""
-    st.subheader(trans.get('search_params_header', "Zusammenfassung Suchparameter"))
+    # --- Debug Check ---
+    print(f"DEBUG: Type of 'trans' at start of display_search_parameters: {type(trans)}")
+    if not isinstance(trans, dict):
+        st.error(f"Interner Fehler: 'trans' ist kein Dictionary in display_search_parameters! Typ: {type(trans)}")
+        trans = {} # Dummy dict
+    # --- End Debug Check ---
+
+    st.subheader(trans.get('search_params_header', "Zusammenfassung Suchparameter")) # Line 381 (approx)
     p1, p2 = st.columns(2)
     location_display_text = trans.get('location_not_set', "Standort nicht gesetzt oder ungültig.")
     if st.session_state.location_is_valid_for_run and observer_run:
