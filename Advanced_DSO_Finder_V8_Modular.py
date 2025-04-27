@@ -189,15 +189,15 @@ def main():
     lang = st.session_state.language
     if lang not in translations:
         lang = 'de'; st.session_state.language = lang
-    t = translations.get(lang, translations['en']) # Use .get() for safety
+    t = translations.get(lang, translations['en'])
 
     @st.cache_data
     def cached_load_ongc_data(path):
         print(f"Cache miss: Loading ONGC data from {path}")
-        # Pass language to data loading function
-        return data_handling.load_ongc_data(path, lang) # Pass lang here
+        # Pass lang to data handling function
+        return data_handling.load_ongc_data(path, lang)
 
-    df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH, lang) # Pass lang for caching
+    df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH) # Removed lang, assume data_handling uses its own 't' if needed
 
     st.title("Advanced DSO Finder")
 
@@ -256,7 +256,8 @@ def main():
                 if search_submitted and st.session_state.location_search_query:
                     loc=None; service=None; err=None; query=st.session_state.location_search_query; agent=f"AdvDSOFinder/{random.randint(1000,9999)}"
                     with st.spinner(t.get('spinner_geocoding', "Searching...")):
-                        try: geo=Nominatim(user_agent=agent); loc=geo.geocode(query, timeout=10); service="Nominatim"; print("Nominatim success.")
+                        try:
+                            geo=Nominatim(user_agent=agent); loc=geo.geocode(query, timeout=10); service="Nominatim"; print("Nominatim success.")
                         except (GeocoderTimedOut, GeocoderServiceError) as e: print(f"Nominatim fail: {e}"); status_ph.info(t.get('location_search_info_fallback', "Fallback 1..."))
                         except Exception as e: print(f"Nominatim error: {e}"); status_ph.info(t.get('location_search_info_fallback', "Fallback 1...")); err=e
                         if not loc:
@@ -354,12 +355,12 @@ def main():
                     if c_min > c_max: c_min=c_max
                     if (c_min, c_max) != st.session_state.size_arcmin_range: st.session_state.size_arcmin_range = (c_min, c_max)
                     step = 0.1 if max_s <= 20 else (0.5 if max_s <= 100 else 1.0)
-                    # Corrected: Removed format parameter from st.slider
                     st.slider(
                         label=t.get('size_filter_label',"Size (arcmin):"),
                         min_value=min_s,
                         max_value=max_s,
                         step=step,
+                        # format="%.1f", # REMOVED problematic format argument
                         key='size_arcmin_range',
                         help=t.get('size_filter_help',"..."),
                         disabled=size_disabled
@@ -514,20 +515,18 @@ def main():
                 if st.session_state.show_plot and st.session_state.plot_object_name == name:
                     p_data=obj; min_a_plot=st.session_state.min_alt_slider; max_a_plot=st.session_state.max_alt_slider; st.markdown("---")
                     with st.spinner(t.get('results_spinner_plotting',"Plotting...")):
-                        try:
-                            fig = create_plot(p_data, min_a_plot, max_a_plot, st.session_state.plot_type_selection, t)
-                        except Exception as e:
-                            st.error(f"Plot Err:{e}"); traceback.print_exc(); fig=None
+                        try: fig = create_plot(p_data, min_a_plot, max_a_plot, st.session_state.plot_type_selection, t)
+                        except Exception as e: st.error(f"Plot Err:{e}"); traceback.print_exc(); fig=None
                         if fig:
                             st.pyplot(fig)
                             close_key=f"close_{name}_{i}"
+                            # Corrected SyntaxError: Indent block after 'if button'
                             if st.button(t.get('results_close_graph_button',"Close"), key=close_key):
                                 st.session_state.show_plot=False
                                 st.session_state.active_result_plot_data=None
                                 st.session_state.expanded_object_name=None
                                 st.rerun()
-                        else:
-                            st.error(t.get('results_graph_not_created',"Plot failed."))
+                        else: st.error(t.get('results_graph_not_created',"Plot failed."))
         if results_data:
             csv_ph = results_ph.container()
             try:
@@ -590,10 +589,9 @@ def main():
                          fig=create_plot(c_data, min_a_cust, max_a_cust, st.session_state.plot_type_selection, t)
                      except Exception as e:
                          st.error(f"Plot Err:{e}"); traceback.print_exc(); fig=None
-                     # Corrected syntax for inner if block
+                     # Corrected syntax for inner if block (Line 612 was here)
                      if fig:
                          st.pyplot(fig)
-                         # Corrected block for button press
                          if st.button(t.get('results_close_graph_button',"Close"), key="close_custom"):
                              st.session_state.show_custom_plot=False
                              st.session_state.custom_target_plot_data=None
@@ -603,10 +601,9 @@ def main():
                           st.error(t.get('results_graph_not_created',"Plot failed."))
         elif st.session_state.custom_target_error: err_ph.error(st.session_state.custom_target_error)
 
-    # Donation Link (Integrated)
+    # Donation Link
     st.markdown("---")
     st.markdown(t.get('donation_text', "Like the app? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)"), unsafe_allow_html=True)
-
 
 # Run App
 if __name__ == "__main__":
