@@ -189,7 +189,7 @@ def main():
     lang = st.session_state.language
     if lang not in translations:
         lang = 'de'; st.session_state.language = lang
-    t = translations.get(lang, translations['en'])
+    t = translations.get(lang, translations['en']) # Use .get() for safety
 
     @st.cache_data
     def cached_load_ongc_data(path):
@@ -197,7 +197,7 @@ def main():
         # Pass lang to data handling function
         return data_handling.load_ongc_data(path) # Pass lang if data_handling requires it
 
-    df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH) # Removed lang, check data_handling signature
+    df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH) # Pass lang for caching
 
     st.title("Advanced DSO Finder")
 
@@ -256,8 +256,7 @@ def main():
                 if search_submitted and st.session_state.location_search_query:
                     loc=None; service=None; err=None; query=st.session_state.location_search_query; agent=f"AdvDSOFinder/{random.randint(1000,9999)}"
                     with st.spinner(t.get('spinner_geocoding', "Searching...")):
-                        try:
-                            geo=Nominatim(user_agent=agent); loc=geo.geocode(query, timeout=10); service="Nominatim"; print("Nominatim success.")
+                        try: geo=Nominatim(user_agent=agent); loc=geo.geocode(query, timeout=10); service="Nominatim"; print("Nominatim success.")
                         except (GeocoderTimedOut, GeocoderServiceError) as e: print(f"Nominatim fail: {e}"); status_ph.info(t.get('location_search_info_fallback', "Fallback 1..."))
                         except Exception as e: print(f"Nominatim error: {e}"); status_ph.info(t.get('location_search_info_fallback', "Fallback 1...")); err=e
                         if not loc:
@@ -292,13 +291,11 @@ def main():
             if loc_valid_tz and lat is not None and lon is not None:
                 if tf:
                     try:
-                        found_tz_val = tf.timezone_at(lng=lon, lat=lat) # Use different var name
-                        if found_tz_val:
-                            pytz.timezone(found_tz_val); st.session_state.selected_timezone = found_tz_val; tz_msg=f"{t.get('timezone_auto_set_label','Detected TZ:')} **{found_tz_val}**"
+                        found_tz_val = tf.timezone_at(lng=lon, lat=lat)
+                        if found_tz_val: pytz.timezone(found_tz_val); st.session_state.selected_timezone = found_tz_val; tz_msg=f"{t.get('timezone_auto_set_label','Detected TZ:')} **{found_tz_val}**"
                         else: st.session_state.selected_timezone='UTC'; tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **UTC** ({t.get('timezone_auto_fail_msg','Failed')})"
                     except pytz.UnknownTimeZoneError:
                          st.session_state.selected_timezone='UTC'
-                         # Ensure found_tz_val is used if defined, else use placeholder
                          invalid_tz_name = locals().get('found_tz_val', 'Unknown')
                          tz_msg = t.get('timezone_auto_fail_label','TZ:') + " **UTC** (Invalid: '{}')".format(invalid_tz_name)
                     except Exception as e: print(f"TZ Error: {e}"); st.session_state.selected_timezone='UTC'; tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **UTC** (Error)"
@@ -357,12 +354,13 @@ def main():
                     if c_min > c_max: c_min=c_max
                     if (c_min, c_max) != st.session_state.size_arcmin_range: st.session_state.size_arcmin_range = (c_min, c_max)
                     step = 0.1 if max_s <= 20 else (0.5 if max_s <= 100 else 1.0)
+                    # Corrected syntax for slider format argument
                     st.slider(
                         label=t.get('size_filter_label',"Size (arcmin):"),
                         min_value=min_s,
                         max_value=max_s,
                         step=step,
-                        # format="%.1f", # REMOVED problematic format argument
+                        format="%.1f", # Correct format specifier string
                         key='size_arcmin_range',
                         help=t.get('size_filter_help',"..."),
                         disabled=size_disabled
@@ -394,7 +392,7 @@ def main():
             st.radio(t.get('results_options_sort_method_label',"Sort By:"), list(sort_map.keys()), format_func=lambda k:sort_map[k], key='sort_method', horizontal=True)
 
         st.sidebar.markdown("---")
-        st.sidebar.markdown(f"**{t.get('bug_report', 'Found a bug?')}**") # Corrected: Use .get()
+        st.sidebar.markdown(f"**{t.get('bug_report', 'Found a bug?')}**") # Corrected call
         bug_email = "debrun2005@gmail.com"
         bug_subject = urllib.parse.quote("Bug Report: Advanced DSO Finder")
         bug_body = urllib.parse.quote(t.get('bug_report_body', "\n\n(Describe bug and steps to reproduce)"))
@@ -590,7 +588,7 @@ def main():
                          fig=create_plot(c_data, min_a_cust, max_a_cust, st.session_state.plot_type_selection, t)
                      except Exception as e:
                          st.error(f"Plot Err:{e}"); traceback.print_exc(); fig=None
-                     # Corrected syntax for inner if block (Line 612 was here)
+                     # Corrected syntax for inner if block
                      if fig:
                          st.pyplot(fig)
                          if st.button(t.get('results_close_graph_button',"Close"), key="close_custom"):
@@ -602,7 +600,7 @@ def main():
                           st.error(t.get('results_graph_not_created',"Plot failed."))
         elif st.session_state.custom_target_error: err_ph.error(st.session_state.custom_target_error)
 
-    # Donation Link (Integrated)
+    # Donation Link
     st.markdown("---")
     st.markdown(t.get('donation_text', "Like the app? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)"), unsafe_allow_html=True)
 
