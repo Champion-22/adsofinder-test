@@ -10,6 +10,8 @@ import pandas as pd
 import math
 
 # --- Library Imports ---
+# NOTE: Unresolved import errors below usually mean the package is not installed
+# in the selected Python environment or the editor is not using the right environment.
 try:
     from astropy.time import Time
     import numpy as np
@@ -63,12 +65,8 @@ ALL_DIRECTIONS_KEY = 'All'
 def get_timezone_finder():
     """Initializes and returns a TimezoneFinder instance."""
     if TimezoneFinder:
-        try:
-            return TimezoneFinder(in_memory=True)
-        except Exception as e:
-            print(f"Error initializing TimezoneFinder: {e}")
-            st.warning(f"TimezoneFinder init failed: {e}. Automatic timezone detection disabled.")
-            return None
+        try: return TimezoneFinder(in_memory=True)
+        except Exception as e: print(f"Error initializing TimezoneFinder: {e}"); st.warning(f"TimezoneFinder init failed: {e}."); return None
     return None
 
 tf = get_timezone_finder()
@@ -110,7 +108,6 @@ def create_moon_phase_svg(illumination: float, size: int = 100) -> str:
     elif illumination > 0.99: svg += f'<circle cx="{cx}" cy="{cy}" r="{radius}" fill="{light_color}"/>'
     else:
         x = radius * (illumination * 2 - 1); rx = abs(x)
-        # Split assignments and path creation onto separate lines
         if illumination <= 0.5:
             lae=0; se=1; lac=0; sc=1
             d=f"M {cx},{cy-radius} A {rx},{radius} 0 {lae},{se} {cx},{cy+radius} A {radius},{radius} 0 {lac},{sc} {cx},{cy-radius} Z"
@@ -141,7 +138,7 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
         times = plot_data.get('times'); altitudes = plot_data.get('altitudes'); azimuths = plot_data.get('azimuths'); obj_name = plot_data.get('Name', 'Object')
         if not isinstance(times, Time) or not isinstance(altitudes, np.ndarray): st.error("Plot Error: Missing time/altitude data."); return None
         if plot_type == 'Sky Path' and not isinstance(azimuths, np.ndarray): st.error("Plot Error: Missing azimuth data for Sky Path."); return None
-        if len(times) != len(altitudes) or (azimuths is not None and len(times) != len(azimuths)): st.error(f"Plot Error: Mismatched array lengths."); return None
+        if len(times) != len(altitudes) or (azimuths is not None and len(times) != len(azimuths)): st.error("Plot Error: Mismatched array lengths."); return None
         if len(times) < 1: st.error("Plot Error: Not enough data points."); return None
         plot_times = times.plot_date
 
@@ -311,13 +308,14 @@ def main():
                 if tf:
                     try:
                         found_tz = tf.timezone_at(lng=lon, lat=lat)
-                        if found_tz: pytz.timezone(found_tz); st.session_state.selected_timezone = found_tz; tz_msg=f"{t.get('timezone_auto_set_label','Detected TZ:')} **{found_tz}**"
+                        if found_tz:
+                             pytz.timezone(found_tz); st.session_state.selected_timezone = found_tz; tz_msg=f"{t.get('timezone_auto_set_label','Detected TZ:')} **{found_tz}**"
                         else: st.session_state.selected_timezone='UTC'; tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **UTC** ({t.get('timezone_auto_fail_msg','Failed')})"
                     except pytz.UnknownTimeZoneError:
                          st.session_state.selected_timezone='UTC'
-                         # Use placeholder if found_tz might be undefined
                          invalid_tz_name = locals().get('found_tz', 'Unknown')
-                         tz_msg = t.get('timezone_auto_fail_label','TZ:') + " **UTC** (Invalid: '{}')".format(invalid_tz_name) # Corrected line
+                         # Use standard string formatting for robustness
+                         tz_msg = t.get('timezone_auto_fail_label','TZ:') + " **UTC** (Invalid: '{}')".format(invalid_tz_name)
                     except Exception as e: print(f"TZ Error: {e}"); st.session_state.selected_timezone='UTC'; tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **UTC** (Error)"
                 else: tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **{INITIAL_TIMEZONE}** (N/A)"; st.session_state.selected_timezone=INITIAL_TIMEZONE
             else: tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **{st.session_state.selected_timezone}** (Loc Invalid)"
@@ -374,7 +372,17 @@ def main():
                     if c_min > c_max: c_min=c_max
                     if (c_min, c_max) != st.session_state.size_arcmin_range: st.session_state.size_arcmin_range = (c_min, c_max)
                     step = 0.1 if max_s <= 20 else (0.5 if max_s <= 100 else 1.0)
-                    st.slider(t.get('size_filter_label',"Size (arcmin):"), min_s, max_s, step=step, format="%.1f", key='size_arcmin_range', help=t.get('size_filter_help',"..."), disabled=size_disabled) # Corrected format syntax
+                    # Re-checked syntax for slider format
+                    st.slider(
+                        t.get('size_filter_label',"Size (arcmin):"),
+                        min_value=min_s,
+                        max_value=max_s,
+                        step=step,
+                        format="%.1f", # Ensure format is correct
+                        key='size_arcmin_range',
+                        help=t.get('size_filter_help',"..."),
+                        disabled=size_disabled
+                    )
                 except Exception as e: st.error(f"Size slider error: {e}"); size_disabled=True
             else: st.info("Size data missing. Filter disabled."); size_disabled=True
             if size_disabled: st.slider(t.get('size_filter_label',"Size (arcmin):"), 0.0, 1.0, value=(0.0,1.0), key='size_arcmin_range_disabled', disabled=True)
@@ -423,8 +431,8 @@ def main():
             else: loc_disp = f"Lat:{lat:.4f}, Lon:{lon:.4f}"
         except Exception as e: loc_disp=t.get('location_error',"Loc Err: {}").format(f"Obs Err: {e}"); st.session_state.location_is_valid_for_run=False; observer_run=None
     p1.markdown(t.get('search_params_location',"📍 Loc: {}").format(loc_disp))
-    time_disp = ""; is_now_main_area = (st.session_state.time_choice_exp == "Now")
-    if is_now_main_area:
+    time_disp = ""; is_now_main = (st.session_state.time_choice_exp == "Now")
+    if is_now_main:
         ref_time = Time.now()
         try: local_now, tz_now = get_local_time_str(ref_time, st.session_state.selected_timezone); time_disp = t.get('search_params_time_now',"Now (from {} UTC)").format(f"{local_now} {tz_now}")
         except Exception: time_disp = t.get('search_params_time_now',"Now (from {} UTC)").format(ref_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S') + " UTC")
@@ -456,7 +464,7 @@ def main():
         if observer_run and df_catalog_data is not None:
             with st.spinner(t.get('spinner_searching',"Searching...")):
                 try:
-                    start_t, end_t, win_stat = astro_calculations.get_observable_window(observer_run, ref_time, is_now_main_area, t)
+                    start_t, end_t, win_stat = astro_calculations.get_observable_window(observer_run, ref_time, is_now_main, t)
                     results_ph.info(win_stat); st.session_state.window_start_time=start_t; st.session_state.window_end_time=end_t
                     if start_t and end_t and start_t < end_t:
                         t_res = 5 * u.minute; obs_times = Time(np.arange(start_t.jd, end_t.jd, t_res.to(u.day).value), format='jd', scale='utc')
@@ -499,7 +507,7 @@ def main():
                 mc1, mc2 = results_ph.columns([1,3])
                 with mc1: st.markdown(moon_svg, unsafe_allow_html=True)
                 with mc2:
-                    # Corrected multi-statement line from previous error
+                    # Corrected multi-statement line
                     st.metric(label=t.get('moon_metric_label',"Moon Illum."), value=f"{moon_pct:.0f}%")
                     moon_thresh=st.session_state.moon_phase_slider
                     if moon_pct > moon_thresh:
@@ -509,6 +517,7 @@ def main():
         plot_map = {'Sky Path': t.get('graph_type_sky_path',"Sky Path"), 'Altitude Plot': t.get('graph_type_alt_time',"Altitude Plot")}
         if st.session_state.plot_type_selection not in plot_map: st.session_state.plot_type_selection='Sky Path'
         results_ph.radio(t.get('graph_type_label',"Plot Type:"), list(plot_map.keys()), format_func=lambda k:plot_map[k], key='plot_type_selection', horizontal=True)
+
         for i, obj in enumerate(results_data):
             name=obj.get('Name','?'); type_obj=obj.get('Type','?'); mag=obj.get('Magnitude'); mag_s=f"{mag:.1f}" if mag is not None else "?"; title=t.get('results_expander_title',"{} ({})-Mag: {}").format(name,type_obj,mag_s)
             is_exp = (st.session_state.expanded_object_name == name); obj_c = results_ph.container()
@@ -523,21 +532,31 @@ def main():
                 plot_key = f"plot_{name}_{i}"
                 if st.button(t.get('results_graph_button',"📈 Plot"), key=plot_key): st.session_state.plot_object_name=name; st.session_state.active_result_plot_data=obj; st.session_state.show_plot=True; st.session_state.show_custom_plot=False; st.session_state.expanded_object_name=name; st.rerun()
                 if st.session_state.show_plot and st.session_state.plot_object_name == name:
-                    p_data=obj # Use loop variable 'obj' for plot data
-                    min_a_plot=st.session_state.min_alt_slider; max_a_plot=st.session_state.max_alt_slider; st.markdown("---")
+                    p_data=obj; min_a_plot=st.session_state.min_alt_slider; max_a_plot=st.session_state.max_alt_slider; st.markdown("---")
                     with st.spinner(t.get('results_spinner_plotting',"Plotting...")):
-                        try: fig = create_plot(p_data, min_a_plot, max_a_plot, st.session_state.plot_type_selection, t)
-                        except Exception as e: st.error(f"Plot Err:{e}"); traceback.print_exc(); fig=None
-                        if fig: st.pyplot(fig); close_key=f"close_{name}_{i}"; if st.button(t.get('results_close_graph_button',"Close"), key=close_key): st.session_state.show_plot=False; st.session_state.active_result_plot_data=None; st.session_state.expanded_object_name=None; st.rerun()
-                        else: st.error(t.get('results_graph_not_created',"Plot failed."))
+                        try:
+                            fig = create_plot(p_data, min_a_plot, max_a_plot, st.session_state.plot_type_selection, t)
+                        except Exception as e:
+                            st.error(f"Plot Err:{e}"); traceback.print_exc(); fig=None
+                        if fig:
+                            st.pyplot(fig)
+                            close_key=f"close_{name}_{i}"
+                            # Corrected SyntaxError: Indent block after 'if button'
+                            if st.button(t.get('results_close_graph_button',"Close"), key=close_key):
+                                st.session_state.show_plot=False
+                                st.session_state.active_result_plot_data=None
+                                st.session_state.expanded_object_name=None
+                                st.rerun()
+                        else:
+                            st.error(t.get('results_graph_not_created',"Plot failed."))
         if results_data:
             csv_ph = results_ph.container()
             try:
-                export_data=[] # Define export_data here
-                for obj_csv in results_data: # Use different loop variable
+                export_data=[]
+                for obj_csv in results_data:
                     peak_utc = obj_csv.get('Time at Max (UTC)')
-                    local_t_csv, _ = get_local_time_str(peak_utc, st.session_state.selected_timezone) # Use different variable
-                    export_data.append({ # Use obj_csv here
+                    local_t_csv, _ = get_local_time_str(peak_utc, st.session_state.selected_timezone)
+                    export_data.append({
                         t.get('results_export_name', "Name"): obj_csv.get('Name', 'N/A'),
                         t.get('results_export_type', "Type"): obj_csv.get('Type', 'N/A'),
                         t.get('results_export_constellation', "Constellation"): obj_csv.get('Constellation', 'N/A'),
@@ -566,7 +585,7 @@ def main():
              st.text_input(t.get('custom_target_dec_label',"Dec:"), key="custom_target_dec", placeholder=t.get('custom_target_dec_placeholder',"..."))
              st.text_input(t.get('custom_target_name_label',"Name:"), key="custom_target_name", placeholder="Target")
              custom_submitted = st.form_submit_button(t.get('custom_target_button',"Plot"))
-        err_ph = st.empty(); plot_area = st.empty()
+        err_ph = st.empty(); plot_area = st.container()
         if custom_submitted:
              st.session_state.show_plot=False; st.session_state.show_custom_plot=False; st.session_state.custom_target_plot_data=None; st.session_state.custom_target_error=""
              c_ra=st.session_state.custom_target_ra; c_dec=st.session_state.custom_target_dec; c_name=st.session_state.custom_target_name or t.get('custom_target_name_label',"Target").replace(":","")
@@ -585,7 +604,7 @@ def main():
                  except Exception as e: st.session_state.custom_target_error=f"Custom Plot Err:{e}"; err_ph.error(st.session_state.custom_target_error); traceback.print_exc()
         if st.session_state.show_custom_plot and st.session_state.custom_target_plot_data:
             c_data=st.session_state.custom_target_plot_data; min_a_cust=st.session_state.min_alt_slider; max_a_cust=st.session_state.max_alt_slider
-            with plot_area.container():
+            with plot_area:
                  st.markdown("---")
                  with st.spinner(t.get('results_spinner_plotting',"Plotting...")):
                      try: fig=create_plot(c_data, min_a_cust, max_a_cust, st.session_state.plot_type_selection, t)
@@ -596,7 +615,6 @@ def main():
 
     # --- Donation Link (Integrated) ---
     st.markdown("---")
-    # Use the provided Ko-fi link directly
     st.markdown(t.get('donation_text', "Like the app? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)"), unsafe_allow_html=True)
 
 # --- Run App ---
