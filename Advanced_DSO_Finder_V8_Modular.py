@@ -10,6 +10,8 @@ import pandas as pd
 import math
 
 # --- Library Imports ---
+# NOTE: Unresolved import errors below usually mean the package is not installed
+# in the selected Python environment or the editor is not using the right environment.
 try:
     from astropy.time import Time
     import numpy as np
@@ -48,6 +50,7 @@ INITIAL_HEIGHT = 550
 INITIAL_TIMEZONE = "Europe/Zurich"
 INITIAL_MIN_ALT = 20
 INITIAL_MAX_ALT = 90
+
 
 # --- Path to Catalog File ---
 try:
@@ -353,7 +356,6 @@ def main():
                     if c_min > c_max: c_min=c_max
                     if (c_min, c_max) != st.session_state.size_arcmin_range: st.session_state.size_arcmin_range = (c_min, c_max)
                     step = 0.1 if max_s <= 20 else (0.5 if max_s <= 100 else 1.0)
-                    # Removed format parameter from slider
                     st.slider(
                         label=t.get('size_filter_label',"Size (arcmin):"),
                         min_value=min_s,
@@ -390,12 +392,12 @@ def main():
             st.radio(t.get('results_options_sort_method_label',"Sort By:"), list(sort_map.keys()), format_func=lambda k:sort_map[k], key='sort_method', horizontal=True)
 
         st.sidebar.markdown("---")
-        st.sidebar.markdown(f"**{t.get('bug_report', 'Found a bug?')}**") # Use .get()
+        st.sidebar.markdown(f"**{t.get('bug_report', 'Found a bug?')}**") # Corrected call
         bug_email = "debrun2005@gmail.com"
         bug_subject = urllib.parse.quote("Bug Report: Advanced DSO Finder")
         bug_body = urllib.parse.quote(t.get('bug_report_body', "\n\n(Describe bug and steps to reproduce)"))
         bug_link = f"mailto:{bug_email}?subject={bug_subject}&body={bug_body}"
-        st.sidebar.link_button(t.get('bug_report_button', '🐞 Report Issue'), bug_link) # Use .get()
+        st.sidebar.link_button(t.get('bug_report_button', '🐞 Report Issue'), bug_link) # Corrected call
 
 
     # --- Main Area ---
@@ -498,8 +500,14 @@ def main():
         results_ph.radio(t.get('graph_type_label',"Plot Type:"), list(plot_map.keys()), format_func=lambda k:plot_map[k], key='plot_type_selection', horizontal=True)
 
         for i, obj in enumerate(results_data):
-            name=obj.get('Name','?'); type_obj=obj.get('Type','?'); mag=obj.get('Magnitude'); mag_s=f"{mag:.1f}" if mag is not None else t.get('magnitude_unknown', 'N/A') # Use translated N/A
-            title=t.get('results_expander_title',"{} ({}) - Mag: {}").format(name,type_obj,mag_s) # Corrected line
+            name=obj.get('Name','?')
+            type_obj=obj.get('Type','?')
+            mag=obj.get('Magnitude')
+            # Corrected formatting for title
+            mag_s = f"{mag:.1f}" if mag is not None else t.get('magnitude_unknown', 'N/A')
+            title_template = t.get('results_expander_title',"{} ({}) - Mag: {}")
+            title = title_template.format(name, type_obj, mag_s)
+
             is_exp = (st.session_state.expanded_object_name == name); obj_c = results_ph.container()
             with obj_c.expander(title, expanded=is_exp):
                 c1,c2,c3 = st.columns([2,2,1])
@@ -583,13 +591,11 @@ def main():
             with plot_area:
                  st.markdown("---")
                  with st.spinner(t.get('results_spinner_plotting',"Plotting...")):
-                     try:
-                         fig=create_plot(c_data, min_a_cust, max_a_cust, st.session_state.plot_type_selection, t)
-                     except Exception as e:
-                         st.error(f"Plot Err:{e}"); traceback.print_exc(); fig=None
-                     # Corrected syntax for inner if block
+                     try: fig=create_plot(c_data, min_a_cust, max_a_cust, st.session_state.plot_type_selection, t)
+                     except Exception as e: st.error(f"Plot Err:{e}"); traceback.print_exc(); fig=None
                      if fig:
                          st.pyplot(fig)
+                         # Corrected syntax for inner if block
                          if st.button(t.get('results_close_graph_button',"Close"), key="close_custom"):
                              st.session_state.show_custom_plot=False
                              st.session_state.custom_target_plot_data=None
