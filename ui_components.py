@@ -24,24 +24,19 @@ try:
     from geopy.geocoders import Nominatim, ArcGIS, Photon
     from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 except ImportError as e:
-    # This error should ideally be caught in the main script,
-    # but added here for robustness if used independently.
     st.error(f"Import Error in UI module: {e}")
     st.stop()
 
 # --- Import Custom Modules ---
-# Assuming these are in the same directory or accessible via PYTHONPATH
 try:
     # Import specific functions or the whole module as needed
-    # --- Correction Start: Import default cosmology parameters directly ---
     from astro_calculations import (
         CARDINAL_DIRECTIONS, calculate_lcdm_distances,
         convert_mpc_to_gly, format_large_number, get_lookback_comparison,
         get_comoving_comparison, convert_mpc_to_km, convert_km_to_ly,
-        convert_km_to_au, convert_km_to_ls,
+        convert_km_to_au, convert_km_to_ls, # Assuming these might be needed for manual calc display
         H0_DEFAULT, OMEGA_M_DEFAULT, OMEGA_LAMBDA_DEFAULT # Import constants
     )
-    # --- Correction End ---
     # Note: translations 't' will be passed as an argument
 except ModuleNotFoundError as e:
     st.error(f"Module Not Found Error in UI module: {e}. Ensure astro_calculations.py is present.")
@@ -52,10 +47,10 @@ except ImportError as e:
 
 
 # --- Constants ---
-ALL_DIRECTIONS_KEY = 'All' # Define locally or import if defined elsewhere centrally
+ALL_DIRECTIONS_KEY = 'All'
 
 # --- UI Helper Functions (Plotting, Formatting, SVG) ---
-
+# create_moon_phase_svg, get_local_time_str, create_plot remain unchanged...
 def create_moon_phase_svg(illumination: float, size: int = 100) -> str:
     """Erstellt eine SVG-Darstellung der Mondphase."""
     if not 0 <= illumination <= 1: print(f"Warn: Invalid moon illum ({illumination}). Clamping."); illumination = max(0.0, min(1.0, illumination))
@@ -236,11 +231,11 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
         if fig: plt.close(fig)
         return None
 
-
 # --- Main UI Component Functions ---
 
 def create_sidebar(t: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFinder | None) -> None:
     """Erstellt die Sidebar UI Elemente."""
+    # ... (Sidebar code remains unchanged) ...
     with st.sidebar:
         st.header(t.get('settings_header', "Einstellungen"))
 
@@ -500,6 +495,7 @@ def create_sidebar(t: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFi
 
 def display_search_parameters(t: dict, observer_run: Observer | None, ref_time: Time) -> tuple[float, float]:
     """Zeigt die Zusammenfassung der Suchparameter im Hauptbereich an."""
+    # ... (Code remains unchanged) ...
     st.subheader(t.get('search_params_header', "Zusammenfassung Suchparameter"))
     p1, p2 = st.columns(2)
 
@@ -556,9 +552,9 @@ def display_search_parameters(t: dict, observer_run: Observer | None, ref_time: 
     # Gibt die tatsächlichen Filterwerte zurück, die für die Berechnung verwendet werden
     return min_mag_filter, max_mag_filter
 
-
 def display_results(t: dict, results_ph: st.container, observer_run: Observer | None) -> None:
     """Zeigt die Ergebnisliste, Plots, Download-Button und Kosmologie-Daten an."""
+    # ... (Code remains unchanged until cosmology integration) ...
     results_data = st.session_state.last_results
     results_ph.subheader(t.get('results_list_header',"Ergebnisse"))
 
@@ -768,13 +764,14 @@ def display_results(t: dict, results_ph: st.container, observer_run: Observer | 
             df_export = pd.DataFrame(export_rows)
             decimal_separator = ',' if st.session_state.language == 'de' else '.' # Dezimaltrennzeichen anpassen
             csv_string = df_export.to_csv(index=False, sep=';', encoding='utf-8-sig', decimal=decimal_separator)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M"); csv_filename = t.get('results_csv_filename',"dso_results_{}.csv").format(timestamp)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M"); csv_filename = t.get('results_csv_filename',"dso_ergebnisse_{}.csv").format(timestamp)
             csv_placeholder.download_button(label=t.get('results_save_csv_button',"💾 Ergebnisse als CSV speichern"), data=csv_string, file_name=csv_filename, mime='text/csv', key='csv_download_button')
         except Exception as e: csv_placeholder.error(t.get('results_csv_export_error',"Fehler beim Erstellen der CSV-Datei: {}").format(e)); print(f"CSV Export Fehler: {e}")
 
 
 def create_custom_target_section(t: dict, results_ph: st.container, observer_run: Observer | None) -> None:
     """Erstellt den UI-Bereich zum Plotten eines benutzerdefinierten Ziels."""
+    # ... (Code remains unchanged) ...
     st.markdown("---") # Trennlinie
     with st.expander(t.get('custom_target_expander',"Eigenes RA/Dec Ziel plotten")):
         with st.form("custom_target_form"):
@@ -825,9 +822,113 @@ def create_custom_target_section(t: dict, results_ph: st.container, observer_run
         elif st.session_state.custom_target_error: error_placeholder.error(st.session_state.custom_target_error)
 
 
+# --- NEUE Funktion für manuellen Kosmologie-Rechner ---
+def create_manual_cosmology_calculator(t: dict) -> None:
+    """Erstellt den UI-Bereich für den manuellen Rotverschiebungsrechner."""
+    st.markdown("---")
+    with st.expander(t.get('manual_cosmology_expander', "🌌 Manueller Kosmologie-Rechner")):
+        st.subheader(t.get('input_params', "Eingabeparameter"))
+
+        # Eingabefelder für z und kosmologische Parameter
+        col1, col2 = st.columns(2)
+        with col1:
+            z_manual_input = st.number_input(
+                label=t("redshift_z"),
+                min_value=-0.99, # Physisch nicht sinnvoll, aber erlaubt Blueshift-Eingabe
+                value=1.0, # Beispielwert
+                step=0.1,
+                format="%.5f",
+                key="manual_z_input",
+                help=t('redshift_z_tooltip', default="Kosmologische Rotverschiebung eingeben.")
+            )
+        with col2:
+            st.markdown(f"**{t('cosmo_params')}**")
+            h0_manual_input = st.number_input(label=t("hubble_h0"), min_value=1.0, value=H0_DEFAULT, step=0.1, format="%.1f", key="manual_h0")
+            omega_m_manual_input = st.number_input(label=t("omega_m"), min_value=0.0, max_value=2.0, value=OMEGA_M_DEFAULT, step=0.01, format="%.3f", key="manual_omega_m")
+            omega_lambda_manual_input = st.number_input(label=t("omega_lambda"), min_value=0.0, max_value=2.0, value=OMEGA_LAMBDA_DEFAULT, step=0.01, format="%.3f", key="manual_omega_lambda")
+
+            # Warnung, wenn Universum nicht flach ist
+            if not math.isclose(omega_m_manual_input + omega_lambda_manual_input, 1.0, abs_tol=1e-3):
+                st.warning(t("flat_universe_warning"))
+
+        st.markdown("---")
+        st.subheader(t("results_for", z=z_manual_input))
+
+        # Berechnung durchführen
+        cosmo_results_manual = calculate_lcdm_distances(z_manual_input, h0_manual_input, omega_m_manual_input, omega_lambda_manual_input)
+
+        # Fehler anzeigen
+        error_key_manual = cosmo_results_manual.get('error_msg')
+        if error_key_manual:
+            error_args_manual = cosmo_results_manual.get('error_args', {})
+            error_text_manual = t(error_key_manual, **error_args_manual)
+            if error_key_manual == "warn_blueshift": st.warning(error_text_manual)
+            else: st.error(error_text_manual)
+            # Berechnung hier nicht stoppen, da es nur eine Warnung sein könnte
+        else:
+            # Ergebnisse extrahieren und anzeigen
+            lookback_gyr_res_man = cosmo_results_manual['lookback_gyr']
+            comoving_mpc_res_man = cosmo_results_manual['comoving_mpc']
+            luminosity_mpc_res_man = cosmo_results_manual['luminosity_mpc']
+            ang_diam_mpc_res_man = cosmo_results_manual['ang_diam_mpc']
+
+            # Umrechnungen für die Anzeige
+            comoving_gly_res_man = convert_mpc_to_gly(comoving_mpc_res_man)
+            luminosity_gly_res_man = convert_mpc_to_gly(luminosity_mpc_res_man)
+            ang_diam_gly_res_man = convert_mpc_to_gly(ang_diam_mpc_res_man)
+            comoving_km_res_man = convert_mpc_to_km(comoving_mpc_res_man)
+            comoving_ly_res_man = convert_km_to_ly(comoving_km_res_man)
+            comoving_au_res_man = convert_km_to_au(comoving_km_res_man) if 'convert_km_to_au' in globals() else None # Optional
+            comoving_ls_res_man = convert_km_to_ls(comoving_km_res_man) if 'convert_km_to_ls' in globals() else None # Optional
+            comoving_km_ausgeschrieben_man = format_large_number(comoving_km_res_man)
+
+            # Ergebnisse mit Metriken, Text und Captions anzeigen
+            st.metric(label=t("lookback_time"), value=f"{lookback_gyr_res_man:.4f}", delta=t("unit_Gyr"))
+            lookback_example_key_man = get_lookback_comparison(lookback_gyr_res_man)
+            st.caption(f"*{t(lookback_example_key_man)}*")
+
+            st.markdown("---")
+            st.subheader(t("cosmo_distances"))
+            res_col1, res_col2 = st.columns(2)
+
+            with res_col1:
+                st.markdown(t("comoving_distance_title"))
+                st.text(f"  {comoving_mpc_res_man:,.4f} {t('unit_Mpc')}")
+                st.text(f"  {comoving_gly_res_man:,.4f} {t('unit_Gly')}")
+                comoving_example_key_man = get_comoving_comparison(comoving_mpc_res_man)
+                st.caption(f"*{t(comoving_example_key_man)}*")
+                # Detailliertere Einheiten
+                st.text(f"  {comoving_km_res_man:,.3e} {t('unit_km_sci')}")
+                # st.text(f"  {comoving_km_ausgeschrieben_man} {t('unit_km_full')}") # Optional
+                st.text(f"  {comoving_ly_res_man:,.3e} {t('unit_LJ')}")
+                # if comoving_au_res_man: st.text(f"  {comoving_au_res_man:,.3e} {t('unit_AE')}")
+                # if comoving_ls_res_man: st.text(f"  {comoving_ls_res_man:,.3e} {t('unit_Ls')}")
+
+            with res_col2:
+                st.markdown(t("luminosity_distance_title"))
+                st.text(f"  {luminosity_mpc_res_man:,.4f} {t('unit_Mpc')}")
+                st.text(f"  {luminosity_gly_res_man:,.4f} {t('unit_Gly')}")
+                st.caption(f"*{t('explanation_luminosity')}*")
+
+                st.markdown(t("angular_diameter_distance_title"), unsafe_allow_html=True)
+                st.text(f"  {ang_diam_mpc_res_man:,.4f} {t('unit_Mpc')}")
+                st.text(f"  {ang_diam_gly_res_man:,.4f} {t('unit_Gly')}")
+                st.caption(f"*{t('explanation_angular')}*")
+
+            # Integrationswarnung anzeigen, falls vorhanden
+            integration_warn_key_man = cosmo_results_manual.get('integration_warning_key')
+            if integration_warn_key_man:
+                 integration_warn_args_man = cosmo_results_manual.get('integration_warning_args', {})
+                 st.caption(t(integration_warn_key_man, **integration_warn_args_man))
+
+            st.caption(t("calculation_note")) # Hinweis auf Modell
+
+
 def display_donation_link(t: dict) -> None:
     """Zeigt den Ko-fi Spendenlink Button an."""
     st.markdown("---")
     kofi_url = "https://ko-fi.com/advanceddsofinder"
     kofi_text = t.get('donation_button_text', "Entwicklung unterstützen via Ko-fi ☕")
     st.link_button(kofi_text, kofi_url)
+
+# Entferne den if __name__ == "__main__": Block aus diesem Modul
