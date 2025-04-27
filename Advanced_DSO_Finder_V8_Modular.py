@@ -500,13 +500,21 @@ def main():
         results_ph.radio(t.get('graph_type_label',"Plot Type:"), list(plot_map.keys()), format_func=lambda k:plot_map[k], key='plot_type_selection', horizontal=True)
 
         for i, obj in enumerate(results_data):
-            # Corrected formatting for title (Moved into loop, split lines)
+            # Get object details
             name = obj.get('Name','?')
             type_obj = obj.get('Type','?')
-            mag = obj.get('Magnitude')
+            mag = obj.get('Magnitude') # This might be None or a float
+
+            # --- Correction Start ---
+            # Create mag_s: Always a string, either formatted number or 'N/A'
             mag_s = f"{mag:.1f}" if mag is not None else t.get('magnitude_unknown', 'N/A')
-            title_template = t.get('results_expander_title',"{} ({}) - Mag: {}")
-            title = title_template.format(name, type_obj, mag_s) # Corrected line
+
+            # Use a known-safe template directly to avoid issues with potentially
+            # incorrect format specifiers in the translation file for 'results_expander_title'.
+            # This template expects three strings (or objects convertible to strings).
+            safe_title_template = "{} ({}) - Mag: {}"
+            title = safe_title_template.format(name, type_obj, mag_s)
+            # --- Correction End ---
 
             is_exp = (st.session_state.expanded_object_name == name)
             obj_c = results_ph.container()
