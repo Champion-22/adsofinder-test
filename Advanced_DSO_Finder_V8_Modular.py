@@ -48,7 +48,6 @@ INITIAL_LAT = 47.17
 INITIAL_LON = 8.01
 INITIAL_HEIGHT = 550
 INITIAL_TIMEZONE = "Europe/Zurich"
-# <<< Standardwerte für Altitude Slider >>>
 INITIAL_MIN_ALT = 20
 INITIAL_MAX_ALT = 90
 
@@ -87,9 +86,7 @@ def initialize_session_state():
         'location_search_success': False, 'selected_timezone': INITIAL_TIMEZONE,
         'manual_min_mag_slider': 0.0, 'manual_max_mag_slider': 16.0,
         'object_type_filter_exp': [], 'mag_filter_mode_exp': 'Bortle Scale',
-        'bortle_slider': 5,
-        'min_alt_slider': INITIAL_MIN_ALT, # <<< Use Constant for Altitude Default
-        'max_alt_slider': INITIAL_MAX_ALT, # <<< Use Constant for Altitude Default
+        'bortle_slider': 5, 'min_alt_slider': INITIAL_MIN_ALT, 'max_alt_slider': INITIAL_MAX_ALT,
         'moon_phase_slider': 35, 'size_arcmin_range': [1.0, 120.0],
         'sort_method': 'Duration & Altitude', 'selected_peak_direction': ALL_DIRECTIONS_KEY,
         'plot_type_selection': 'Sky Path', 'custom_target_ra': "", 'custom_target_dec': "",
@@ -200,8 +197,7 @@ def main():
     @st.cache_data
     def cached_load_ongc_data(path):
         print(f"Cache miss: Loading ONGC data from {path}")
-        # Pass lang to data handling function if needed, check data_handling.py signature
-        return data_handling.load_ongc_data(path) # Assuming it doesn't need lang
+        return data_handling.load_ongc_data(path) # Assume data_handling handles internal errors/translations
 
     df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH)
 
@@ -360,12 +356,12 @@ def main():
                     if c_min > c_max: c_min=c_max
                     if (c_min, c_max) != st.session_state.size_arcmin_range: st.session_state.size_arcmin_range = (c_min, c_max)
                     step = 0.1 if max_s <= 20 else (0.5 if max_s <= 100 else 1.0)
+                    # Corrected line 604: Removed format argument
                     st.slider(
                         label=t.get('size_filter_label',"Size (arcmin):"),
                         min_value=min_s,
                         max_value=max_s,
                         step=step,
-                        format="%.1f", # Re-added format for testing, Pylance error might be ghost
                         key='size_arcmin_range',
                         help=t.get('size_filter_help',"..."),
                         disabled=size_disabled
@@ -397,7 +393,7 @@ def main():
             st.radio(t.get('results_options_sort_method_label',"Sort By:"), list(sort_map.keys()), format_func=lambda k:sort_map[k], key='sort_method', horizontal=True)
 
         st.sidebar.markdown("---")
-        st.sidebar.markdown(f"**{t.get('bug_report', 'Found a bug?')}**") # Corrected syntax
+        st.sidebar.markdown(f"**{t.get('bug_report', 'Found a bug?')}**") # Corrected call
         bug_email = "debrun2005@gmail.com"
         bug_subject = urllib.parse.quote("Bug Report: Advanced DSO Finder")
         bug_body = urllib.parse.quote(t.get('bug_report_body', "\n\n(Describe bug and steps to reproduce)"))
@@ -589,8 +585,10 @@ def main():
             with plot_area:
                  st.markdown("---")
                  with st.spinner(t.get('results_spinner_plotting',"Plotting...")):
-                     try: fig=create_plot(c_data, min_a_cust, max_a_cust, st.session_state.plot_type_selection, t)
-                     except Exception as e: st.error(f"Plot Err:{e}"); traceback.print_exc(); fig=None
+                     try:
+                         fig=create_plot(c_data, min_a_cust, max_a_cust, st.session_state.plot_type_selection, t)
+                     except Exception as e:
+                         st.error(f"Plot Err:{e}"); traceback.print_exc(); fig=None
                      # Corrected syntax for inner if block
                      if fig:
                          st.pyplot(fig)
@@ -606,6 +604,7 @@ def main():
     # Donation Link (Integrated)
     st.markdown("---")
     st.markdown(t.get('donation_text', "Like the app? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)"), unsafe_allow_html=True)
+
 
 # Run App
 if __name__ == "__main__":
