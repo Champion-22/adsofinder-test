@@ -117,17 +117,18 @@ def get_local_time_str(utc_time: Time | None, timezone_str: str) -> tuple[str, s
     except pytz.exceptions.UnknownTimeZoneError: print(f"Err: Unknown TZ '{timezone_str}'."); return utc_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'), "UTC (TZ Err)"
     except Exception as e: print(f"Err converting time: {e}"); traceback.print_exc(); return utc_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'), "UTC (Conv Err)"
 
-def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: float, plot_type: str, t: dict) -> plt.Figure | None:
+# --- Rename parameter t to trans ---
+def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: float, plot_type: str, trans: dict) -> plt.Figure | None:
     """Erstellt entweder ein Höhen-Zeit-Diagramm oder ein Himmelspfad-Diagramm (Alt/Az)."""
     fig = None
     try:
         # --- Datenvalidierung ---
-        if not isinstance(plot_data, dict): st.error(t.get('plot_error_invalid_data_type', "Plot Fehler: Ungültiger plot_data Typ.")); return None
-        times = plot_data.get('times'); altitudes = plot_data.get('altitudes'); azimuths = plot_data.get('azimuths'); obj_name = plot_data.get('Name', t.get('plot_object_default_name', 'Objekt'))
-        if not isinstance(times, Time) or not isinstance(altitudes, np.ndarray): st.error(t.get('plot_error_missing_time_alt', "Plot Fehler: Fehlende oder ungültige Zeit/Höhen-Daten.")); return None
-        if plot_type == 'Sky Path' and not isinstance(azimuths, np.ndarray): st.error(t.get('plot_error_missing_azimuth', "Plot Fehler: Fehlende Azimut-Daten für Himmelspfad.")); return None
-        if len(times) != len(altitudes) or (azimuths is not None and len(times) != len(azimuths)): st.error(t.get('plot_error_mismatched_lengths', "Plot Fehler: Zeit-, Höhen- und Azimut-Arrays haben unterschiedliche Längen.")); return None
-        if len(times) < 1: st.error(t.get('plot_error_no_data_points', "Plot Fehler: Nicht genügend Datenpunkte zum Plotten.")); return None
+        if not isinstance(plot_data, dict): st.error(trans.get('plot_error_invalid_data_type', "Plot Fehler: Ungültiger plot_data Typ.")); return None
+        times = plot_data.get('times'); altitudes = plot_data.get('altitudes'); azimuths = plot_data.get('azimuths'); obj_name = plot_data.get('Name', trans.get('plot_object_default_name', 'Objekt'))
+        if not isinstance(times, Time) or not isinstance(altitudes, np.ndarray): st.error(trans.get('plot_error_missing_time_alt', "Plot Fehler: Fehlende oder ungültige Zeit/Höhen-Daten.")); return None
+        if plot_type == 'Sky Path' and not isinstance(azimuths, np.ndarray): st.error(trans.get('plot_error_missing_azimuth', "Plot Fehler: Fehlende Azimut-Daten für Himmelspfad.")); return None
+        if len(times) != len(altitudes) or (azimuths is not None and len(times) != len(azimuths)): st.error(trans.get('plot_error_mismatched_lengths', "Plot Fehler: Zeit-, Höhen- und Azimut-Arrays haben unterschiedliche Längen.")); return None
+        if len(times) < 1: st.error(trans.get('plot_error_no_data_points', "Plot Fehler: Nicht genügend Datenpunkte zum Plotten.")); return None
         plot_times = times.plot_date
 
         # --- Theming ---
@@ -140,49 +141,41 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
         fig, ax = plt.subplots(figsize=(10, 6), facecolor=fc, constrained_layout=True); ax.set_facecolor(fc)
         if plot_type == 'Altitude Plot':
             ax.plot(plot_times, altitudes, color=pc, alpha=0.9, lw=1.5, label=obj_name)
-            ax.axhline(min_altitude_deg, color=min_c, linestyle='--', linewidth=1.2, label=t.get('graph_min_altitude_label', "Min Höhe ({:.0f}°)").format(min_altitude_deg), alpha=0.8)
-            if max_altitude_deg < 90: ax.axhline(max_altitude_deg, color=max_c, linestyle=':', linewidth=1.2, label=t.get('graph_max_altitude_label', "Max Höhe ({:.0f}°)").format(max_altitude_deg), alpha=0.8)
-            ax.set_xlabel(t.get('graph_xlabel_time', "Zeit (UTC)"), color=lc, fontsize=11); ax.set_ylabel(t.get('graph_ylabel_alt', "Höhe (°)"), color=lc, fontsize=11); ax.set_title(t.get('graph_title_alt_time', "Höhe vs. Zeit: {}").format(obj_name), color=tc, fontsize=13, weight='bold'); ax.set_ylim(0, 90); ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M')); fig.autofmt_xdate(rotation=30); ax.grid(True, linestyle='-', alpha=0.5, color=gc); ax.tick_params(axis='x', colors=lc); ax.tick_params(axis='y', colors=lc); [spine.set_color(sc) for spine in ax.spines.values()]; [spine.set_linewidth(0.5) for spine in ax.spines.values()]
+            ax.axhline(min_altitude_deg, color=min_c, linestyle='--', linewidth=1.2, label=trans.get('graph_min_altitude_label', "Min Höhe ({:.0f}°)").format(min_altitude_deg), alpha=0.8)
+            if max_altitude_deg < 90: ax.axhline(max_altitude_deg, color=max_c, linestyle=':', linewidth=1.2, label=trans.get('graph_max_altitude_label', "Max Höhe ({:.0f}°)").format(max_altitude_deg), alpha=0.8)
+            ax.set_xlabel(trans.get('graph_xlabel_time', "Zeit (UTC)"), color=lc, fontsize=11); ax.set_ylabel(trans.get('graph_ylabel_alt', "Höhe (°)"), color=lc, fontsize=11); ax.set_title(trans.get('graph_title_alt_time', "Höhe vs. Zeit: {}").format(obj_name), color=tc, fontsize=13, weight='bold'); ax.set_ylim(0, 90); ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M')); fig.autofmt_xdate(rotation=30); ax.grid(True, linestyle='-', alpha=0.5, color=gc); ax.tick_params(axis='x', colors=lc); ax.tick_params(axis='y', colors=lc); [spine.set_color(sc) for spine in ax.spines.values()]; [spine.set_linewidth(0.5) for spine in ax.spines.values()]
         elif plot_type == 'Sky Path':
-            if azimuths is None: st.error(t.get('plot_error_missing_azimuth', "Plot Fehler: Fehlende Azimut-Daten für Himmelspfad.")); plt.close(fig); return None
+            if azimuths is None: st.error(trans.get('plot_error_missing_azimuth', "Plot Fehler: Fehlende Azimut-Daten für Himmelspfad.")); plt.close(fig); return None
             ax.remove(); ax = fig.add_subplot(111, projection='polar', facecolor=fc); az_rad = np.deg2rad(azimuths); radius = 90 - altitudes; time_delta = times.jd.max() - times.jd.min(); time_normalized = (times.jd - times.jd.min()) / (time_delta + 1e-9) if time_delta > 0 else np.zeros_like(times.jd); colors = plt.cm.viridis(time_normalized)
             scatter = ax.scatter(az_rad, radius, c=colors, s=15, alpha=0.8, edgecolors='none', label=obj_name); ax.plot(az_rad, radius, color=pc, alpha=0.4, lw=0.8)
-            ax.plot(np.linspace(0, 2 * np.pi, 100), np.full(100, 90 - min_altitude_deg), color=min_c, linestyle='--', linewidth=1.2, label=t.get('graph_min_altitude_label',"Min Höhe ({:.0f}°)").format(min_altitude_deg), alpha=0.8)
-            if max_altitude_deg < 90: ax.plot(np.linspace(0, 2 * np.pi, 100), np.full(100, 90 - max_altitude_deg), color=max_c, linestyle=':', linewidth=1.2, label=t.get('graph_max_altitude_label',"Max Höhe ({:.0f}°)").format(max_altitude_deg), alpha=0.8)
-            ax.set_theta_zero_location('N'); ax.set_theta_direction(-1); ax.set_yticks(np.arange(0, 91, 15)); ax.set_yticklabels([f"{90-a}°" for a in np.arange(0, 91, 15)], color=lc); ax.set_ylim(0, 90); ax.set_title(t.get('graph_title_sky_path',"Himmelspfad: {}").format(obj_name), va='bottom', color=tc, fontsize=13, weight='bold', y=1.1); ax.grid(True, linestyle=':', alpha=0.5, color=gc); ax.spines['polar'].set_color(sc); ax.spines['polar'].set_linewidth(0.5)
-            try: cbar = fig.colorbar(scatter, ax=ax, label=t.get('graph_colorbar_label', "Zeit (UTC)"), pad=0.1, shrink=0.7); cbar.set_ticks([0, 1]); start_label = times[0].to_datetime(timezone.utc).strftime('%H:%M') if len(times)>0 else 'S'; end_label = times[-1].to_datetime(timezone.utc).strftime('%H:%M') if len(times)>0 else 'E'; cbar.ax.set_yticklabels([start_label, end_label]); cbar.set_label(t.get('graph_colorbar_label', "Zeit (UTC)"), color=lc, fontsize=10); cbar.ax.yaxis.set_tick_params(color=lc, labelsize=9); plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color=lc); cbar.outline.set_edgecolor(sc); cbar.outline.set_linewidth(0.5)
+            ax.plot(np.linspace(0, 2 * np.pi, 100), np.full(100, 90 - min_altitude_deg), color=min_c, linestyle='--', linewidth=1.2, label=trans.get('graph_min_altitude_label',"Min Höhe ({:.0f}°)").format(min_altitude_deg), alpha=0.8)
+            if max_altitude_deg < 90: ax.plot(np.linspace(0, 2 * np.pi, 100), np.full(100, 90 - max_altitude_deg), color=max_c, linestyle=':', linewidth=1.2, label=trans.get('graph_max_altitude_label',"Max Höhe ({:.0f}°)").format(max_altitude_deg), alpha=0.8)
+            ax.set_theta_zero_location('N'); ax.set_theta_direction(-1); ax.set_yticks(np.arange(0, 91, 15)); ax.set_yticklabels([f"{90-a}°" for a in np.arange(0, 91, 15)], color=lc); ax.set_ylim(0, 90); ax.set_title(trans.get('graph_title_sky_path',"Himmelspfad: {}").format(obj_name), va='bottom', color=tc, fontsize=13, weight='bold', y=1.1); ax.grid(True, linestyle=':', alpha=0.5, color=gc); ax.spines['polar'].set_color(sc); ax.spines['polar'].set_linewidth(0.5)
+            try: cbar = fig.colorbar(scatter, ax=ax, label=trans.get('graph_colorbar_label', "Zeit (UTC)"), pad=0.1, shrink=0.7); cbar.set_ticks([0, 1]); start_label = times[0].to_datetime(timezone.utc).strftime('%H:%M') if len(times)>0 else 'S'; end_label = times[-1].to_datetime(timezone.utc).strftime('%H:%M') if len(times)>0 else 'E'; cbar.ax.set_yticklabels([start_label, end_label]); cbar.set_label(trans.get('graph_colorbar_label', "Zeit (UTC)"), color=lc, fontsize=10); cbar.ax.yaxis.set_tick_params(color=lc, labelsize=9); plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color=lc); cbar.outline.set_edgecolor(sc); cbar.outline.set_linewidth(0.5)
             except Exception as e: print(f"Warnung: Farbleiste: {e}")
-        else: st.error(t.get('plot_error_unknown_type', "Plot Fehler: Unbekannter Plot-Typ: '{}'").format(plot_type)); plt.close(fig); return None
+        else: st.error(trans.get('plot_error_unknown_type', "Plot Fehler: Unbekannter Plot-Typ: '{}'").format(plot_type)); plt.close(fig); return None
         leg = ax.legend(loc='lower right', fontsize='small', facecolor=lfc, framealpha=0.8, edgecolor=sc); [text.set_color(lc) for text in leg.get_texts()]
         return fig
-    except Exception as e: st.error(t.get('plot_error_unexpected', "Plot Fehler: Unerwarteter Fehler bei Plot-Erstellung: {}").format(e)); traceback.print_exc(); plt.close(fig); return None
+    except Exception as e: st.error(trans.get('plot_error_unexpected', "Plot Fehler: Unerwarteter Fehler bei Plot-Erstellung: {}").format(e)); traceback.print_exc(); plt.close(fig); return None
 
 
 # --- Main UI Component Functions ---
 
-def create_sidebar(t: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFinder | None) -> None:
+# --- Rename parameter t to trans ---
+def create_sidebar(trans: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFinder | None) -> None:
     """Erstellt die Sidebar UI Elemente."""
     with st.sidebar:
-        # --- Debug Check ---
-        # Print the type of 't' right before it's used in st.header
-        print(f"DEBUG: Type of 't' at start of create_sidebar: {type(t)}")
-        if not isinstance(t, dict):
-             st.error(f"Interner Fehler: 't' ist kein Dictionary in create_sidebar! Typ: {type(t)}")
-             t = {} # Provide dummy dict to prevent immediate crash
-        # --- End Debug Check ---
-
-        # Use t.get() for all translatable strings
-        # This line (approx 167) was causing the error according to traceback
-        st.header(t.get('settings_header', "Einstellungen"))
+        # Use trans.get() for all translatable strings
+        st.header(trans.get('settings_header', "Einstellungen"))
 
         # Katalog Status
         if 'catalog_status_msg' not in st.session_state: st.session_state.catalog_status_msg = ""
         if df_catalog_data is not None:
-            new_msg = t.get('info_catalog_loaded', "Katalog geladen: {} Objekte.").format(len(df_catalog_data))
+            new_msg = trans.get('info_catalog_loaded', "Katalog geladen: {} Objekte.").format(len(df_catalog_data))
             if st.session_state.catalog_status_msg != new_msg:
                 st.success(new_msg); st.session_state.catalog_status_msg = new_msg
         else:
-            new_msg = t.get('error_catalog_load_failed', "Katalog konnte nicht geladen werden. Datei prüfen.")
+            new_msg = trans.get('error_catalog_load_failed', "Katalog konnte nicht geladen werden. Datei prüfen.")
             if st.session_state.catalog_status_msg != new_msg:
                 st.error(new_msg); st.session_state.catalog_status_msg = new_msg
 
@@ -196,7 +189,7 @@ def create_sidebar(t: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFi
         except ValueError: current_lang_idx = lang_keys.index('EN') if 'EN' in lang_keys else 0
 
         selected_lang_key = st.radio(
-            t.get('language_select_label', "Sprache"),
+            trans.get('language_select_label', "Sprache"),
             lang_keys, format_func=lambda k: language_options[k],
             key='language_radio', index=current_lang_idx, horizontal=True
         )
@@ -207,30 +200,30 @@ def create_sidebar(t: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFi
             st.rerun()
 
         # --- Standort Expander ---
-        with st.expander(t.get('location_expander', "📍 Standort"), expanded=True):
-            loc_opts = {'Search': t.get('location_option_search', "Suche"), 'Manual': t.get('location_option_manual', "Manuell")}
-            st.radio(t.get('location_select_label', "Standortmethode"), list(loc_opts.keys()), format_func=lambda k: loc_opts[k], key="location_choice_key", horizontal=True)
+        with st.expander(trans.get('location_expander', "📍 Standort"), expanded=True):
+            loc_opts = {'Search': trans.get('location_option_search', "Suche"), 'Manual': trans.get('location_option_manual', "Manuell")}
+            st.radio(trans.get('location_select_label', "Standortmethode"), list(loc_opts.keys()), format_func=lambda k: loc_opts[k], key="location_choice_key", horizontal=True)
 
             lat, lon, hgt = None, None, None
             loc_valid_for_tz_lookup = False
             current_location_is_valid = False
 
             if st.session_state.location_choice_key == "Manual":
-                st.number_input(t.get('location_lat_label', "Breite (°N)"), -90.0, 90.0, step=0.01, format="%.4f", key="manual_lat_val")
-                st.number_input(t.get('location_lon_label', "Länge (°E)"), -180.0, 180.0, step=0.01, format="%.4f", key="manual_lon_val")
-                st.number_input(t.get('location_elev_label', "Höhe (m)"), -500, step=10, format="%d", key="manual_height_val")
+                st.number_input(trans.get('location_lat_label', "Breite (°N)"), -90.0, 90.0, step=0.01, format="%.4f", key="manual_lat_val")
+                st.number_input(trans.get('location_lon_label', "Länge (°E)"), -180.0, 180.0, step=0.01, format="%.4f", key="manual_lon_val")
+                st.number_input(trans.get('location_elev_label', "Höhe (m)"), -500, step=10, format="%d", key="manual_height_val")
                 lat = st.session_state.manual_lat_val; lon = st.session_state.manual_lon_val; hgt = st.session_state.manual_height_val
                 if isinstance(lat, (int, float)) and isinstance(lon, (int, float)) and isinstance(hgt, (int, float)):
                     loc_valid_for_tz_lookup = True; current_location_is_valid = True
                     st.session_state.location_is_valid_for_run = True
                     if st.session_state.location_search_success: st.session_state.location_search_success = False; st.session_state.searched_location_name = None; st.session_state.location_search_status_msg = ""
-                else: st.warning(t.get('location_error_manual_invalid', "Manuelle Koordinaten oder Höhe ungültig.")); current_location_is_valid = False; st.session_state.location_is_valid_for_run = False
+                else: st.warning(trans.get('location_error_manual_invalid', "Manuelle Koordinaten oder Höhe ungültig.")); current_location_is_valid = False; st.session_state.location_is_valid_for_run = False
 
             elif st.session_state.location_choice_key == "Search":
                 with st.form("loc_search_form"):
-                    st.text_input(t.get('location_search_label', "Ort/Adresse suchen:"), key="location_search_query", placeholder=t.get('location_search_placeholder', "z.B. Berlin, Deutschland oder PLZ"))
-                    st.number_input(t.get('location_elev_label', "Höhe (m)"), -500, step=10, format="%d", key="manual_height_val")
-                    search_submitted = st.form_submit_button(t.get('location_search_submit_button', "Koordinaten finden"))
+                    st.text_input(trans.get('location_search_label', "Ort/Adresse suchen:"), key="location_search_query", placeholder=trans.get('location_search_placeholder', "z.B. Berlin, Deutschland oder PLZ"))
+                    st.number_input(trans.get('location_elev_label', "Höhe (m)"), -500, step=10, format="%d", key="manual_height_val")
+                    search_submitted = st.form_submit_button(trans.get('location_search_submit_button', "Koordinaten finden"))
 
                 status_placeholder = st.empty()
                 if st.session_state.location_search_status_msg:
@@ -240,14 +233,14 @@ def create_sidebar(t: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFi
                 if search_submitted and st.session_state.location_search_query:
                     location_result = None; service_used = None; error_occurred = None
                     query = st.session_state.location_search_query; user_agent = f"AdvancedDSOFinder/{random.randint(1000,9999)}"
-                    with st.spinner(t.get('spinner_geocoding', "Suche Standort...")):
+                    with st.spinner(trans.get('spinner_geocoding', "Suche Standort...")):
                         try: geolocator = Nominatim(user_agent=user_agent); location_result = geolocator.geocode(query, timeout=10); service_used = "Nominatim"; print("Nominatim success.")
-                        except (GeocoderTimedOut, GeocoderServiceError) as e: print(f"Nominatim fail: {e}"); status_placeholder.info(t.get('location_search_info_fallback', "..."))
-                        except Exception as e: print(f"Nominatim error: {e}"); status_placeholder.info(t.get('location_search_info_fallback', "...")); error_occurred = e
+                        except (GeocoderTimedOut, GeocoderServiceError) as e: print(f"Nominatim fail: {e}"); status_placeholder.info(trans.get('location_search_info_fallback', "..."))
+                        except Exception as e: print(f"Nominatim error: {e}"); status_placeholder.info(trans.get('location_search_info_fallback', "...")); error_occurred = e
                         if not location_result:
                             try: fallback_geolocator = ArcGIS(timeout=15); location_result = fallback_geolocator.geocode(query, timeout=15); service_used = "ArcGIS"; print("ArcGIS success.")
-                            except (GeocoderTimedOut, GeocoderServiceError) as e2: print(f"ArcGIS fail: {e2}"); status_placeholder.info(t.get('location_search_info_fallback2', "...")); error_occurred = e2 if not error_occurred else error_occurred
-                            except Exception as e2: print(f"ArcGIS error: {e2}"); status_placeholder.info(t.get('location_search_info_fallback2', "...")); error_occurred = e2 if not error_occurred else error_occurred
+                            except (GeocoderTimedOut, GeocoderServiceError) as e2: print(f"ArcGIS fail: {e2}"); status_placeholder.info(trans.get('location_search_info_fallback2', "...")); error_occurred = e2 if not error_occurred else error_occurred
+                            except Exception as e2: print(f"ArcGIS error: {e2}"); status_placeholder.info(trans.get('location_search_info_fallback2', "...")); error_occurred = e2 if not error_occurred else error_occurred
                         if not location_result:
                              try: fallback_geolocator2 = Photon(user_agent=user_agent, timeout=15); location_result = fallback_geolocator2.geocode(query, timeout=15); service_used = "Photon"; print("Photon success.")
                              except (GeocoderTimedOut, GeocoderServiceError) as e3: print(f"Photon fail: {e3}"); error_occurred = e3 if not error_occurred else error_occurred
@@ -257,19 +250,19 @@ def create_sidebar(t: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFi
                             found_lat = location_result.latitude; found_lon = location_result.longitude; found_name = location_result.address
                             st.session_state.searched_location_name = found_name; st.session_state.location_search_success = True
                             st.session_state.manual_lat_val = found_lat; st.session_state.manual_lon_val = found_lon
-                            coords_str = t.get('location_search_coords',"Lat:{:.4f}, Lon:{:.4f}").format(found_lat, found_lon)
+                            coords_str = trans.get('location_search_coords',"Lat:{:.4f}, Lon:{:.4f}").format(found_lat, found_lon)
                             service_map = {"Nominatim": "N", "ArcGIS": "A", "Photon": "P"}; service_tag = service_map.get(service_used, "?")
-                            st.session_state.location_search_status_msg = f"{t.get(f'location_search_found_{service_used.lower()}',f'Gefunden ({service_tag}): {{}}').format(found_name)}\n({coords_str})"
+                            st.session_state.location_search_status_msg = f"{trans.get(f'location_search_found_{service_used.lower()}',f'Gefunden ({service_tag}): {{}}').format(found_name)}\n({coords_str})"
                             status_placeholder.success(st.session_state.location_search_status_msg)
                             lat = found_lat; lon = found_lon; hgt = st.session_state.manual_height_val
                             loc_valid_for_tz_lookup = True; current_location_is_valid = True; st.session_state.location_is_valid_for_run = True
                         else:
                             st.session_state.location_search_success = False; st.session_state.searched_location_name = None
                             if error_occurred:
-                                if isinstance(error_occurred, GeocoderTimedOut): st.session_state.location_search_status_msg = t.get('location_search_error_timeout',"Zeitüberschreitung bei Geocoding.")
-                                elif isinstance(error_occurred, GeocoderServiceError): st.session_state.location_search_status_msg = t.get('location_search_error_service',"Geocoding Dienstfehler: {}").format(error_occurred)
-                                else: st.session_state.location_search_status_msg = t.get('location_search_error_fallback2_failed',"Alle Geocoding Dienste fehlgeschlagen: {}").format(error_occurred)
-                            else: st.session_state.location_search_status_msg = t.get('location_search_error_not_found',"Standort nicht gefunden.")
+                                if isinstance(error_occurred, GeocoderTimedOut): st.session_state.location_search_status_msg = trans.get('location_search_error_timeout',"Zeitüberschreitung bei Geocoding.")
+                                elif isinstance(error_occurred, GeocoderServiceError): st.session_state.location_search_status_msg = trans.get('location_search_error_service',"Geocoding Dienstfehler: {}").format(error_occurred)
+                                else: st.session_state.location_search_status_msg = trans.get('location_search_error_fallback2_failed',"Alle Geocoding Dienste fehlgeschlagen: {}").format(error_occurred)
+                            else: st.session_state.location_search_status_msg = trans.get('location_search_error_not_found',"Standort nicht gefunden.")
                             status_placeholder.error(st.session_state.location_search_status_msg)
                             current_location_is_valid = False; st.session_state.location_is_valid_for_run = False
 
@@ -287,302 +280,314 @@ def create_sidebar(t: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFi
                     try: found_timezone_val = tf.timezone_at(lng=lon, lat=lat)
                     except Exception as e: print(f"Fehler bei Zeitzonen-Suche: {e}"); found_timezone_val = None
                     if found_timezone_val:
-                        try: pytz.timezone(found_timezone_val); st.session_state.selected_timezone = found_timezone_val; timezone_message = f"{t.get('timezone_auto_set_label','Erkannte Zeitzone:')} **{found_timezone_val}**"
-                        except pytz.UnknownTimeZoneError: st.session_state.selected_timezone = 'UTC'; invalid_tz_name = locals().get('found_timezone_val', 'Unbekannt'); timezone_message = t.get('timezone_auto_fail_invalid_label','Zeitzone:') + f" **UTC** ({t.get('timezone_auto_fail_invalid_msg','Ungültiger Name:')} '{invalid_tz_name}')"
-                    else: st.session_state.selected_timezone = 'UTC'; timezone_message = f"{t.get('timezone_auto_fail_label','Zeitzone:')} **UTC** ({t.get('timezone_auto_fail_msg','Erkennung fehlgeschlagen')})"
-                else: timezone_message = f"{t.get('timezone_finder_unavailable_label','Zeitzone:')} **{st.session_state.selected_timezone}** ({t.get('timezone_finder_unavailable_msg','Finder n.v.')})"
-            else: timezone_message = f"{t.get('timezone_invalid_location_label','Zeitzone:')} **{st.session_state.selected_timezone}** ({t.get('timezone_invalid_location_msg','Standort ungültig')})"
+                        try: pytz.timezone(found_timezone_val); st.session_state.selected_timezone = found_timezone_val; timezone_message = f"{trans.get('timezone_auto_set_label','Erkannte Zeitzone:')} **{found_timezone_val}**"
+                        except pytz.UnknownTimeZoneError: st.session_state.selected_timezone = 'UTC'; invalid_tz_name = locals().get('found_timezone_val', 'Unbekannt'); timezone_message = trans.get('timezone_auto_fail_invalid_label','Zeitzone:') + f" **UTC** ({trans.get('timezone_auto_fail_invalid_msg','Ungültiger Name:')} '{invalid_tz_name}')"
+                    else: st.session_state.selected_timezone = 'UTC'; timezone_message = f"{trans.get('timezone_auto_fail_label','Zeitzone:')} **UTC** ({trans.get('timezone_auto_fail_msg','Erkennung fehlgeschlagen')})"
+                else: timezone_message = f"{trans.get('timezone_finder_unavailable_label','Zeitzone:')} **{st.session_state.selected_timezone}** ({trans.get('timezone_finder_unavailable_msg','Finder n.v.')})"
+            else: timezone_message = f"{trans.get('timezone_invalid_location_label','Zeitzone:')} **{st.session_state.selected_timezone}** ({trans.get('timezone_invalid_location_msg','Standort ungültig')})"
             st.markdown(timezone_message, unsafe_allow_html=True)
 
-             # --- Zeit Expander ---
-             with st.expander(t.get('time_expander', "⏱️ Zeit"), expanded=False):
-                 time_opts = {'Now': t.get('time_option_now',"Jetzt"), 'Specific': t.get('time_option_specific',"Spezifische Nacht")}
-                 st.radio(t.get('time_select_label',"Zeitrahmen wählen"), list(time_opts.keys()), format_func=lambda k:time_opts[k], key="time_choice_exp", horizontal=True)
-                 is_now_time_choice = (st.session_state.time_choice_exp == "Now")
-                 if is_now_time_choice: st.caption(f"Aktuell UTC: {Time.now().iso}")
-                 else: st.date_input(t.get('time_date_select_label',"Datum für Nacht wählen:"), value=st.session_state.selected_date_widget, min_value=date.today() - timedelta(days=365*10), max_value=date.today() + timedelta(days=365*2), key='selected_date_widget')
+        # --- Zeit Expander ---
+        # --- Correction: Ensure correct indentation for this block ---
+        with st.expander(trans.get('time_expander', "⏱️ Zeit"), expanded=False):
+            time_opts = {'Now': trans.get('time_option_now',"Jetzt"), 'Specific': trans.get('time_option_specific',"Spezifische Nacht")}
+            st.radio(trans.get('time_select_label',"Zeitrahmen wählen"), list(time_opts.keys()), format_func=lambda k:time_opts[k], key="time_choice_exp", horizontal=True)
+            is_now_time_choice = (st.session_state.time_choice_exp == "Now")
+            if is_now_time_choice: st.caption(f"Aktuell UTC: {Time.now().iso}")
+            else:
+                st.date_input(
+                    trans.get('time_date_select_label',"Datum für Nacht wählen:"),
+                    value=st.session_state.selected_date_widget,
+                    min_value=date.today() - timedelta(days=365*10),
+                    max_value=date.today() + timedelta(days=365*2),
+                    key='selected_date_widget'
+                )
 
-             # --- Filter Expander ---
-             with st.expander(t.get('filters_expander', "✨ Filter"), expanded=False):
-                 st.markdown(t.get('mag_filter_header', "**Magnitude**"))
-                 mag_opts = {'Bortle Scale': t.get('mag_filter_option_bortle',"Bortle Skala"), 'Manual': t.get('mag_filter_option_manual',"Manuell")}
-                 if st.session_state.mag_filter_mode_exp not in mag_opts: st.session_state.mag_filter_mode_exp = 'Bortle Scale'
-                 st.radio(t.get('mag_filter_method_label',"Filter Methode:"), list(mag_opts.keys()), format_func=lambda k:mag_opts[k], key="mag_filter_mode_exp", horizontal=True)
-                 st.slider(t.get('mag_filter_bortle_label',"Bortle Skala:"), 1, 9, key='bortle_slider', help=t.get('mag_filter_bortle_help',"Bortle Klasse wählen (1=dunkel, 9=Stadt)"))
-                 if st.session_state.mag_filter_mode_exp == "Manual":
-                     st.slider(t.get('mag_filter_min_mag_label',"Min Magnitude:"), -5.0, 20.0, step=0.5, format="%.1f", help=t.get('mag_filter_min_mag_help',"..."), key='manual_min_mag_slider')
-                     st.slider(t.get('mag_filter_max_mag_label',"Max Magnitude:"), -5.0, 20.0, step=0.5, format="%.1f", help=t.get('mag_filter_max_mag_help',"..."), key='manual_max_mag_slider')
-                     if isinstance(st.session_state.manual_min_mag_slider,(int,float)) and isinstance(st.session_state.manual_max_mag_slider,(int,float)) and st.session_state.manual_min_mag_slider > st.session_state.manual_max_mag_slider: st.warning(t.get('mag_filter_warning_min_max',"..."))
-                 st.markdown("---"); st.markdown(t.get('min_alt_header', "**Höhe**"))
-                 min_alt_filter = st.session_state.min_alt_slider; max_alt_filter = st.session_state.max_alt_slider
-                 if min_alt_filter > max_alt_filter: st.session_state.min_alt_slider = max_alt_filter; min_alt_filter = max_alt_filter
-                 st.slider(t.get('min_alt_label',"Minimale Höhe (°):"), 0, 90, key='min_alt_slider', step=1, help=t.get('min_alt_help', "..."))
-                 st.slider(t.get('max_alt_label',"Maximale Höhe (°):"), 0, 90, key='max_alt_slider', step=1, help=t.get('max_alt_help', "..."))
-                 if st.session_state.min_alt_slider > st.session_state.max_alt_slider: st.warning(t.get('alt_filter_warning_min_max', "..."))
-                 st.markdown("---"); st.markdown(t.get('moon_warning_header',"**Mond**"))
-                 st.slider(t.get('moon_warning_label',"Warnen wenn Mond > (%):"), 0, 100, key='moon_phase_slider', step=5, help=t.get('moon_warning_help', "..."))
-                 st.markdown("---"); st.markdown(t.get('object_types_header',"**Objekttypen**"))
-                 all_types_list = []
-                 if df_catalog_data is not None and not df_catalog_data.empty:
-                     try:
-                         if 'Type' in df_catalog_data.columns: all_types_list = sorted(list(df_catalog_data['Type'].dropna().astype(str).unique()))
-                         else: st.warning(t.get('object_types_warning_missing_column', "..."))
-                     except Exception as e: st.warning(f"{t.get('object_types_error_extract','...')}: {e}")
-                 if all_types_list:
-                     current_selected_types = [s_type for s_type in st.session_state.object_type_filter_exp if s_type in all_types_list]
-                     if current_selected_types != st.session_state.object_type_filter_exp: st.session_state.object_type_filter_exp = current_selected_types
-                     st.multiselect(t.get('object_types_label',"Nach Objekttyp(en) filtern:"), all_types_list, default=current_selected_types, key="object_type_filter_exp", help=t.get('object_types_help',"..."))
-                 else: st.info(t.get('object_types_info_no_types', "...")); st.session_state.object_type_filter_exp = []
-                 st.markdown("---"); st.markdown(t.get('size_filter_header',"**Scheinbare Größe**"))
-                 size_data_available = (df_catalog_data is not None and 'MajAx' in df_catalog_data.columns and df_catalog_data['MajAx'].notna().any())
-                 size_filter_disabled = not size_data_available
-                 if size_data_available:
-                     try:
-                         valid_sizes = df_catalog_data['MajAx'].dropna(); min_size_limit = max(0.1, float(valid_sizes.min())) if not valid_sizes.empty else 0.1; max_size_limit = float(valid_sizes.max()) if not valid_sizes.empty else 120.0
-                         current_min_size, current_max_size = st.session_state.size_arcmin_range; clamped_min = max(min_size_limit, min(current_min_size, max_size_limit)); clamped_max = min(max_size_limit, max(current_max_size, min_size_limit))
-                         if clamped_min > clamped_max: clamped_min = clamped_max
-                         if (clamped_min, clamped_max) != st.session_state.size_arcmin_range: st.session_state.size_arcmin_range = (clamped_min, clamped_max)
-                         step_size = 0.1 if max_size_limit <= 20 else (0.5 if max_size_limit <= 100 else 1.0)
-                         st.slider(label=t.get('size_filter_label',"Größenbereich (Arcmin):"), min_value=min_size_limit, max_value=max_size_limit, value=st.session_state.size_arcmin_range, step=step_size, key='size_arcmin_range', help=t.get('size_filter_help',"..."), disabled=size_filter_disabled)
-                     except Exception as e: st.error(f"{t.get('size_filter_error', '...')}: {e}"); size_filter_disabled = True
-                 else: st.info(t.get('size_filter_info_missing', "...")); size_filter_disabled = True
-                 if size_filter_disabled: st.slider(t.get('size_filter_label',"Größenbereich (Arcmin):"), 0.0, 1.0, value=(0.0, 1.0), key='size_arcmin_range_disabled', disabled=True)
-                 st.markdown("---"); st.markdown(t.get('direction_filter_header',"**Kulminationsrichtung**"))
-                 all_directions_text = t.get('direction_option_all',"Alle Richtungen"); direction_display_options = [all_directions_text] + CARDINAL_DIRECTIONS; direction_internal_keys = [ALL_DIRECTIONS_KEY] + CARDINAL_DIRECTIONS
-                 current_direction_key = st.session_state.selected_peak_direction
-                 if current_direction_key not in direction_internal_keys: current_direction_key = ALL_DIRECTIONS_KEY; st.session_state.selected_peak_direction=current_direction_key
-                 try: current_index = direction_internal_keys.index(current_direction_key)
-                 except ValueError: current_index = 0
-                 selected_direction_display = st.selectbox(t.get('direction_filter_label',"Nach Richtung bei max. Höhe filtern:"), direction_display_options, index=current_index, key='direction_selectbox', help=t.get('direction_filter_help',"..."))
-                 selected_internal_key = ALL_DIRECTIONS_KEY
-                 if selected_direction_display != all_directions_text:
-                     try: selected_index = direction_display_options.index(selected_direction_display); selected_internal_key = direction_internal_keys[selected_index]
-                     except ValueError: selected_internal_key = ALL_DIRECTIONS_KEY
-                 if selected_internal_key != st.session_state.selected_peak_direction: st.session_state.selected_peak_direction = selected_internal_key
+        # --- Filter Expander ---
+        with st.expander(trans.get('filters_expander', "✨ Filter"), expanded=False):
+            st.markdown(trans.get('mag_filter_header', "**Magnitude**"))
+            mag_opts = {'Bortle Scale': trans.get('mag_filter_option_bortle',"Bortle Skala"), 'Manual': trans.get('mag_filter_option_manual',"Manuell")}
+            if st.session_state.mag_filter_mode_exp not in mag_opts: st.session_state.mag_filter_mode_exp = 'Bortle Scale'
+            st.radio(trans.get('mag_filter_method_label',"Filter Methode:"), list(mag_opts.keys()), format_func=lambda k:mag_opts[k], key="mag_filter_mode_exp", horizontal=True)
+            st.slider(trans.get('mag_filter_bortle_label',"Bortle Skala:"), 1, 9, key='bortle_slider', help=trans.get('mag_filter_bortle_help',"Bortle Klasse wählen (1=dunkel, 9=Stadt)"))
+            if st.session_state.mag_filter_mode_exp == "Manual":
+                st.slider(trans.get('mag_filter_min_mag_label',"Min Magnitude:"), -5.0, 20.0, step=0.5, format="%.1f", help=trans.get('mag_filter_min_mag_help',"..."), key='manual_min_mag_slider')
+                st.slider(trans.get('mag_filter_max_mag_label',"Max Magnitude:"), -5.0, 20.0, step=0.5, format="%.1f", help=trans.get('mag_filter_max_mag_help',"..."), key='manual_max_mag_slider')
+                if isinstance(st.session_state.manual_min_mag_slider,(int,float)) and isinstance(st.session_state.manual_max_mag_slider,(int,float)) and st.session_state.manual_min_mag_slider > st.session_state.manual_max_mag_slider: st.warning(trans.get('mag_filter_warning_min_max',"..."))
+            st.markdown("---"); st.markdown(trans.get('min_alt_header', "**Höhe**"))
+            min_alt_filter = st.session_state.min_alt_slider; max_alt_filter = st.session_state.max_alt_slider
+            if min_alt_filter > max_alt_filter: st.session_state.min_alt_slider = max_alt_filter; min_alt_filter = max_alt_filter
+            st.slider(trans.get('min_alt_label',"Minimale Höhe (°):"), 0, 90, key='min_alt_slider', step=1, help=trans.get('min_alt_help', "..."))
+            st.slider(trans.get('max_alt_label',"Maximale Höhe (°):"), 0, 90, key='max_alt_slider', step=1, help=trans.get('max_alt_help', "..."))
+            if st.session_state.min_alt_slider > st.session_state.max_alt_slider: st.warning(trans.get('alt_filter_warning_min_max', "..."))
+            st.markdown("---"); st.markdown(trans.get('moon_warning_header',"**Mond**"))
+            st.slider(trans.get('moon_warning_label',"Warnen wenn Mond > (%):"), 0, 100, key='moon_phase_slider', step=5, help=trans.get('moon_warning_help', "..."))
+            st.markdown("---"); st.markdown(trans.get('object_types_header',"**Objekttypen**"))
+            all_types_list = []
+            if df_catalog_data is not None and not df_catalog_data.empty:
+                try:
+                    if 'Type' in df_catalog_data.columns: all_types_list = sorted(list(df_catalog_data['Type'].dropna().astype(str).unique()))
+                    else: st.warning(trans.get('object_types_warning_missing_column', "..."))
+                except Exception as e: st.warning(f"{trans.get('object_types_error_extract','...')}: {e}")
+            if all_types_list:
+                current_selected_types = [s_type for s_type in st.session_state.object_type_filter_exp if s_type in all_types_list]
+                if current_selected_types != st.session_state.object_type_filter_exp: st.session_state.object_type_filter_exp = current_selected_types
+                st.multiselect(trans.get('object_types_label',"Nach Objekttyp(en) filtern:"), all_types_list, default=current_selected_types, key="object_type_filter_exp", help=trans.get('object_types_help',"..."))
+            else: st.info(trans.get('object_types_info_no_types', "...")); st.session_state.object_type_filter_exp = []
+            st.markdown("---"); st.markdown(trans.get('size_filter_header',"**Scheinbare Größe**"))
+            size_data_available = (df_catalog_data is not None and 'MajAx' in df_catalog_data.columns and df_catalog_data['MajAx'].notna().any())
+            size_filter_disabled = not size_data_available
+            if size_data_available:
+                try:
+                    valid_sizes = df_catalog_data['MajAx'].dropna(); min_size_limit = max(0.1, float(valid_sizes.min())) if not valid_sizes.empty else 0.1; max_size_limit = float(valid_sizes.max()) if not valid_sizes.empty else 120.0
+                    current_min_size, current_max_size = st.session_state.size_arcmin_range; clamped_min = max(min_size_limit, min(current_min_size, max_size_limit)); clamped_max = min(max_size_limit, max(current_max_size, min_size_limit))
+                    if clamped_min > clamped_max: clamped_min = clamped_max
+                    if (clamped_min, clamped_max) != st.session_state.size_arcmin_range: st.session_state.size_arcmin_range = (clamped_min, clamped_max)
+                    step_size = 0.1 if max_size_limit <= 20 else (0.5 if max_size_limit <= 100 else 1.0)
+                    st.slider(label=trans.get('size_filter_label',"Größenbereich (Arcmin):"), min_value=min_size_limit, max_value=max_size_limit, value=st.session_state.size_arcmin_range, step=step_size, key='size_arcmin_range', help=trans.get('size_filter_help',"..."), disabled=size_filter_disabled)
+                except Exception as e: st.error(f"{trans.get('size_filter_error', '...')}: {e}"); size_filter_disabled = True
+            else: st.info(trans.get('size_filter_info_missing', "...")); size_filter_disabled = True
+            if size_filter_disabled: st.slider(trans.get('size_filter_label',"Größenbereich (Arcmin):"), 0.0, 1.0, value=(0.0, 1.0), key='size_arcmin_range_disabled', disabled=True)
+            st.markdown("---"); st.markdown(trans.get('direction_filter_header',"**Kulminationsrichtung**"))
+            all_directions_text = trans.get('direction_option_all',"Alle Richtungen"); direction_display_options = [all_directions_text] + CARDINAL_DIRECTIONS; direction_internal_keys = [ALL_DIRECTIONS_KEY] + CARDINAL_DIRECTIONS
+            current_direction_key = st.session_state.selected_peak_direction
+            if current_direction_key not in direction_internal_keys: current_direction_key = ALL_DIRECTIONS_KEY; st.session_state.selected_peak_direction=current_direction_key
+            try: current_index = direction_internal_keys.index(current_direction_key)
+            except ValueError: current_index = 0
+            selected_direction_display = st.selectbox(trans.get('direction_filter_label',"Nach Richtung bei max. Höhe filtern:"), direction_display_options, index=current_index, key='direction_selectbox', help=trans.get('direction_filter_help',"..."))
+            selected_internal_key = ALL_DIRECTIONS_KEY
+            if selected_direction_display != all_directions_text:
+                try: selected_index = direction_display_options.index(selected_direction_display); selected_internal_key = direction_internal_keys[selected_index]
+                except ValueError: selected_internal_key = ALL_DIRECTIONS_KEY
+            if selected_internal_key != st.session_state.selected_peak_direction: st.session_state.selected_peak_direction = selected_internal_key
 
-             # --- Ergebnisoptionen Expander ---
-             with st.expander(t.get('results_options_expander',"⚙️ Ergebnisoptionen"), expanded=False):
-                 max_possible_objects = len(df_catalog_data) if df_catalog_data is not None and not df_catalog_data.empty else 50; min_objects_limit = 5; actual_max_limit = max(min_objects_limit, max_possible_objects); slider_disabled = (actual_max_limit <= min_objects_limit)
-                 default_num_objects = st.session_state.get('num_objects_slider', 20); clamped_default = max(min_objects_limit, min(default_num_objects, actual_max_limit))
-                 if clamped_default != default_num_objects: st.session_state.num_objects_slider = clamped_default
-                 st.slider(t.get('results_options_max_objects_label',"Max. anzuzeigende Objekte:"), min_value=min_objects_limit, max_value=actual_max_limit, value=st.session_state.num_objects_slider, step=1, key='num_objects_slider', disabled=slider_disabled, help=t.get('results_options_max_objects_help',"..."))
-                 sort_method_map = {'Duration & Altitude': t.get('results_options_sort_duration',"Dauer & Höhe"), 'Brightness': t.get('results_options_sort_magnitude',"Helligkeit (Magnitude)")}
-                 if st.session_state.sort_method not in sort_method_map: st.session_state.sort_method = 'Duration & Altitude'
-                 st.radio(t.get('results_options_sort_method_label',"Ergebnisse sortieren nach:"), list(sort_method_map.keys()), format_func=lambda k: sort_method_map[k], key='sort_method', horizontal=True, help=t.get('results_options_sort_method_help',"..."))
+        # --- Ergebnisoptionen Expander ---
+        with st.expander(trans.get('results_options_expander',"⚙️ Ergebnisoptionen"), expanded=False):
+            max_possible_objects = len(df_catalog_data) if df_catalog_data is not None and not df_catalog_data.empty else 50; min_objects_limit = 5; actual_max_limit = max(min_objects_limit, max_possible_objects); slider_disabled = (actual_max_limit <= min_objects_limit)
+            default_num_objects = st.session_state.get('num_objects_slider', 20); clamped_default = max(min_objects_limit, min(default_num_objects, actual_max_limit))
+            if clamped_default != default_num_objects: st.session_state.num_objects_slider = clamped_default
+            st.slider(trans.get('results_options_max_objects_label',"Max. anzuzeigende Objekte:"), min_value=min_objects_limit, max_value=actual_max_limit, value=st.session_state.num_objects_slider, step=1, key='num_objects_slider', disabled=slider_disabled, help=trans.get('results_options_max_objects_help',"..."))
+            sort_method_map = {'Duration & Altitude': trans.get('results_options_sort_duration',"Dauer & Höhe"), 'Brightness': trans.get('results_options_sort_magnitude',"Helligkeit (Magnitude)")}
+            if st.session_state.sort_method not in sort_method_map: st.session_state.sort_method = 'Duration & Altitude'
+            st.radio(trans.get('results_options_sort_method_label',"Ergebnisse sortieren nach:"), list(sort_method_map.keys()), format_func=lambda k: sort_method_map[k], key='sort_method', horizontal=True, help=trans.get('results_options_sort_method_help',"..."))
 
-             # --- Bug Report Link ---
-             st.sidebar.markdown("---")
-             st.sidebar.markdown(f"**{t.get('bug_report', 'Fehler gefunden oder Feedback?')}**")
-             bug_email_address = "debrun2005@gmail.com"; bug_email_subject = urllib.parse.quote(t.get('bug_report_subject', "...")); bug_email_body = urllib.parse.quote(t.get('bug_report_body', "..."))
-             mailto_link = f"mailto:{bug_email_address}?subject={bug_email_subject}&body={bug_email_body}"
-             st.sidebar.link_button(t.get('bug_report_button', '🐞 Problem melden / Vorschlag machen'), mailto_link)
+        # --- Bug Report Link ---
+        st.sidebar.markdown("---")
+        st.sidebar.markdown(f"**{trans.get('bug_report', 'Fehler gefunden oder Feedback?')}**")
+        bug_email_address = "debrun2005@gmail.com"; bug_email_subject = urllib.parse.quote(trans.get('bug_report_subject', "...")); bug_email_body = urllib.parse.quote(trans.get('bug_report_body', "..."))
+        mailto_link = f"mailto:{bug_email_address}?subject={bug_email_subject}&body={bug_email_body}"
+        st.sidebar.link_button(trans.get('bug_report_button', '🐞 Problem melden / Vorschlag machen'), mailto_link)
 
-def display_search_parameters(t: dict, observer_run: Observer | None, ref_time: Time) -> tuple[float, float]:
+# --- Rename parameter t to trans ---
+def display_search_parameters(trans: dict, observer_run: Observer | None, ref_time: Time) -> tuple[float, float]:
     """Zeigt die Zusammenfassung der Suchparameter im Hauptbereich an."""
-    st.subheader(t.get('search_params_header', "Zusammenfassung Suchparameter"))
+    st.subheader(trans.get('search_params_header', "Zusammenfassung Suchparameter"))
     p1, p2 = st.columns(2)
-    location_display_text = t.get('location_not_set', "Standort nicht gesetzt oder ungültig.")
+    location_display_text = trans.get('location_not_set', "Standort nicht gesetzt oder ungültig.")
     if st.session_state.location_is_valid_for_run and observer_run:
         lat = observer_run.location.lat.deg; lon = observer_run.location.lon.deg
-        if st.session_state.location_choice_key == "Manual": location_display_text = t.get('location_manual_display',"Manuell ({:.4f}°N, {:.4f}°E)").format(lat, lon)
-        elif st.session_state.searched_location_name: location_display_text = t.get('location_search_display',"Gesucht: {} ({:.4f}°N, {:.4f}°E)").format(st.session_state.searched_location_name, lat, lon)
+        if st.session_state.location_choice_key == "Manual": location_display_text = trans.get('location_manual_display',"Manuell ({:.4f}°N, {:.4f}°E)").format(lat, lon)
+        elif st.session_state.searched_location_name: location_display_text = trans.get('location_search_display',"Gesucht: {} ({:.4f}°N, {:.4f}°E)").format(st.session_state.searched_location_name, lat, lon)
         else: location_display_text = f"Lat:{lat:.4f}, Lon:{lon:.4f}"
-    elif not st.session_state.location_is_valid_for_run: location_display_text = t.get('location_invalid_for_run', "Standort ungültig")
-    p1.markdown(f"📍 **{t.get('search_params_location_label','Standort:')}** {location_display_text}")
+    elif not st.session_state.location_is_valid_for_run: location_display_text = trans.get('location_invalid_for_run', "Standort ungültig")
+    p1.markdown(f"📍 **{trans.get('search_params_location_label','Standort:')}** {location_display_text}")
     time_display_text = ""
     is_now_mode = (st.session_state.time_choice_exp == "Now")
     if is_now_mode:
-        try: local_now_str, tz_now_name = get_local_time_str(ref_time, st.session_state.selected_timezone); time_display_text = t.get('search_params_time_now',"Jetzt (Lokal: {} {})").format(local_now_str, tz_now_name)
-        except Exception: time_display_text = t.get('search_params_time_now_utc',"Jetzt (UTC: {})").format(ref_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'))
-    else: selected_date = st.session_state.selected_date_widget; time_display_text = t.get('search_params_time_specific',"Nacht vom {}").format(selected_date.strftime('%Y-%m-%d'))
-    p1.markdown(f"⏱️ **{t.get('search_params_time_label','Zeit:')}** {time_display_text}")
+        try: local_now_str, tz_now_name = get_local_time_str(ref_time, st.session_state.selected_timezone); time_display_text = trans.get('search_params_time_now',"Jetzt (Lokal: {} {})").format(local_now_str, tz_now_name)
+        except Exception: time_display_text = trans.get('search_params_time_now_utc',"Jetzt (UTC: {})").format(ref_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'))
+    else: selected_date = st.session_state.selected_date_widget; time_display_text = trans.get('search_params_time_specific',"Nacht vom {}").format(selected_date.strftime('%Y-%m-%d'))
+    p1.markdown(f"⏱️ **{trans.get('search_params_time_label','Zeit:')}** {time_display_text}")
     magnitude_display_text = ""; min_mag_filter, max_mag_filter = -np.inf, np.inf
     if st.session_state.mag_filter_mode_exp == "Bortle Scale":
-        try: from astro_calculations import get_magnitude_limit; max_mag_filter = get_magnitude_limit(st.session_state.bortle_slider); magnitude_display_text = t.get('search_params_filter_mag_bortle',"Bortle {} (≤ Mag {:.1f})").format(st.session_state.bortle_slider, max_mag_filter)
-        except Exception as e: magnitude_display_text = t.get('search_params_filter_mag_bortle_error',"Bortle {} (Limit Fehler)").format(st.session_state.bortle_slider); print(f"Fehler bei Mag-Limit: {e}")
-    else: min_mag_filter = st.session_state.manual_min_mag_slider; max_mag_filter = st.session_state.manual_max_mag_slider; magnitude_display_text = t.get('search_params_filter_mag_manual',"Manuell (Mag {:.1f} bis {:.1f})").format(min_mag_filter, max_mag_filter)
-    p2.markdown(f"✨ **{t.get('search_params_filter_mag_label','Magnitude:')}** {magnitude_display_text}")
-    min_alt_display = st.session_state.min_alt_slider; max_alt_display = st.session_state.max_alt_slider; p2.markdown(f"🔭 **{t.get('search_params_filter_alt_label','Höhe:')}** {min_alt_display}° – {max_alt_display}°")
-    selected_types = st.session_state.object_type_filter_exp; types_display_string = ', '.join(selected_types) if selected_types else t.get('search_params_types_all',"Alle"); p2.markdown(f"**{t.get('search_params_filter_type_label','Typen:')}** {types_display_string}")
-    size_min, size_max = st.session_state.size_arcmin_range; p2.markdown(f"📐 **{t.get('search_params_filter_size_label','Größe:')}** {size_min:.1f}′ – {size_max:.1f}′")
-    direction_key = st.session_state.selected_peak_direction; direction_display_text = t.get('search_params_direction_all',"Alle") if direction_key == ALL_DIRECTIONS_KEY else direction_key; p2.markdown(f"🧭 **{t.get('search_params_filter_direction_label','Kulm. Richtung:')}** {direction_display_text}")
+        try: from astro_calculations import get_magnitude_limit; max_mag_filter = get_magnitude_limit(st.session_state.bortle_slider); magnitude_display_text = trans.get('search_params_filter_mag_bortle',"Bortle {} (≤ Mag {:.1f})").format(st.session_state.bortle_slider, max_mag_filter)
+        except Exception as e: magnitude_display_text = trans.get('search_params_filter_mag_bortle_error',"Bortle {} (Limit Fehler)").format(st.session_state.bortle_slider); print(f"Fehler bei Mag-Limit: {e}")
+    else: min_mag_filter = st.session_state.manual_min_mag_slider; max_mag_filter = st.session_state.manual_max_mag_slider; magnitude_display_text = trans.get('search_params_filter_mag_manual',"Manuell (Mag {:.1f} bis {:.1f})").format(min_mag_filter, max_mag_filter)
+    p2.markdown(f"✨ **{trans.get('search_params_filter_mag_label','Magnitude:')}** {magnitude_display_text}")
+    min_alt_display = st.session_state.min_alt_slider; max_alt_display = st.session_state.max_alt_slider; p2.markdown(f"🔭 **{trans.get('search_params_filter_alt_label','Höhe:')}** {min_alt_display}° – {max_alt_display}°")
+    selected_types = st.session_state.object_type_filter_exp; types_display_string = ', '.join(selected_types) if selected_types else trans.get('search_params_types_all',"Alle"); p2.markdown(f"**{trans.get('search_params_filter_type_label','Typen:')}** {types_display_string}")
+    size_min, size_max = st.session_state.size_arcmin_range; p2.markdown(f"📐 **{trans.get('search_params_filter_size_label','Größe:')}** {size_min:.1f}′ – {size_max:.1f}′")
+    direction_key = st.session_state.selected_peak_direction; direction_display_text = trans.get('search_params_direction_all',"Alle") if direction_key == ALL_DIRECTIONS_KEY else direction_key; p2.markdown(f"🧭 **{trans.get('search_params_filter_direction_label','Kulm. Richtung:')}** {direction_display_text}")
     return min_mag_filter, max_mag_filter
 
-def display_results(t: dict, results_ph: st.container, observer_run: Observer | None) -> None:
+# --- Rename parameter t to trans ---
+def display_results(trans: dict, results_ph: st.container, observer_run: Observer | None) -> None:
     """Zeigt die Ergebnisliste, Plots, Download-Button und Kosmologie-Daten an."""
     results_data = st.session_state.last_results
-    results_ph.subheader(t.get('results_list_header',"Ergebnisse"))
+    results_ph.subheader(trans.get('results_list_header',"Ergebnisse"))
     window_start = st.session_state.get('window_start_time'); window_end = st.session_state.get('window_end_time'); observer_exists = observer_run is not None
     if observer_exists and isinstance(window_start, Time) and isinstance(window_end, Time):
         mid_time = window_start + (window_end - window_start) / 2
         try: illumination = moon_illumination(mid_time); moon_percentage = illumination * 100; moon_svg_icon = create_moon_phase_svg(illumination, size=50); mc1, mc2 = results_ph.columns([1, 3])
-        except Exception as e: results_ph.warning(t.get('moon_phase_error',"Mondphase konnte nicht berechnet werden: {}").format(e)); print(f"Fehler bei Mondphasenberechnung: {e}"); moon_svg_icon = None
+        except Exception as e: results_ph.warning(trans.get('moon_phase_error',"Mondphase konnte nicht berechnet werden: {}").format(e)); print(f"Fehler bei Mondphasenberechnung: {e}"); moon_svg_icon = None
         if moon_svg_icon:
              with mc1: st.markdown(moon_svg_icon, unsafe_allow_html=True)
-             with mc2: st.metric(label=t.get('moon_metric_label',"Mondbeleuchtung"), value=f"{moon_percentage:.0f}%"); moon_warning_threshold = st.session_state.moon_phase_slider;
-             if moon_percentage > moon_warning_threshold: st.warning(t.get('moon_warning_message',"Warnung: Mond ({:.0f}%) heller als Schwelle ({}%)!").format(moon_percentage, moon_warning_threshold))
-    elif st.session_state.find_button_pressed: results_ph.info(t.get('moon_phase_info_cannot_calc',"Mondphasenberechnung benötigt gültigen Standort und Zeitfenster."))
-    plot_type_map = {'Sky Path': t.get('graph_type_sky_path',"Himmelspfad (Polar)"), 'Altitude Plot': t.get('graph_type_alt_time',"Höhe vs. Zeit")}
+             with mc2: st.metric(label=trans.get('moon_metric_label',"Mondbeleuchtung"), value=f"{moon_percentage:.0f}%"); moon_warning_threshold = st.session_state.moon_phase_slider;
+             if moon_percentage > moon_warning_threshold: st.warning(trans.get('moon_warning_message',"Warnung: Mond ({:.0f}%) heller als Schwelle ({}%)!").format(moon_percentage, moon_warning_threshold))
+    elif st.session_state.find_button_pressed: results_ph.info(trans.get('moon_phase_info_cannot_calc',"Mondphasenberechnung benötigt gültigen Standort und Zeitfenster."))
+    plot_type_map = {'Sky Path': trans.get('graph_type_sky_path',"Himmelspfad (Polar)"), 'Altitude Plot': trans.get('graph_type_alt_time',"Höhe vs. Zeit")}
     if st.session_state.plot_type_selection not in plot_type_map: st.session_state.plot_type_selection = 'Sky Path'
-    results_ph.radio(t.get('graph_type_label',"Plot-Typ wählen:"), list(plot_type_map.keys()), format_func=lambda k: plot_type_map[k], key='plot_type_selection', horizontal=True)
+    results_ph.radio(trans.get('graph_type_label',"Plot-Typ wählen:"), list(plot_type_map.keys()), format_func=lambda k: plot_type_map[k], key='plot_type_selection', horizontal=True)
     for i, obj_data in enumerate(results_data):
-        obj_name = obj_data.get('Name', '?'); obj_type = obj_data.get('Type', '?'); obj_mag = obj_data.get('Magnitude'); mag_str = f"{obj_mag:.1f}" if obj_mag is not None else t.get('magnitude_unknown', 'k.A.'); expander_title_template = "{} ({}) - Mag: {}"; expander_title = expander_title_template.format(obj_name, obj_type, mag_str); is_expanded = (st.session_state.expanded_object_name == obj_name); obj_container = results_ph.container()
+        obj_name = obj_data.get('Name', '?'); obj_type = obj_data.get('Type', '?'); obj_mag = obj_data.get('Magnitude'); mag_str = f"{obj_mag:.1f}" if obj_mag is not None else trans.get('magnitude_unknown', 'k.A.'); expander_title_template = "{} ({}) - Mag: {}"; expander_title = expander_title_template.format(obj_name, obj_type, mag_str); is_expanded = (st.session_state.expanded_object_name == obj_name); obj_container = results_ph.container()
         with obj_container.expander(expander_title, expanded=is_expanded):
             col1, col2, col3 = st.columns([2, 2, 1])
-            col1.markdown(f"**{t.get('results_details_header','Details:')}**"); col1.markdown(f"**{t.get('results_export_constellation','Sternbild')}:** {obj_data.get('Constellation','?')}"); size_arcmin = obj_data.get('Size (arcmin)'); size_display = t.get('results_size_value','{:.1f}′').format(size_arcmin) if size_arcmin is not None else '?'; col1.markdown(f"**{t.get('results_size_label','Größe:')}** {size_display}"); col1.markdown(f"**RA:** {obj_data.get('RA','?')}"); col1.markdown(f"**Dec:** {obj_data.get('Dec','?')}")
-            col2.markdown(f"**{t.get('results_max_alt_header','Max. Höhe:')}**"); max_alt_value = obj_data.get('Max Altitude (°)', 0); az_at_max = obj_data.get('Azimuth at Max (°)', 0); direction_at_max = obj_data.get('Direction at Max', '?'); safe_az_fmt = "(Az:{:.1f}°)"; safe_dir_fmt = ", Dir:{}"; az_display = safe_az_fmt.format(az_at_max); dir_display = safe_dir_fmt.format(direction_at_max); col2.markdown(f"**{max_alt_value:.1f}°** {az_display}{dir_display}")
-            col2.markdown(f"**{t.get('results_best_time_header','Beste Zeit (Lokal):')}**"); peak_time_utc = obj_data.get('Time at Max (UTC)'); local_time_str, local_tz_name = get_local_time_str(peak_time_utc, st.session_state.selected_timezone); col2.markdown(f"{local_time_str} ({local_tz_name})")
-            col2.markdown(f"**{t.get('results_cont_duration_header','Max. kont. Dauer:')}**"); duration_hours = obj_data.get('Max Cont. Duration (h)', 0); col2.markdown(t.get('results_duration_value',"{:.1f} Stunden").format(duration_hours))
-            google_query = urllib.parse.quote_plus(f"{obj_name} astronomy"); google_url = f"https://google.com/search?q={google_query}"; col3.markdown(f"[{t.get('google_link_text','Google')}]({google_url})", unsafe_allow_html=True); simbad_query = urllib.parse.quote_plus(obj_name); simbad_url = f"http://simbad.cds.unistra.fr/simbad/sim-basic?Ident={simbad_query}"; col3.markdown(f"[{t.get('simbad_link_text','SIMBAD')}]({simbad_url})", unsafe_allow_html=True)
+            col1.markdown(f"**{trans.get('results_details_header','Details:')}**"); col1.markdown(f"**{trans.get('results_export_constellation','Sternbild')}:** {obj_data.get('Constellation','?')}"); size_arcmin = obj_data.get('Size (arcmin)'); size_display = trans.get('results_size_value','{:.1f}′').format(size_arcmin) if size_arcmin is not None else '?'; col1.markdown(f"**{trans.get('results_size_label','Größe:')}** {size_display}"); col1.markdown(f"**RA:** {obj_data.get('RA','?')}"); col1.markdown(f"**Dec:** {obj_data.get('Dec','?')}")
+            col2.markdown(f"**{trans.get('results_max_alt_header','Max. Höhe:')}**"); max_alt_value = obj_data.get('Max Altitude (°)', 0); az_at_max = obj_data.get('Azimuth at Max (°)', 0); direction_at_max = obj_data.get('Direction at Max', '?'); safe_az_fmt = "(Az:{:.1f}°)"; safe_dir_fmt = ", Dir:{}"; az_display = safe_az_fmt.format(az_at_max); dir_display = safe_dir_fmt.format(direction_at_max); col2.markdown(f"**{max_alt_value:.1f}°** {az_display}{dir_display}")
+            col2.markdown(f"**{trans.get('results_best_time_header','Beste Zeit (Lokal):')}**"); peak_time_utc = obj_data.get('Time at Max (UTC)'); local_time_str, local_tz_name = get_local_time_str(peak_time_utc, st.session_state.selected_timezone); col2.markdown(f"{local_time_str} ({local_tz_name})")
+            col2.markdown(f"**{trans.get('results_cont_duration_header','Max. kont. Dauer:')}**"); duration_hours = obj_data.get('Max Cont. Duration (h)', 0); col2.markdown(trans.get('results_duration_value',"{:.1f} Stunden").format(duration_hours))
+            google_query = urllib.parse.quote_plus(f"{obj_name} astronomy"); google_url = f"https://google.com/search?q={google_query}"; col3.markdown(f"[{trans.get('google_link_text','Google')}]({google_url})", unsafe_allow_html=True); simbad_query = urllib.parse.quote_plus(obj_name); simbad_url = f"http://simbad.cds.unistra.fr/simbad/sim-basic?Ident={simbad_query}"; col3.markdown(f"[{trans.get('simbad_link_text','SIMBAD')}]({simbad_url})", unsafe_allow_html=True)
             plot_button_key = f"plot_{obj_name}_{i}";
-            if st.button(t.get('results_graph_button',"📈 Plot"), key=plot_button_key): st.session_state.plot_object_name = obj_name; st.session_state.active_result_plot_data = obj_data; st.session_state.show_plot = True; st.session_state.show_custom_plot = False; st.session_state.expanded_object_name = obj_name; st.rerun()
+            if st.button(trans.get('results_graph_button',"📈 Plot"), key=plot_button_key): st.session_state.plot_object_name = obj_name; st.session_state.active_result_plot_data = obj_data; st.session_state.show_plot = True; st.session_state.show_custom_plot = False; st.session_state.expanded_object_name = obj_name; st.rerun()
             z_value = obj_data.get('z'); show_cosmo_key = f"show_cosmo_{obj_name}_{i}"
             if z_value is not None and isinstance(z_value, (float, int)) and z_value > 0:
-                if st.button(t.get('results_cosmology_button', "🌌 Kosmologie"), key=f"btn_cosmo_{obj_name}_{i}"): current_state = st.session_state.get(show_cosmo_key, False); st.session_state[show_cosmo_key] = not current_state;
+                if st.button(trans.get('results_cosmology_button', "🌌 Kosmologie"), key=f"btn_cosmo_{obj_name}_{i}"): current_state = st.session_state.get(show_cosmo_key, False); st.session_state[show_cosmo_key] = not current_state;
                 if not current_state: [st.session_state.pop(key, None) for key in list(st.session_state.keys()) if key.startswith("show_cosmo_") and key != show_cosmo_key]; st.rerun()
                 if st.session_state.get(show_cosmo_key, False):
                     cosmo_placeholder = st.container();
                     with cosmo_placeholder:
-                        st.markdown("---"); st.markdown(f"**{t.get('cosmology_results_header', 'Kosmologische Daten')} (z={z_value:.5f})**")
+                        st.markdown("---"); st.markdown(f"**{trans.get('cosmology_results_header', 'Kosmologische Daten')} (z={z_value:.5f})**")
                         try: cosmo_results = calculate_lcdm_distances(z_value, H0_DEFAULT, OMEGA_M_DEFAULT, OMEGA_LAMBDA_DEFAULT); cosmo_error_key = cosmo_results.get('error_msg')
-                        except Exception as e: st.error(f"{t.get('error_calc_failed_cosmo', 'Kosmologie-Berechnung fehlgeschlagen')}: {e}"); traceback.print_exc(); cosmo_results = None; cosmo_error_key = 'error_calc_failed_cosmo'
-                        if cosmo_error_key: st.warning(t.get(cosmo_error_key, "Kosmologie-Berechnungsfehler"))
+                        except Exception as e: st.error(f"{trans.get('error_calc_failed_cosmo', 'Kosmologie-Berechnung fehlgeschlagen')}: {e}"); traceback.print_exc(); cosmo_results = None; cosmo_error_key = 'error_calc_failed_cosmo'
+                        if cosmo_error_key: st.warning(trans.get(cosmo_error_key, "Kosmologie-Berechnungsfehler"))
                         elif cosmo_results:
                             lookback_gyr_res = cosmo_results['lookback_gyr']; comoving_mpc_res = cosmo_results['comoving_mpc']; luminosity_mpc_res = cosmo_results['luminosity_mpc']; ang_diam_mpc_res = cosmo_results['ang_diam_mpc']
                             comoving_gly_res = convert_mpc_to_gly(comoving_mpc_res); luminosity_gly_res = convert_mpc_to_gly(luminosity_mpc_res); ang_diam_gly_res = convert_mpc_to_gly(ang_diam_mpc_res)
-                            st.metric(label=t.get("lookback_time"), value=f"{lookback_gyr_res:.3f}", delta=t.get("unit_Gyr")); lookback_example_key = get_lookback_comparison(lookback_gyr_res); st.caption(f"*{t.get(lookback_example_key)}*")
-                            st.markdown(f"**{t.get('comoving_distance_title')}**"); st.text(f"  {comoving_mpc_res:,.3f} {t.get('unit_Mpc')}"); st.text(f"  {comoving_gly_res:,.3f} {t.get('unit_Gly')}"); comoving_example_key = get_comoving_comparison(comoving_mpc_res); st.caption(f"*{t.get(comoving_example_key)}*")
-                            st.markdown(f"**{t.get('luminosity_distance_title')}**"); st.text(f"  {luminosity_mpc_res:,.3f} {t.get('unit_Mpc')}"); st.text(f"  {luminosity_gly_res:,.3f} {t.get('unit_Gly')}"); st.caption(f"*{t.get('explanation_luminosity')}*")
-                            st.markdown(f"**{t.get('angular_diameter_distance_title')}**"); st.text(f"  {ang_diam_mpc_res:,.3f} {t.get('unit_Mpc')}"); st.text(f"  {ang_diam_gly_res:,.3f} {t.get('unit_Gly')}"); st.caption(f"*{t.get('explanation_angular')}*")
+                            st.metric(label=trans.get("lookback_time"), value=f"{lookback_gyr_res:.3f}", delta=trans.get("unit_Gyr")); lookback_example_key = get_lookback_comparison(lookback_gyr_res); st.caption(f"*{trans.get(lookback_example_key)}*")
+                            st.markdown(f"**{trans.get('comoving_distance_title')}**"); st.text(f"  {comoving_mpc_res:,.3f} {trans.get('unit_Mpc')}"); st.text(f"  {comoving_gly_res:,.3f} {trans.get('unit_Gly')}"); comoving_example_key = get_comoving_comparison(comoving_mpc_res); st.caption(f"*{trans.get(comoving_example_key)}*")
+                            st.markdown(f"**{trans.get('luminosity_distance_title')}**"); st.text(f"  {luminosity_mpc_res:,.3f} {trans.get('unit_Mpc')}"); st.text(f"  {luminosity_gly_res:,.3f} {trans.get('unit_Gly')}"); st.caption(f"*{trans.get('explanation_luminosity')}*")
+                            st.markdown(f"**{trans.get('angular_diameter_distance_title')}**"); st.text(f"  {ang_diam_mpc_res:,.3f} {trans.get('unit_Mpc')}"); st.text(f"  {ang_diam_gly_res:,.3f} {trans.get('unit_Gly')}"); st.caption(f"*{trans.get('explanation_angular')}*")
                             integration_warn_key = cosmo_results.get('integration_warning_key');
-                            if integration_warn_key: integration_warn_args = cosmo_results.get('integration_warning_args', {}); st.caption(t.get(integration_warn_key, "...").format(**integration_warn_args))
-                            st.caption(t.get("calculation_note"))
+                            if integration_warn_key: integration_warn_args = cosmo_results.get('integration_warning_args', {}); st.caption(trans.get(integration_warn_key, "...").format(**integration_warn_args))
+                            st.caption(trans.get("calculation_note"))
             elif z_value is not None:
-                 if isinstance(z_value, (float, int)) and z_value <= 0: st.caption(t.get('cosmology_not_applicable', "..."))
-                 else: st.caption(t.get('cosmology_invalid_z', "..."))
+                 if isinstance(z_value, (float, int)) and z_value <= 0: st.caption(trans.get('cosmology_not_applicable', "..."))
+                 else: st.caption(trans.get('cosmology_invalid_z', "..."))
             if st.session_state.show_plot and st.session_state.plot_object_name == obj_name:
                 plot_data_to_use = st.session_state.active_result_plot_data; min_alt_for_plot = st.session_state.min_alt_slider; max_alt_for_plot = st.session_state.max_alt_slider; st.markdown("---")
-                with st.spinner(t.get('results_spinner_plotting',"Erstelle Plot...")):
-                    try: figure = create_plot(plot_data_to_use, min_alt_for_plot, max_alt_for_plot, st.session_state.plot_type_selection, t)
-                    except Exception as e: st.error(f"{t.get('plot_error_unexpected', '...')}: {e}"); traceback.print_exc(); figure = None
+                with st.spinner(trans.get('results_spinner_plotting',"Erstelle Plot...")):
+                    try: figure = create_plot(plot_data_to_use, min_alt_for_plot, max_alt_for_plot, st.session_state.plot_type_selection, trans)
+                    except Exception as e: st.error(f"{trans.get('plot_error_unexpected', '...')}: {e}"); traceback.print_exc(); figure = None
                     if figure: st.pyplot(figure); close_button_key = f"close_{obj_name}_{i}";
-                    if st.button(t.get('results_close_graph_button',"Plot schließen"), key=close_button_key): st.session_state.show_plot = False; st.session_state.active_result_plot_data = None; st.session_state.expanded_object_name = None; st.rerun()
-                    else: st.error(t.get('results_graph_not_created',"Plot konnte nicht erstellt werden."))
+                    if st.button(trans.get('results_close_graph_button',"Plot schließen"), key=close_button_key): st.session_state.show_plot = False; st.session_state.active_result_plot_data = None; st.session_state.expanded_object_name = None; st.rerun()
+                    else: st.error(trans.get('results_graph_not_created',"Plot konnte nicht erstellt werden."))
     if results_data:
         csv_placeholder = results_ph.container();
         try:
             export_rows = [];
             for obj_csv_data in results_data: peak_time_utc_csv = obj_csv_data.get('Time at Max (UTC)'); local_time_csv, _ = get_local_time_str(peak_time_utc_csv, st.session_state.selected_timezone);
-            export_rows.append({ t.get('results_export_name', "Name"): obj_csv_data.get('Name', 'N/A'), t.get('results_export_type', "Typ"): obj_csv_data.get('Type', 'N/A'), t.get('results_export_constellation', "Sternbild"): obj_csv_data.get('Constellation', 'N/A'), t.get('results_export_mag', "Magnitude"): obj_csv_data.get('Magnitude'), t.get('results_export_size', "Größe (arcmin)"): obj_csv_data.get('Size (arcmin)'), t.get('results_export_ra', "RA"): obj_csv_data.get('RA', 'N/A'), t.get('results_export_dec', "Dec"): obj_csv_data.get('Dec', 'N/A'), t.get('results_export_max_alt', "Max Höhe (°)"): obj_csv_data.get('Max Altitude (°)', 0), t.get('results_export_az_at_max', "Azimut bei Max (°)"): obj_csv_data.get('Azimuth at Max (°)', 0), t.get('results_export_direction_at_max', "Richtung bei Max"): obj_csv_data.get('Direction at Max', 'N/A'), t.get('results_export_time_max_utc', "Zeit bei Max (UTC)"): peak_time_utc_csv.iso if peak_time_utc_csv else "N/A", t.get('results_export_time_max_local', "Zeit bei Max (Lokal)"): local_time_csv, t.get('results_export_cont_duration', "Max kont. Dauer (h)"): obj_csv_data.get('Max Cont. Duration (h)', 0), t.get('results_export_redshift', "Rotverschiebung (z)"): obj_csv_data.get('z') })
-            df_export = pd.DataFrame(export_rows); decimal_separator = ',' if st.session_state.language == 'DE' else '.'; csv_string = df_export.to_csv(index=False, sep=';', encoding='utf-8-sig', decimal=decimal_separator); timestamp = datetime.now().strftime("%Y%m%d_%H%M"); csv_filename = t.get('results_csv_filename',"dso_ergebnisse_{}.csv").format(timestamp)
-            csv_placeholder.download_button(label=t.get('results_save_csv_button',"💾 Ergebnisse als CSV speichern"), data=csv_string, file_name=csv_filename, mime='text/csv', key='csv_download_button')
-        except Exception as e: csv_placeholder.error(t.get('results_csv_export_error',"Fehler beim Erstellen der CSV-Datei: {}").format(e)); print(f"CSV Export Fehler: {e}")
+            export_rows.append({ trans.get('results_export_name', "Name"): obj_csv_data.get('Name', 'N/A'), trans.get('results_export_type', "Typ"): obj_csv_data.get('Type', 'N/A'), trans.get('results_export_constellation', "Sternbild"): obj_csv_data.get('Constellation', 'N/A'), trans.get('results_export_mag', "Magnitude"): obj_csv_data.get('Magnitude'), trans.get('results_export_size', "Größe (arcmin)"): obj_csv_data.get('Size (arcmin)'), trans.get('results_export_ra', "RA"): obj_csv_data.get('RA', 'N/A'), trans.get('results_export_dec', "Dec"): obj_csv_data.get('Dec', 'N/A'), trans.get('results_export_max_alt', "Max Höhe (°)"): obj_csv_data.get('Max Altitude (°)', 0), trans.get('results_export_az_at_max', "Azimut bei Max (°)"): obj_csv_data.get('Azimuth at Max (°)', 0), trans.get('results_export_direction_at_max', "Richtung bei Max"): obj_csv_data.get('Direction at Max', 'N/A'), trans.get('results_export_time_max_utc', "Zeit bei Max (UTC)"): peak_time_utc_csv.iso if peak_time_utc_csv else "N/A", trans.get('results_export_time_max_local', "Zeit bei Max (Lokal)"): local_time_csv, trans.get('results_export_cont_duration', "Max kont. Dauer (h)"): obj_csv_data.get('Max Cont. Duration (h)', 0), trans.get('results_export_redshift', "Rotverschiebung (z)"): obj_csv_data.get('z') })
+            df_export = pd.DataFrame(export_rows); decimal_separator = ',' if st.session_state.language == 'DE' else '.'; csv_string = df_export.to_csv(index=False, sep=';', encoding='utf-8-sig', decimal=decimal_separator); timestamp = datetime.now().strftime("%Y%m%d_%H%M"); csv_filename = trans.get('results_csv_filename',"dso_ergebnisse_{}.csv").format(timestamp)
+            csv_placeholder.download_button(label=trans.get('results_save_csv_button',"💾 Ergebnisse als CSV speichern"), data=csv_string, file_name=csv_filename, mime='text/csv', key='csv_download_button')
+        except Exception as e: csv_placeholder.error(trans.get('results_csv_export_error',"Fehler beim Erstellen der CSV-Datei: {}").format(e)); print(f"CSV Export Fehler: {e}")
 
 
-def create_custom_target_section(t: dict, results_ph: st.container, observer_run: Observer | None) -> None:
+# --- Rename parameter t to trans ---
+def create_custom_target_section(trans: dict, results_ph: st.container, observer_run: Observer | None) -> None:
     """Erstellt den UI-Bereich zum Plotten eines benutzerdefinierten Ziels."""
     st.markdown("---")
-    with st.expander(t.get('custom_target_expander',"Eigenes RA/Dec Ziel plotten")):
+    with st.expander(trans.get('custom_target_expander',"Eigenes RA/Dec Ziel plotten")):
         with st.form("custom_target_form"):
-             st.text_input(t.get('custom_target_ra_label',"Rektaszension (RA):"), key="custom_target_ra", placeholder=t.get('custom_target_ra_placeholder',"..."))
-             st.text_input(t.get('custom_target_dec_label',"Deklination (Dec):"), key="custom_target_dec", placeholder=t.get('custom_target_dec_placeholder',"..."))
-             st.text_input(t.get('custom_target_name_label',"Zielname (Optional):"), key="custom_target_name", placeholder=t.get('custom_target_name_default_placeholder',"Eigenes Ziel"))
-             custom_plot_submitted = st.form_submit_button(t.get('custom_target_button',"Eigenes Ziel plotten"))
+             st.text_input(trans.get('custom_target_ra_label',"Rektaszension (RA):"), key="custom_target_ra", placeholder=trans.get('custom_target_ra_placeholder',"..."))
+             st.text_input(trans.get('custom_target_dec_label',"Deklination (Dec):"), key="custom_target_dec", placeholder=trans.get('custom_target_dec_placeholder',"..."))
+             st.text_input(trans.get('custom_target_name_label',"Zielname (Optional):"), key="custom_target_name", placeholder=trans.get('custom_target_name_default_placeholder',"Eigenes Ziel"))
+             custom_plot_submitted = st.form_submit_button(trans.get('custom_target_button',"Eigenes Ziel plotten"))
         error_placeholder = st.empty(); plot_display_area = st.container()
         if custom_plot_submitted:
              st.session_state.show_plot = False; st.session_state.show_custom_plot = False; st.session_state.custom_target_plot_data = None; st.session_state.custom_target_error = ""
-             custom_ra_input = st.session_state.custom_target_ra; custom_dec_input = st.session_state.custom_target_dec; custom_name_input = st.session_state.custom_target_name or t.get('custom_target_name_default',"Eigenes Ziel")
+             custom_ra_input = st.session_state.custom_target_ra; custom_dec_input = st.session_state.custom_target_dec; custom_name_input = st.session_state.custom_target_name or trans.get('custom_target_name_default',"Eigenes Ziel")
              window_start_time = st.session_state.get('window_start_time'); window_end_time = st.session_state.get('window_end_time'); observer_exists = observer_run is not None
-             if not custom_ra_input or not custom_dec_input: st.session_state.custom_target_error = t.get('custom_target_error_coords_missing',"RA und Dec Koordinaten benötigt."); error_placeholder.error(st.session_state.custom_target_error)
-             elif not observer_exists or not isinstance(window_start_time, Time) or not isinstance(window_end_time, Time): st.session_state.custom_target_error = t.get('custom_target_error_window_invalid',"Gültiger Standort und Beobachtungsfenster benötigt (erst Suche durchführen)."); error_placeholder.error(st.session_state.custom_target_error)
+             if not custom_ra_input or not custom_dec_input: st.session_state.custom_target_error = trans.get('custom_target_error_coords_missing',"RA und Dec Koordinaten benötigt."); error_placeholder.error(st.session_state.custom_target_error)
+             elif not observer_exists or not isinstance(window_start_time, Time) or not isinstance(window_end_time, Time): st.session_state.custom_target_error = trans.get('custom_target_error_window_invalid',"Gültiger Standort und Beobachtungsfenster benötigt (erst Suche durchführen)."); error_placeholder.error(st.session_state.custom_target_error)
              else:
                  try:
                      custom_skycoord = SkyCoord(ra=custom_ra_input, dec=custom_dec_input, unit=(u.hourangle, u.deg), frame='icrs')
-                     if window_start_time >= window_end_time: raise ValueError(t.get('custom_target_error_window_order', "..."))
+                     if window_start_time >= window_end_time: raise ValueError(trans.get('custom_target_error_window_order', "..."))
                      time_resolution = 5 * u.minute; observation_times_custom = Time(np.arange(window_start_time.jd, window_end_time.jd, time_resolution.to(u.day).value), format='jd', scale='utc')
-                     if len(observation_times_custom) < 2: raise ValueError(t.get('custom_target_error_window_short', "..."))
+                     if len(observation_times_custom) < 2: raise ValueError(trans.get('custom_target_error_window_short', "..."))
                      altaz_frame = AltAz(obstime=observation_times_custom, location=observer_run.location); custom_altazs = custom_skycoord.transform_to(altaz_frame); custom_altitudes = custom_altazs.alt.to(u.deg).value; custom_azimuths = custom_altazs.az.to(u.deg).value
                      st.session_state.custom_target_plot_data = {'Name': custom_name_input, 'altitudes': custom_altitudes, 'azimuths': custom_azimuths, 'times': observation_times_custom}; st.session_state.show_custom_plot = True; st.session_state.custom_target_error = ""; st.rerun()
-                 except ValueError as e: st.session_state.custom_target_error = f"{t.get('custom_target_error_parsing','...')}: {e}"; error_placeholder.error(st.session_state.custom_target_error)
-                 except Exception as e: st.session_state.custom_target_error = f"{t.get('custom_target_error_unexpected','...')}: {e}"; error_placeholder.error(st.session_state.custom_target_error); traceback.print_exc()
+                 except ValueError as e: st.session_state.custom_target_error = f"{trans.get('custom_target_error_parsing','...')}: {e}"; error_placeholder.error(st.session_state.custom_target_error)
+                 except Exception as e: st.session_state.custom_target_error = f"{trans.get('custom_target_error_unexpected','...')}: {e}"; error_placeholder.error(st.session_state.custom_target_error); traceback.print_exc()
         if st.session_state.show_custom_plot and st.session_state.custom_target_plot_data:
             custom_plot_data = st.session_state.custom_target_plot_data; min_alt_cust_plot = st.session_state.min_alt_slider; max_alt_cust_plot = st.session_state.max_alt_slider
             with plot_display_area:
                  st.markdown("---")
-                 with st.spinner(t.get('results_spinner_plotting',"Erstelle Plot...")):
-                     try: custom_figure = create_plot(custom_plot_data, min_alt_cust_plot, max_alt_cust_plot, st.session_state.plot_type_selection, t)
-                     except Exception as e: st.error(f"{t.get('plot_error_unexpected','...')}: {e}"); traceback.print_exc(); custom_figure = None
+                 with st.spinner(trans.get('results_spinner_plotting',"Erstelle Plot...")):
+                     try: custom_figure = create_plot(custom_plot_data, min_alt_cust_plot, max_alt_cust_plot, st.session_state.plot_type_selection, trans) # Pass trans
+                     except Exception as e: st.error(f"{trans.get('plot_error_unexpected','...')}: {e}"); traceback.print_exc(); custom_figure = None
                      if custom_figure: st.pyplot(custom_figure);
-                     if st.button(t.get('results_close_graph_button',"Plot schließen"), key="close_custom_plot_button"): st.session_state.show_custom_plot = False; st.session_state.custom_target_plot_data = None; st.rerun()
-                     elif custom_plot_submitted: st.error(t.get('results_graph_not_created',"Plot konnte nicht erstellt werden."))
+                     if st.button(trans.get('results_close_graph_button',"Plot schließen"), key="close_custom_plot_button"): st.session_state.show_custom_plot = False; st.session_state.custom_target_plot_data = None; st.rerun()
+                     elif custom_plot_submitted: st.error(trans.get('results_graph_not_created',"Plot konnte nicht erstellt werden."))
         elif st.session_state.custom_target_error: error_placeholder.error(st.session_state.custom_target_error)
 
 
 # --- NEUE Funktion für manuellen Kosmologie-Rechner ---
-def create_manual_cosmology_calculator(t: dict) -> None:
+# --- Rename parameter t to trans ---
+def create_manual_cosmology_calculator(trans: dict) -> None:
     """Erstellt den UI-Bereich für den manuellen Rotverschiebungsrechner."""
     st.markdown("---")
-    with st.expander(t.get('manual_cosmology_expander', "🌌 Manueller Kosmologie-Rechner")): # Corrected call
-        st.subheader(t.get('input_params', "Eingabeparameter")) # Corrected call
+    with st.expander(trans.get('manual_cosmology_expander', "🌌 Manueller Kosmologie-Rechner")):
+        st.subheader(trans.get('input_params', "Eingabeparameter"))
 
         col1, col2 = st.columns(2)
         with col1:
             z_manual_input = st.number_input(
-                label=t.get("redshift_z", "Rotverschiebung (z)"), # Corrected call
+                label=trans.get("redshift_z", "Rotverschiebung (z)"),
                 min_value=-0.99,
                 value=st.session_state.get("manual_z_input_value", 1.0),
                 step=0.1,
                 format="%.5f",
                 key="manual_z_input_value",
-                help=t.get('redshift_z_tooltip', "Kosmologische Rotverschiebung eingeben.") # Corrected call
+                help=trans.get('redshift_z_tooltip', "Kosmologische Rotverschiebung eingeben.")
             )
         with col2:
-            st.markdown(f"**{t.get('cosmo_params', 'Kosmologische Parameter')}**") # Corrected call
-            h0_manual_input = st.number_input(label=t.get("hubble_h0", "Hubble-Konstante (H₀) [km/s/Mpc]"), min_value=1.0, value=st.session_state.get("manual_h0_value", H0_DEFAULT), step=0.1, format="%.1f", key="manual_h0_value") # Corrected call
-            omega_m_manual_input = st.number_input(label=t.get("omega_m", "Materiedichte (Ωm)"), min_value=0.0, max_value=2.0, value=st.session_state.get("manual_omega_m_value", OMEGA_M_DEFAULT), step=0.01, format="%.3f", key="manual_omega_m_value") # Corrected call
-            omega_lambda_manual_input = st.number_input(label=t.get("omega_lambda", "Dunkle Energie (ΩΛ)"), min_value=0.0, max_value=2.0, value=st.session_state.get("manual_omega_lambda_value", OMEGA_LAMBDA_DEFAULT), step=0.01, format="%.3f", key="manual_omega_lambda_value") # Corrected call
+            st.markdown(f"**{trans.get('cosmo_params', 'Kosmologische Parameter')}**")
+            h0_manual_input = st.number_input(label=trans.get("hubble_h0", "Hubble-Konstante (H₀) [km/s/Mpc]"), min_value=1.0, value=st.session_state.get("manual_h0_value", H0_DEFAULT), step=0.1, format="%.1f", key="manual_h0_value")
+            omega_m_manual_input = st.number_input(label=trans.get("omega_m", "Materiedichte (Ωm)"), min_value=0.0, max_value=2.0, value=st.session_state.get("manual_omega_m_value", OMEGA_M_DEFAULT), step=0.01, format="%.3f", key="manual_omega_m_value")
+            omega_lambda_manual_input = st.number_input(label=trans.get("omega_lambda", "Dunkle Energie (ΩΛ)"), min_value=0.0, max_value=2.0, value=st.session_state.get("manual_omega_lambda_value", OMEGA_LAMBDA_DEFAULT), step=0.01, format="%.3f", key="manual_omega_lambda_value")
 
             if not math.isclose(omega_m_manual_input + omega_lambda_manual_input, 1.0, abs_tol=1e-3):
-                st.warning(t.get("flat_universe_warning", "...")) # Corrected call
+                st.warning(trans.get("flat_universe_warning", "..."))
 
         st.markdown("---")
-        st.subheader(t.get("results_for", "Ergebnisse für z = {z:.5f}").format(z=z_manual_input)) # Corrected call
+        st.subheader(trans.get("results_for", "Ergebnisse für z = {z:.5f}").format(z=z_manual_input))
 
         cosmo_results_manual = calculate_lcdm_distances(z_manual_input, h0_manual_input, omega_m_manual_input, omega_lambda_manual_input)
 
         error_key_manual = cosmo_results_manual.get('error_msg')
         if error_key_manual:
             error_args_manual = cosmo_results_manual.get('error_args', {})
-            error_text_manual = t.get(error_key_manual, error_key_manual).format(**error_args_manual) # Corrected call
+            error_text_manual = trans.get(error_key_manual, error_key_manual).format(**error_args_manual)
             if error_key_manual == "warn_blueshift": st.warning(error_text_manual)
             else: st.error(error_text_manual)
         else:
             lookback_gyr_res_man = cosmo_results_manual['lookback_gyr']; comoving_mpc_res_man = cosmo_results_manual['comoving_mpc']; luminosity_mpc_res_man = cosmo_results_manual['luminosity_mpc']; ang_diam_mpc_res_man = cosmo_results_manual['ang_diam_mpc']
             comoving_gly_res_man = convert_mpc_to_gly(comoving_mpc_res_man); luminosity_gly_res_man = convert_mpc_to_gly(luminosity_mpc_res_man); ang_diam_gly_res_man = convert_mpc_to_gly(ang_diam_mpc_res_man); comoving_km_res_man = convert_mpc_to_km(comoving_mpc_res_man); comoving_ly_res_man = convert_km_to_ly(comoving_km_res_man); comoving_km_ausgeschrieben_man = format_large_number(comoving_km_res_man)
 
-            st.metric(label=t.get("lookback_time", "Rückblickzeit"), value=f"{lookback_gyr_res_man:.4f}", delta=t.get("unit_Gyr", "Gyr")) # Corrected call
-            lookback_example_key_man = get_lookback_comparison(lookback_gyr_res_man); st.caption(f"*{t.get(lookback_example_key_man, '')}*") # Corrected call
+            st.metric(label=trans.get("lookback_time", "Rückblickzeit"), value=f"{lookback_gyr_res_man:.4f}", delta=trans.get("unit_Gyr", "Gyr"))
+            lookback_example_key_man = get_lookback_comparison(lookback_gyr_res_man); st.caption(f"*{trans.get(lookback_example_key_man, '')}*")
 
             st.markdown("---")
-            st.subheader(t.get("cosmo_distances", "Kosmologische Distanzen")) # Corrected call
+            st.subheader(trans.get("cosmo_distances", "Kosmologische Distanzen"))
             res_col1, res_col2 = st.columns(2)
 
             with res_col1:
-                st.markdown(t.get("comoving_distance_title", "**Mitbewegte Distanz:**")); st.text(f"  {comoving_mpc_res_man:,.4f} {t.get('unit_Mpc', 'Mpc')}"); st.text(f"  {comoving_gly_res_man:,.4f} {t.get('unit_Gly', 'Gly')}"); comoving_example_key_man = get_comoving_comparison(comoving_mpc_res_man); st.caption(f"*{t.get(comoving_example_key_man, '')}*") # Corrected calls
-                st.text(f"  {comoving_km_res_man:,.3e} {t.get('unit_km_sci', 'km (wiss.)')}"); st.text(f"  {comoving_km_ausgeschrieben_man} {t.get('unit_km_full', 'km (ausgeschr.)')}"); st.text(f"  {comoving_ly_res_man:,.3e} {t.get('unit_LJ', 'LJ')}") # Corrected calls
+                st.markdown(trans.get("comoving_distance_title", "**Mitbewegte Distanz:**")); st.text(f"  {comoving_mpc_res_man:,.4f} {trans.get('unit_Mpc', 'Mpc')}"); st.text(f"  {comoving_gly_res_man:,.4f} {trans.get('unit_Gly', 'Gly')}"); comoving_example_key_man = get_comoving_comparison(comoving_mpc_res_man); st.caption(f"*{trans.get(comoving_example_key_man, '')}*")
+                st.text(f"  {comoving_km_res_man:,.3e} {trans.get('unit_km_sci', 'km (wiss.)')}"); st.text(f"  {comoving_km_ausgeschrieben_man} {trans.get('unit_km_full', 'km (ausgeschr.)')}"); st.text(f"  {comoving_ly_res_man:,.3e} {trans.get('unit_LJ', 'LJ')}")
             with res_col2:
-                st.markdown(t.get("luminosity_distance_title", "**Leuchtkraftdistanz:**")); st.text(f"  {luminosity_mpc_res_man:,.4f} {t.get('unit_Mpc', 'Mpc')}"); st.text(f"  {luminosity_gly_res_man:,.4f} {t.get('unit_Gly', 'Gly')}"); st.caption(f"*{t.get('explanation_luminosity', '')}*") # Corrected calls
-                st.markdown(t.get("angular_diameter_distance_title", "**Winkeldurchmesserdistanz:**"), unsafe_allow_html=True); st.text(f"  {ang_diam_mpc_res_man:,.4f} {t.get('unit_Mpc', 'Mpc')}"); st.text(f"  {ang_diam_gly_res_man:,.4f} {t.get('unit_Gly', 'Gly')}"); st.caption(f"*{t.get('explanation_angular', '')}*") # Corrected calls
+                st.markdown(trans.get("luminosity_distance_title", "**Leuchtkraftdistanz:**")); st.text(f"  {luminosity_mpc_res_man:,.4f} {trans.get('unit_Mpc', 'Mpc')}"); st.text(f"  {luminosity_gly_res_man:,.4f} {trans.get('unit_Gly', 'Gly')}"); st.caption(f"*{trans.get('explanation_luminosity', '')}*")
+                st.markdown(trans.get("angular_diameter_distance_title", "**Winkeldurchmesserdistanz:**"), unsafe_allow_html=True); st.text(f"  {ang_diam_mpc_res_man:,.4f} {trans.get('unit_Mpc', 'Mpc')}"); st.text(f"  {ang_diam_gly_res_man:,.4f} {trans.get('unit_Gly', 'Gly')}"); st.caption(f"*{trans.get('explanation_angular', '')}*")
 
             integration_warn_key_man = cosmo_results_manual.get('integration_warning_key')
-            if integration_warn_key_man: integration_warn_args_man = cosmo_results_manual.get('integration_warning_args', {}); st.caption(t.get(integration_warn_key_man, "...").format(**integration_warn_args_man)) # Corrected call
-            st.caption(t.get("calculation_note", "...")) # Corrected call
+            if integration_warn_key_man: integration_warn_args_man = cosmo_results_manual.get('integration_warning_args', {}); st.caption(trans.get(integration_warn_key_man, "...").format(**integration_warn_args_man))
+            st.caption(trans.get("calculation_note", "..."))
 
 
-def display_donation_link(t: dict) -> None:
+# --- Rename parameter t to trans ---
+def display_donation_link(trans: dict) -> None:
     """Zeigt den Ko-fi Spendenlink Button an."""
     st.markdown("---")
     kofi_url = "https://ko-fi.com/advanceddsofinder"
-    kofi_text = t.get('donation_button_text', "Entwicklung unterstützen via Ko-fi ☕") # Corrected call
+    kofi_text = trans.get('donation_button_text', "Entwicklung unterstützen via Ko-fi ☕")
     st.link_button(kofi_text, kofi_url)
-
