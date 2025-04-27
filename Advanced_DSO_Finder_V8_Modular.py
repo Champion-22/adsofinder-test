@@ -10,6 +10,9 @@ import pandas as pd
 import math
 
 # --- Library Imports ---
+# NOTE: Pylance errors about unresolved imports here mean these libraries
+# need to be installed in your selected Python environment (e.g., pip install ...)
+# and your editor needs to be configured to use that environment.
 try:
     from astropy.time import Time
     import numpy as np
@@ -24,8 +27,7 @@ try:
     from geopy.geocoders import Nominatim, ArcGIS, Photon
     from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 except ImportError as e:
-    # This error suggests libraries are missing from the Python environment
-    st.error(f"Import Error: Missing libraries. Please install required packages (e.g., pip install -r requirements.txt). Details: {e}")
+    st.error(f"Import Error: Missing libraries. Please install required packages (check requirements.txt). Details: {e}")
     st.stop()
 
 # --- Import Custom Modules ---
@@ -35,9 +37,8 @@ try:
     import data_handling
     from astro_calculations import CARDINAL_DIRECTIONS
 except ModuleNotFoundError as e:
-    st.error(f"Module Not Found Error: Could not find a required file ({e}). Ensure 'localization.py', 'astro_calculations.py', and 'data_handling.py' are in the correct directory.")
+    st.error(f"Module Not Found Error: Could not find a required file ({e}). Ensure 'localization.py', 'astro_calculations.py', and 'data_handling.py' are present.")
     st.stop()
-
 
 # --- Page Config ---
 st.set_page_config(page_title="Advanced DSO Finder", layout="wide")
@@ -64,12 +65,8 @@ ALL_DIRECTIONS_KEY = 'All'
 def get_timezone_finder():
     """Initializes and returns a TimezoneFinder instance."""
     if TimezoneFinder:
-        try:
-            return TimezoneFinder(in_memory=True)
-        except Exception as e:
-            print(f"Error initializing TimezoneFinder: {e}")
-            st.warning(f"TimezoneFinder init failed: {e}. Automatic timezone detection disabled.")
-            return None
+        try: return TimezoneFinder(in_memory=True)
+        except Exception as e: print(f"Error initializing TimezoneFinder: {e}"); st.warning(f"TimezoneFinder init failed: {e}."); return None
     return None
 
 tf = get_timezone_finder()
@@ -96,16 +93,13 @@ def initialize_session_state():
         'selected_date_widget': date.today()
     }
     for key, default_value in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = default_value
+        if key not in st.session_state: st.session_state[key] = default_value
 
 # --- Helper Functions REMAINING in main script ---
 
 def create_moon_phase_svg(illumination: float, size: int = 100) -> str:
     """Creates an SVG representation of the moon phase."""
-    if not 0 <= illumination <= 1:
-        print(f"Warn: Invalid moon illumination ({illumination}). Clamping.")
-        illumination = max(0.0, min(1.0, illumination))
+    if not 0 <= illumination <= 1: print(f"Warn: Invalid moon illum ({illumination}). Clamping."); illumination = max(0.0, min(1.0, illumination))
     radius = size / 2; cx = cy = radius
     light_color = "var(--text-color, #e0e0e0)"; dark_color = "var(--secondary-background-color, #333333)"
     svg = f'<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">'
@@ -140,7 +134,7 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
         times = plot_data.get('times'); altitudes = plot_data.get('altitudes'); azimuths = plot_data.get('azimuths'); obj_name = plot_data.get('Name', 'Object')
         if not isinstance(times, Time) or not isinstance(altitudes, np.ndarray): st.error("Plot Error: Missing time/altitude data."); return None
         if plot_type == 'Sky Path' and not isinstance(azimuths, np.ndarray): st.error("Plot Error: Missing azimuth data for Sky Path."); return None
-        if len(times) != len(altitudes) or (azimuths is not None and len(times) != len(azimuths)): st.error(f"Plot Error: Mismatched array lengths."); return None
+        if len(times) != len(altitudes) or (azimuths is not None and len(times) != len(azimuths)): st.error("Plot Error: Mismatched array lengths."); return None
         if len(times) < 1: st.error("Plot Error: Not enough data points."); return None
         plot_times = times.plot_date
 
@@ -195,6 +189,7 @@ def main():
     def cached_load_ongc_data(path):
         """Cached wrapper for loading data."""
         print(f"Cache miss: Loading ONGC data from {path}")
+        # Call function from data_handling module
         return data_handling.load_ongc_data(path)
 
     df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH)
@@ -298,8 +293,8 @@ def main():
                         found_tz = tf.timezone_at(lng=lon, lat=lat)
                         if found_tz: pytz.timezone(found_tz); st.session_state.selected_timezone = found_tz; tz_msg=f"{t.get('timezone_auto_set_label','Detected TZ:')} **{found_tz}**"
                         else: st.session_state.selected_timezone='UTC'; tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **UTC** ({t.get('timezone_auto_fail_msg','Failed')})"
-                    # Corrected f-string for invalid timezone
-                    except pytz.UnknownTimeZoneError: st.session_state.selected_timezone='UTC'; tz_msg = t.get('timezone_auto_fail_label','TZ:') + f" **UTC** (Invalid: '{found_tz}')"
+                    # Corrected potential issue with f-string and undefined found_tz
+                    except pytz.UnknownTimeZoneError: st.session_state.selected_timezone='UTC'; tz_msg = t.get('timezone_auto_fail_label','TZ:') + f" **UTC** (Invalid TZ)"
                     except Exception as e: print(f"TZ Error: {e}"); st.session_state.selected_timezone='UTC'; tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **UTC** (Error)"
                 else: tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **{INITIAL_TIMEZONE}** (N/A)"; st.session_state.selected_timezone=INITIAL_TIMEZONE
             else: tz_msg=f"{t.get('timezone_auto_fail_label','TZ:')} **{st.session_state.selected_timezone}** (Loc Invalid)"
@@ -309,13 +304,12 @@ def main():
         with st.expander(t.get('time_expander', "⏱️ Time"), expanded=False):
             time_opts = {'Now':t.get('time_option_now',"Now"), 'Specific':t.get('time_option_specific',"Specific Night")}
             st.radio(t.get('time_select_label',"Select Time"), list(time_opts.keys()), format_func=lambda k:time_opts[k], key="time_choice_exp", horizontal=True)
-            is_now_time = (st.session_state.time_choice_exp == "Now") # Renamed variable to avoid conflict
-            if is_now_time: st.caption(f"UTC: {Time.now().iso}")
+            is_now_time_choice = (st.session_state.time_choice_exp == "Now")
+            if is_now_time_choice: st.caption(f"UTC: {Time.now().iso}")
             else: st.date_input(t.get('time_date_select_label',"Date:"), value=st.session_state.selected_date_widget, min_value=date.today()-timedelta(days=365*10), max_value=date.today()+timedelta(days=365*2), key='selected_date_widget')
 
         # Filter Settings
         with st.expander(t.get('filters_expander', "✨ Filters"), expanded=False):
-            # Magnitude
             st.markdown(t.get('mag_filter_header', "**Magnitude**"))
             mag_opts = {'Bortle Scale':t.get('mag_filter_option_bortle',"Bortle Scale"), 'Manual':t.get('mag_filter_option_manual',"Manual")}
             if st.session_state.mag_filter_mode_exp not in mag_opts: st.session_state.mag_filter_mode_exp = 'Bortle Scale'
@@ -325,30 +319,30 @@ def main():
                 st.slider(t.get('mag_filter_min_mag_label',"Min:"), -5.0, 20.0, step=0.5, format="%.1f", help=t.get('mag_filter_min_mag_help',"..."), key='manual_min_mag_slider')
                 st.slider(t.get('mag_filter_max_mag_label',"Max:"), -5.0, 20.0, step=0.5, format="%.1f", help=t.get('mag_filter_max_mag_help',"..."), key='manual_max_mag_slider')
                 if isinstance(st.session_state.manual_min_mag_slider,(int,float)) and isinstance(st.session_state.manual_max_mag_slider,(int,float)) and st.session_state.manual_min_mag_slider > st.session_state.manual_max_mag_slider: st.warning(t.get('mag_filter_warning_min_max',"Min > Max!"))
-            # Altitude
+
             st.markdown("---"); st.markdown(t.get('min_alt_header', "**Altitude**"))
-            min_alt_filt, max_alt_filt = st.session_state.min_alt_slider, st.session_state.max_alt_slider # Renamed variables
+            min_alt_filt, max_alt_filt = st.session_state.min_alt_slider, st.session_state.max_alt_slider
             if min_alt_filt > max_alt_filt: st.session_state.min_alt_slider = max_alt_filt; min_alt_filt = max_alt_filt
             st.slider(t.get('min_alt_label',"Min Alt (°):"), 0, 90, key='min_alt_slider', step=1)
             st.slider(t.get('max_alt_label',"Max Alt (°):"), 0, 90, key='max_alt_slider', step=1)
             if st.session_state.min_alt_slider > st.session_state.max_alt_slider: st.warning("Min > Max!")
-            # Moon
+
             st.markdown("---"); st.markdown(t.get('moon_warning_header',"**Moon**"))
             st.slider(t.get('moon_warning_label',"Warn Moon > (%):"), 0, 100, key='moon_phase_slider', step=5)
-            # Type
+
             st.markdown("---"); st.markdown(t.get('object_types_header',"**Types**"))
-            all_types_list = [] # Renamed variable
+            all_types_list = []
             if df_catalog_data is not None and not df_catalog_data.empty:
                 try:
                     if 'Type' in df_catalog_data.columns: all_types_list = sorted(list(df_catalog_data['Type'].dropna().astype(str).unique()))
                     else: st.warning("Missing 'Type'.")
                 except Exception as e: st.warning(f"{t.get('object_types_error_extract','Type Err')}: {e}")
             if all_types_list:
-                curr_sel_types = [s for s in st.session_state.object_type_filter_exp if s in all_types_list] # Renamed variable
+                curr_sel_types = [s for s in st.session_state.object_type_filter_exp if s in all_types_list]
                 if curr_sel_types != st.session_state.object_type_filter_exp: st.session_state.object_type_filter_exp = curr_sel_types
                 st.multiselect(t.get('object_types_label',"Filter Types:"), all_types_list, default=curr_sel_types, key="object_type_filter_exp")
             else: st.info("No types. Filter disabled."); st.session_state.object_type_filter_exp = []
-            # Size
+
             st.markdown("---"); st.markdown(t.get('size_filter_header',"**Size**"))
             size_ok = df_catalog_data is not None and 'MajAx' in df_catalog_data.columns and df_catalog_data['MajAx'].notna().any()
             size_disabled = not size_ok
@@ -359,11 +353,12 @@ def main():
                     if c_min > c_max: c_min=c_max
                     if (c_min, c_max) != st.session_state.size_arcmin_range: st.session_state.size_arcmin_range = (c_min, c_max)
                     step = 0.1 if max_s <= 20 else (0.5 if max_s <= 100 else 1.0)
+                    # Corrected format string for slider
                     st.slider(t.get('size_filter_label',"Size (arcmin):"), min_s, max_s, step=step, format="%.1f", key='size_arcmin_range', help=t.get('size_filter_help',"..."), disabled=size_disabled)
                 except Exception as e: st.error(f"Size slider error: {e}"); size_disabled=True
             else: st.info("Size data missing. Filter disabled."); size_disabled=True
             if size_disabled: st.slider(t.get('size_filter_label',"Size (arcmin):"), 0.0, 1.0, value=(0.0,1.0), key='size_arcmin_range_disabled', disabled=True)
-            # Direction
+
             st.markdown("---"); st.markdown(t.get('direction_filter_header',"**Direction**"))
             all_dir = t.get('direction_option_all',"All"); dir_disp = [all_dir] + CARDINAL_DIRECTIONS; dir_int = [ALL_DIRECTIONS_KEY] + CARDINAL_DIRECTIONS
             curr_dir = st.session_state.selected_peak_direction
@@ -414,7 +409,7 @@ def main():
     if is_now_main:
         ref_time = Time.now()
         try: local_now, tz_now = get_local_time_str(ref_time, st.session_state.selected_timezone); time_disp = t.get('search_params_time_now',"Now (from {} UTC)").format(f"{local_now} {tz_now}")
-        except Exception: time_disp = t.get('search_params_time_now',"Now (from {} UTC)").format(ref_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S') + " UTC") # Corrected format
+        except Exception: time_disp = t.get('search_params_time_now',"Now (from {} UTC)").format(ref_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S') + " UTC")
     else: sel_date = st.session_state.selected_date_widget; ref_time = Time(datetime.combine(sel_date, time(12,0)), scale='utc'); time_disp = t.get('search_params_time_specific',"Night after {}").format(sel_date.strftime('%Y-%m-%d'))
     p1.markdown(t.get('search_params_time',"⏱️ Time: {}").format(time_disp))
     mag_disp = ""; min_mag, max_mag = -np.inf, np.inf
@@ -423,12 +418,12 @@ def main():
         mag_disp = t.get('search_params_filter_mag_bortle',"Bortle {} (<= {:.1f})").format(st.session_state.bortle_slider, max_mag)
     else: min_mag, max_mag = st.session_state.manual_min_mag_slider, st.session_state.manual_max_mag_slider; mag_disp = t.get('search_params_filter_mag_manual',"Manual ({:.1f}-{:.1f})").format(min_mag, max_mag)
     p2.markdown(t.get('search_params_filter_mag',"✨ Mag: {}").format(mag_disp))
-    min_alt_disp, max_alt_disp = st.session_state.min_alt_slider, st.session_state.max_alt_slider; sel_types = st.session_state.object_type_filter_exp # Renamed variables
+    min_alt_disp, max_alt_disp = st.session_state.min_alt_slider, st.session_state.max_alt_slider; sel_types = st.session_state.object_type_filter_exp
     types_str = ', '.join(sel_types) if sel_types else t.get('search_params_types_all',"All")
     p2.markdown(t.get('search_params_filter_alt_types',"🔭 Alt:{}-{}°,Type:{}").format(min_alt_disp, max_alt_disp, types_str))
     s_min, s_max = st.session_state.size_arcmin_range
     p2.markdown(t.get('search_params_filter_size',"📐 Size:{:.1f}-{:.1f}'").format(s_min, s_max))
-    direction_disp = st.session_state.selected_peak_direction # Renamed variable
+    direction_disp = st.session_state.selected_peak_direction
     if direction_disp == ALL_DIRECTIONS_KEY: direction_disp = t.get('search_params_direction_all',"All")
     p2.markdown(t.get('search_params_filter_direction',"🧭 Dir@Max: {}").format(direction_disp))
 
@@ -443,7 +438,7 @@ def main():
         if observer_run and df_catalog_data is not None:
             with st.spinner(t.get('spinner_searching',"Searching...")):
                 try:
-                    start_t, end_t, win_stat = astro_calculations.get_observable_window(observer_run, ref_time, is_now_main, t) # Use is_now_main
+                    start_t, end_t, win_stat = astro_calculations.get_observable_window(observer_run, ref_time, is_now_main, t) # Use correct variable name
                     results_ph.info(win_stat); st.session_state.window_start_time=start_t; st.session_state.window_end_time=end_t
                     if start_t and end_t and start_t < end_t:
                         t_res = 5 * u.minute; obs_times = Time(np.arange(start_t.jd, end_t.jd, t_res.to(u.day).value), format='jd', scale='utc')
@@ -458,7 +453,7 @@ def main():
                             min_alt_search = st.session_state.min_alt_slider * u.deg
                             found = astro_calculations.find_observable_objects(observer_run.location, obs_times, min_alt_search, filt_df, t)
                             final = []
-                            sel_dir = st.session_state.selected_peak_direction; max_alt_filt_loop = st.session_state.max_alt_slider # Renamed variable
+                            sel_dir = st.session_state.selected_peak_direction; max_alt_filt_loop = st.session_state.max_alt_slider
                             for obj in found:
                                 if obj.get('Max Altitude (°)',-999) > max_alt_filt_loop: continue
                                 if sel_dir != ALL_DIRECTIONS_KEY and obj.get('Direction at Max') != sel_dir: continue
@@ -500,8 +495,8 @@ def main():
                 c2.markdown(t.get('results_max_alt_header',"**Max Alt:**")); max_a=obj.get('Max Altitude (°)',0); az=obj.get('Azimuth at Max (°)',0); direction=obj.get('Direction at Max','?'); az_fmt=t.get('results_azimuth_label',"(Az:{:.1f}°)").format(az); dir_fmt=t.get('results_direction_label',",Dir:{}").format(direction); c2.markdown(f"**{max_a:.1f}°** {az_fmt}{dir_fmt}")
                 c2.markdown(t.get('results_best_time_header',"**Best Time (Loc):**")); peak_t=obj.get('Time at Max (UTC)'); local_t, local_tz = get_local_time_str(peak_t, st.session_state.selected_timezone); c2.markdown(f"{local_t} ({local_tz})")
                 c2.markdown(t.get('results_cont_duration_header',"**Max Dur:**")); dur=obj.get('Max Cont. Duration (h)',0); c2.markdown(t.get('results_duration_value',"{:.1f}h").format(dur))
-                gq=urllib.parse.quote_plus(f"{name} astronomy"); gu=f"https://google.com/search?q={gq}"; c3.markdown(f"[{t.get('google_link_text','Google')}]({gu})", unsafe_allow_html=True) # Corrected f-string usage
-                sq=urllib.parse.quote_plus(name); su=f"http://simbad.cds.unistra.fr/simbad/sim-basic?Ident={sq}"; c3.markdown(f"[{t.get('simbad_link_text','SIMBAD')}]({su})", unsafe_allow_html=True) # Corrected f-string usage
+                gq=urllib.parse.quote_plus(f"{name} astronomy"); gu=f"https://google.com/search?q={gq}"; c3.markdown(f"[{t.get('google_link_text','Google')}]({gu})", unsafe_allow_html=True)
+                sq=urllib.parse.quote_plus(name); su=f"http://simbad.cds.unistra.fr/simbad/sim-basic?Ident={sq}"; c3.markdown(f"[{t.get('simbad_link_text','SIMBAD')}]({su})", unsafe_allow_html=True)
                 plot_key = f"plot_{name}_{i}"
                 if st.button(t.get('results_graph_button',"📈 Plot"), key=plot_key): st.session_state.plot_object_name=name; st.session_state.active_result_plot_data=obj; st.session_state.show_plot=True; st.session_state.show_custom_plot=False; st.session_state.expanded_object_name=name; st.rerun()
                 if st.session_state.show_plot and st.session_state.plot_object_name == name:
@@ -575,11 +570,10 @@ def main():
                      else: st.error(t.get('results_graph_not_created',"Plot failed."))
         elif st.session_state.custom_target_error: err_ph.error(st.session_state.custom_target_error)
 
-    # --- Donation Link (Integrated) ---
+    # Donation Link (Integrated)
     st.markdown("---")
     st.markdown(t.get('donation_text', "Like the app? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)"), unsafe_allow_html=True)
 
-
-# Run App
+# --- Run App ---
 if __name__ == "__main__":
     main()
