@@ -357,11 +357,11 @@ def main():
                     if (c_min, c_max) != st.session_state.size_arcmin_range: st.session_state.size_arcmin_range = (c_min, c_max)
                     step = 0.1 if max_s <= 20 else (0.5 if max_s <= 100 else 1.0)
                     st.slider(
-                        label=t.get('size_filter_label',"Size (arcmin):"),
+                        t.get('size_filter_label',"Size (arcmin):"),
                         min_value=min_s,
                         max_value=max_s,
                         step=step,
-                        # format="%.1f", # REMOVED problematic format argument
+                        format="%.1f arcmin",
                         key='size_arcmin_range',
                         help=t.get('size_filter_help',"..."),
                         disabled=size_disabled
@@ -516,18 +516,20 @@ def main():
                 if st.session_state.show_plot and st.session_state.plot_object_name == name:
                     p_data=obj; min_a_plot=st.session_state.min_alt_slider; max_a_plot=st.session_state.max_alt_slider; st.markdown("---")
                     with st.spinner(t.get('results_spinner_plotting',"Plotting...")):
-                        try: fig = create_plot(p_data, min_a_plot, max_a_plot, st.session_state.plot_type_selection, t)
-                        except Exception as e: st.error(f"Plot Err:{e}"); traceback.print_exc(); fig=None
+                        try:
+                            fig = create_plot(p_data, min_a_plot, max_a_plot, st.session_state.plot_type_selection, t)
+                        except Exception as e:
+                            st.error(f"Plot Err:{e}"); traceback.print_exc(); fig=None
                         if fig:
                             st.pyplot(fig)
                             close_key=f"close_{name}_{i}"
-                            # Corrected SyntaxError: Indent block after 'if button'
                             if st.button(t.get('results_close_graph_button',"Close"), key=close_key):
                                 st.session_state.show_plot=False
                                 st.session_state.active_result_plot_data=None
                                 st.session_state.expanded_object_name=None
                                 st.rerun()
-                        else: st.error(t.get('results_graph_not_created',"Plot failed."))
+                        else:
+                            st.error(t.get('results_graph_not_created',"Plot failed."))
         if results_data:
             csv_ph = results_ph.container()
             try:
@@ -590,7 +592,7 @@ def main():
                          fig=create_plot(c_data, min_a_cust, max_a_cust, st.session_state.plot_type_selection, t)
                      except Exception as e:
                          st.error(f"Plot Err:{e}"); traceback.print_exc(); fig=None
-                     # Corrected syntax for inner if block (Line 612 was here)
+                     # Corrected syntax for inner if block
                      if fig:
                          st.pyplot(fig)
                          if st.button(t.get('results_close_graph_button',"Close"), key="close_custom"):
