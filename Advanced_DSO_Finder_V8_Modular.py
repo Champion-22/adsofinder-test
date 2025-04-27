@@ -27,10 +27,15 @@ try:
     from timezonefinder import TimezoneFinder
     from geopy.geocoders import Nominatim, ArcGIS, Photon
     from geopy.exc import GeocoderTimedOut, GeocoderServiceError
+    from localization import translations # MOVED IMPORT HERE (or keep at top)
 except ImportError as e:
     # Display error and stop if libraries are missing
     st.error(f"Error: Missing libraries. Please install the required packages. ({e})")
     st.stop()
+except ModuleNotFoundError:
+    st.error("Error: Could not find the 'localization.py' file. Make sure it exists in the same directory.")
+    st.stop()
+
 
 # --- Page Config (MUST BE FIRST Streamlit command) ---
 st.set_page_config(page_title="Advanced DSO Finder", layout="wide")
@@ -57,14 +62,7 @@ CATALOG_FILEPATH = os.path.join(APP_DIR, CATALOG_FILENAME)
 CARDINAL_DIRECTIONS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 ALL_DIRECTIONS_KEY = 'All' # Internal key for 'All' option
 
-# --- Translations --- (Start Zeile 62)
-# Using German as the primary language based on user prompt
-lang = st.session_state.language
-if lang not in translations:
-    lang = 'de' # Default
-    st.session_state.language = lang
-from localization import translations
-t = translations.get(lang, translations['en'])
+# --- REMOVED lang and t definition from here ---
 
 # --- Initialize TimezoneFinder (cached) ---
 @st.cache_resource
@@ -227,9 +225,11 @@ def create_moon_phase_svg(illumination: float, size: int = 100) -> str:
     return svg
 
 
-def load_ongc_data(catalog_path: str, lang: str) -> pd.DataFrame | None:
+def load_ongc_data(catalog_path: str) -> pd.DataFrame | None:
     """Loads, filters, and preprocesses data from the OpenNGC CSV file."""
-    t_load = translations.get(lang, translations['en']) # Fallback to English if lang not found
+    # Note: Removed 'lang' parameter as 't' is now determined in main()
+    # We might need a way to pass 't' or use default strings if errors occur here.
+    # For now, using hardcoded English for error messages within this function.
     required_cols = ['Name', 'RA', 'Dec', 'Type']
     mag_cols = ['V-Mag', 'B-Mag', 'Mag'] # Prioritize V-Mag, then B-Mag, then generic Mag
     size_col = 'MajAx' # Major Axis for size
@@ -237,8 +237,7 @@ def load_ongc_data(catalog_path: str, lang: str) -> pd.DataFrame | None:
     try:
         # Check if the catalog file exists
         if not os.path.exists(catalog_path):
-             # Use the 'error_loading_catalog' key which is now guaranteed to exist
-             st.error(f"{t_load['error_loading_catalog'].split(':')[0]}: File not found at {catalog_path}")
+             st.error(f"Error loading catalog: File not found at {catalog_path}")
              st.info(f"Please ensure the file '{CATALOG_FILENAME}' is in the directory: {APP_DIR}")
              return None
 
@@ -346,25 +345,22 @@ def load_ongc_data(catalog_path: str, lang: str) -> pd.DataFrame | None:
 
         if not df_final.empty:
             print(f"Catalog loaded and processed: {len(df_final)} objects.")
-            # st.success(t_load['info_catalog_loaded'].format(len(df_final))) # Moved to sidebar
+            # Consider passing 't' or using default strings for success message if needed here
             return df_final
         else:
-            st.warning(t_load['warning_catalog_empty'])
+            st.warning("Catalog file loaded, but no matching objects found after filtering.") # Hardcoded msg
             return None
 
     except FileNotFoundError:
-        # This specific handler might not be strictly needed anymore if os.path.exists catches it,
-        # but it's safe to leave it. It will now use the correct translation key.
-        st.error(f"{t_load['error_loading_catalog'].split(':')[0]}: File not found at {catalog_path}")
+        st.error(f"Error loading catalog: File not found at {catalog_path}") # Hardcoded msg
         st.info(f"Please ensure the file '{CATALOG_FILENAME}' is in the directory: {APP_DIR}")
         return None
     except pd.errors.ParserError as e:
-        st.error(f"Error parsing catalog file '{os.path.basename(catalog_path)}': {e}")
+        st.error(f"Error parsing catalog file '{os.path.basename(catalog_path)}': {e}") # Hardcoded msg
         st.info("Please ensure the file is a valid CSV with ';' separator.")
         return None
     except Exception as e:
-        # Use the 'error_loading_catalog' key which is now guaranteed to exist
-        st.error(f"{t_load['error_loading_catalog']}: An unexpected error occurred: {e}")
+        st.error(f"Error loading catalog: An unexpected error occurred: {e}") # Hardcoded msg
         traceback.print_exc() # Print full traceback to console for debugging
         return None
 
@@ -390,7 +386,7 @@ def _get_fallback_window(reference_time: Time) -> tuple[Time, Time]:
     return fallback_start_time, fallback_end_time
 
 # --- Observation Window Calculation ---
-def get_observable_window(observer: Observer, reference_time: Time, is_now: bool, lang: str) -> tuple[Time | None, Time | None, str]:
+def get_observable_window(observer: Observer, reference_time: Time, is_now: bool, t: dict) -> tuple[Time | None, Time | None, str]:
     """
     Calculates the astronomical darkness window for observation.
 
@@ -398,7 +394,7 @@ def get_observable_window(observer: Observer, reference_time: Time, is_now: bool
         observer: The astroplan Observer object.
         reference_time: The reference time for calculation (Time object).
         is_now: Boolean indicating if "Now" was selected (affects window start).
-        lang: Language code for translations.
+        t: The translation dictionary for the current language.
 
     Returns:
         A tuple containing:
@@ -406,7 +402,7 @@ def get_observable_window(observer: Observer, reference_time: Time, is_now: bool
             - end_time: Astropy Time object for window end (or None).
             - status_message: String describing the window or errors.
     """
-    t = translations.get(lang, translations['en']) # Fallback language
+    # t = translations.get(lang, translations['en']) # 't' is now passed in
     status_message = ""
     start_time, end_time = None, None # Initialize here
     current_utc_time = Time.now() # Get current UTC time
@@ -554,7 +550,7 @@ def find_observable_objects(observer_location: EarthLocation,
                             observing_times: Time,
                             min_altitude_limit: u.Quantity,
                             catalog_df: pd.DataFrame,
-                            lang: str) -> list[dict]:
+                            t: dict) -> list[dict]:
     """
     Finds Deep Sky Objects from the catalog that are observable
     above a minimum altitude for the given observer and times.
@@ -565,13 +561,13 @@ def find_observable_objects(observer_location: EarthLocation,
         observing_times: Times at which to check object visibility (Time array).
         min_altitude_limit: Minimum altitude for an object to be considered observable.
         catalog_df: DataFrame containing the DSO catalog data.
-        lang: The user's language ('de', 'en', 'fr').
+        t: The translation dictionary for the current language.
 
     Returns:
         A list of dictionaries, where each dictionary represents an observable DSO.
         Returns empty list if no objects are found or errors occur.
     """
-    t = translations.get(lang, translations['en']) # Fallback language
+    # t = translations.get(lang, translations['en']) # 't' is now passed in
     observable_objects = []
 
     # --- Input Validation ---
@@ -756,32 +752,34 @@ def main():
     """Main function to run the Streamlit application."""
 
     # --- Initialize Session State ---
-    initialize_session_state()
+    initialize_session_state() # <<< MUST BE CALLED FIRST
 
-    # --- Get Current Language and Translations ---
-    # This needs to run early to get 't' for the rest of the UI
-    lang = st.session_state.language
+    # --- Get Current Language and Translations (MOVED HERE) ---
+    lang = st.session_state.language # Now safe to access
     if lang not in translations:
         lang = 'de' # Default to German if invalid language in state
         st.session_state.language = lang
-    t = translations[lang] # Get translation dictionary for the selected language
+    # Get translation dictionary for the selected language
+    # 'translations' dictionary is imported at the top
+    t = translations.get(lang, translations['en']) # Use .get() for safety
 
     # --- Load Catalog Data (Cached) ---
+    # Now 't' is available if needed inside cached function, but load_ongc_data was simplified
     @st.cache_data
-    def cached_load_ongc_data(path, current_lang):
+    def cached_load_ongc_data(path): # Removed lang parameter
         """Cached function to load ONGC data."""
-        print(f"Cache miss: Loading ONGC data from {path} for lang={current_lang}")
+        print(f"Cache miss: Loading ONGC data from {path}")
         # Pass the corrected lang value here too
-        return load_ongc_data(path, current_lang)
+        return load_ongc_data(path) # Removed lang parameter
 
-    # Use the language determined *before* the sidebar widgets
-    df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH, lang)
+    # Load data using the current language context if needed (though load func simplified)
+    df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH)
 
     # --- Custom CSS Styling (Removed hardcoded dark theme) ---
     # Streamlit's default theme handling will now apply.
 
     # --- Title ---
-    st.title("Advanced DSO Finder")
+    st.title("Advanced DSO Finder") # No translation needed here
 
     # --- Object Type Glossary ---
     with st.expander(t.get('object_type_glossary_title', "Object Type Glossary")): # Use .get() for safety
@@ -804,18 +802,19 @@ def main():
 
     # --- Sidebar ---
     with st.sidebar:
-        st.header(t.get('settings_header', "Settings")) # Use .get() for safety
+        st.header(t.get('settings_header', "Settings")) # Use 't' defined above
 
         # Show catalog loaded message or error
         if 'catalog_status_msg' not in st.session_state:
             st.session_state.catalog_status_msg = "" # Initialize
         if df_catalog_data is not None:
+            # Use 't' for the message format string
             new_msg = t.get('info_catalog_loaded', "Catalog loaded: {} objects.").format(len(df_catalog_data))
             if st.session_state.catalog_status_msg != new_msg:
                 st.success(new_msg)
                 st.session_state.catalog_status_msg = new_msg
         else:
-            new_msg = "Catalog loading failed. Check file or logs."
+            new_msg = "Catalog loading failed. Check file or logs." # Keep simple or add translation
             if st.session_state.catalog_status_msg != new_msg:
                 st.error(new_msg)
                 st.session_state.catalog_status_msg = new_msg
@@ -825,45 +824,47 @@ def main():
         language_options = {'de': 'Deutsch', 'en': 'English', 'fr': 'Français'}
         lang_keys = list(language_options.keys())
         try:
-            # Use the language already determined at the start of the script run
-            current_lang_key_for_index = lang # lang variable already holds the correct current language
+            # Use the language determined at the start of main()
+            current_lang_key_for_index = lang
             if current_lang_key_for_index not in lang_keys:
                 current_lang_key_for_index = 'de'
-                st.session_state.language = current_lang_key_for_index # Ensure state matches if correction needed
+                # State already corrected above if lang was invalid
             current_lang_index = lang_keys.index(current_lang_key_for_index)
         except ValueError:
             current_lang_index = 0
-            st.session_state.language = lang_keys[0] # Default if something went wrong
+            # State already corrected above if lang was invalid
 
         # Language selection radio buttons
         selected_lang_key = st.radio(
-            t.get('language_select_label', "Language"), # Label uses 't' from this run
+            t.get('language_select_label', "Language"), # Use 't'
             options=lang_keys,
             format_func=lambda key: language_options[key],
-            key='language_radio', # Specific key for the widget
-            index=current_lang_index, # Sets the initial selection based on 'lang'
+            key='language_radio', # This widget updates st.session_state.language
+            index=current_lang_index, # Sets selection based on current 'lang'
             horizontal=True
         )
 
         # Update language state and rerun if changed
         # This check happens *after* the widget is drawn
+        # If the radio button changed the state, 'lang' variable above might be outdated
+        # It's safer to compare the widget's current value directly with the state before update
         if selected_lang_key != st.session_state.language:
             st.session_state.language = selected_lang_key
             st.session_state.location_search_status_msg = "" # Reset related state if needed
-            # print(f"Sprache geändert zu: {selected_lang_key}, Rerun wird ausgelöst.") # Debug-Ausgabe (optional)
+            print(f"Language changed to: {selected_lang_key}, Rerun triggered.") # Debug
             st.rerun() # Force immediate rerun with the new language state
 
 
         # --- Location Settings ---
-        with st.expander(t.get('location_expander', "📍 Location"), expanded=True):
+        with st.expander(t.get('location_expander', "📍 Location"), expanded=True): # Use 't'
             location_options_map = {
-                'Search': t.get('location_option_search', "Search by Name"),
-                'Manual': t.get('location_option_manual', "Enter Manually")
+                'Search': t.get('location_option_search', "Search by Name"), # Use 't'
+                'Manual': t.get('location_option_manual', "Enter Manually") # Use 't'
             }
 
             # Location method selection (Manual/Search)
             st.radio(
-                t.get('location_select_label', "Select Location Method"),
+                t.get('location_select_label', "Select Location Method"), # Use 't'
                 options=list(location_options_map.keys()),
                 format_func=lambda key: location_options_map[key],
                 key="location_choice_key", # Use session state key
@@ -877,9 +878,9 @@ def main():
             # Manual Location Input
             if st.session_state.location_choice_key == "Manual":
                 # Use session state keys for number inputs
-                st.number_input(t.get('location_lat_label', "Latitude (°N)"), min_value=-90.0, max_value=90.0, step=0.01, format="%.4f", key="manual_lat_val")
-                st.number_input(t.get('location_lon_label', "Longitude (°E)"), min_value=-180.0, max_value=180.0, step=0.01, format="%.4f", key="manual_lon_val")
-                st.number_input(t.get('location_elev_label', "Elevation (meters)"), min_value=-500, step=10, format="%d", key="manual_height_val")
+                st.number_input(t.get('location_lat_label', "Latitude (°N)"), min_value=-90.0, max_value=90.0, step=0.01, format="%.4f", key="manual_lat_val") # Use 't'
+                st.number_input(t.get('location_lon_label', "Longitude (°E)"), min_value=-180.0, max_value=180.0, step=0.01, format="%.4f", key="manual_lon_val") # Use 't'
+                st.number_input(t.get('location_elev_label', "Elevation (meters)"), min_value=-500, step=10, format="%d", key="manual_height_val") # Use 't'
 
                 # Read values from session state after widgets are drawn
                 lat_val = st.session_state.manual_lat_val
@@ -898,7 +899,7 @@ def main():
                         st.session_state.searched_location_name = None
                         st.session_state.location_search_status_msg = ""
                 else:
-                    st.warning(t.get('location_error_manual_none', "Manual location fields cannot be empty or invalid."))
+                    st.warning(t.get('location_error_manual_none', "Manual location fields cannot be empty or invalid.")) # Use 't'
                     current_location_valid = False
                     st.session_state.location_is_valid_for_run = False # Set persistent flag to invalid
 
@@ -906,9 +907,9 @@ def main():
             elif st.session_state.location_choice_key == "Search":
                 # Use session state keys for inputs inside the form
                 with st.form("location_search_form"):
-                    st.text_input(t.get('location_search_label', "Enter location name:"), key="location_search_query", placeholder=t.get('location_search_placeholder', "e.g., Berlin, Germany"))
-                    st.number_input(t.get('location_elev_label', "Elevation (meters)"), min_value=-500, step=10, format="%d", key="manual_height_val") # Reuse height key
-                    location_search_form_submitted = st.form_submit_button(t.get('location_search_submit_button', "Find Coordinates"))
+                    st.text_input(t.get('location_search_label', "Enter location name:"), key="location_search_query", placeholder=t.get('location_search_placeholder', "e.g., Berlin, Germany")) # Use 't'
+                    st.number_input(t.get('location_elev_label', "Elevation (meters)"), min_value=-500, step=10, format="%d", key="manual_height_val") # Reuse height key, Use 't'
+                    location_search_form_submitted = st.form_submit_button(t.get('location_search_submit_button', "Find Coordinates")) # Use 't'
 
                 status_placeholder = st.empty()
                 # Display previous search status from session state
@@ -926,7 +927,7 @@ def main():
                     query = st.session_state.location_search_query
                     user_agent_str = f"AdvancedDSOFinder/{random.randint(1000, 9999)}/streamlit_app_{datetime.now().timestamp()}"
 
-                    with st.spinner(t.get('spinner_geocoding', "Searching for location...")):
+                    with st.spinner(t.get('spinner_geocoding', "Searching for location...")): # Use 't'
                         # --- Geocoding Logic (Nominatim -> ArcGIS -> Photon) ---
                         # Try Nominatim First
                         try:
@@ -937,10 +938,10 @@ def main():
                             else: print("Nominatim returned None.")
                         except (GeocoderTimedOut, GeocoderServiceError) as e:
                             print(f"Nominatim failed: {e}. Trying fallback 1 (ArcGIS).")
-                            status_placeholder.info(t.get('location_search_info_fallback', "Nominatim failed, trying fallback service (ArcGIS)..."))
+                            status_placeholder.info(t.get('location_search_info_fallback', "Nominatim failed, trying fallback service (ArcGIS)...")) # Use 't'
                         except Exception as e:
                             print(f"Nominatim failed unexpectedly: {e}. Trying fallback 1 (ArcGIS).")
-                            status_placeholder.info(t.get('location_search_info_fallback', "Nominatim failed, trying fallback service (ArcGIS)..."))
+                            status_placeholder.info(t.get('location_search_info_fallback', "Nominatim failed, trying fallback service (ArcGIS)...")) # Use 't'
                             final_error = e
 
                         # Try ArcGIS (Fallback 1) if Nominatim failed
@@ -953,11 +954,11 @@ def main():
                                 else: print("ArcGIS returned None.")
                             except (GeocoderTimedOut, GeocoderServiceError) as e2:
                                 print(f"ArcGIS failed: {e2}. Trying fallback 2 (Photon).")
-                                status_placeholder.info(t.get('location_search_info_fallback2', "ArcGIS failed, trying 2nd fallback service (Photon)..."))
+                                status_placeholder.info(t.get('location_search_info_fallback2', "ArcGIS failed, trying 2nd fallback service (Photon)...")) # Use 't'
                                 if not final_error: final_error = e2
                             except Exception as e2:
                                 print(f"ArcGIS failed unexpectedly: {e2}. Trying fallback 2 (Photon).")
-                                status_placeholder.info(t.get('location_search_info_fallback2', "ArcGIS failed, trying 2nd fallback service (Photon)..."))
+                                status_placeholder.info(t.get('location_search_info_fallback2', "ArcGIS failed, trying 2nd fallback service (Photon)...")) # Use 't'
                                 if not final_error: final_error = e2
 
                         # Try Photon (Fallback 2) if ArcGIS failed
@@ -990,14 +991,14 @@ def main():
                             st.session_state.manual_lon_val = found_lon
                             # Height is already in session state from the form
 
-                            coord_str = t.get('location_search_coords', "Lat: {:.4f}, Lon: {:.4f}").format(found_lat, found_lon)
+                            coord_str = t.get('location_search_coords', "Lat: {:.4f}, Lon: {:.4f}").format(found_lat, found_lon) # Use 't'
                             # Store success message in session state
                             if service_used == "Nominatim":
-                                st.session_state.location_search_status_msg = f"{t.get('location_search_found', 'Found (Nominatim): {}').format(found_name)}\n({coord_str})"
+                                st.session_state.location_search_status_msg = f"{t.get('location_search_found', 'Found (Nominatim): {}').format(found_name)}\n({coord_str})" # Use 't'
                             elif service_used == "ArcGIS":
-                                st.session_state.location_search_status_msg = f"{t.get('location_search_found_fallback', 'Found via Fallback (ArcGIS): {}').format(found_name)}\n({coord_str})"
+                                st.session_state.location_search_status_msg = f"{t.get('location_search_found_fallback', 'Found via Fallback (ArcGIS): {}').format(found_name)}\n({coord_str})" # Use 't'
                             elif service_used == "Photon":
-                                st.session_state.location_search_status_msg = f"{t.get('location_search_found_fallback2', 'Found via 2nd Fallback (Photon): {}').format(found_name)}\n({coord_str})"
+                                st.session_state.location_search_status_msg = f"{t.get('location_search_found_fallback2', 'Found via 2nd Fallback (Photon): {}').format(found_name)}\n({coord_str})" # Use 't'
 
                             # Display the stored message
                             status_placeholder.success(st.session_state.location_search_status_msg)
@@ -1016,10 +1017,10 @@ def main():
                             st.session_state.searched_location_name = None
                             # Store appropriate error message in session state
                             if final_error:
-                                if isinstance(final_error, GeocoderTimedOut): st.session_state.location_search_status_msg = t.get('location_search_error_timeout', "Geocoding service timed out.")
-                                elif isinstance(final_error, GeocoderServiceError): st.session_state.location_search_status_msg = t.get('location_search_error_service', "Geocoding service error: {}").format(final_error)
-                                else: st.session_state.location_search_status_msg = t.get('location_search_error_fallback2_failed', "All geocoding services (Nominatim, ArcGIS, Photon) failed: {}").format(final_error)
-                            else: st.session_state.location_search_status_msg = t.get('location_search_error_not_found', "Location not found.")
+                                if isinstance(final_error, GeocoderTimedOut): st.session_state.location_search_status_msg = t.get('location_search_error_timeout', "Geocoding service timed out.") # Use 't'
+                                elif isinstance(final_error, GeocoderServiceError): st.session_state.location_search_status_msg = t.get('location_search_error_service', "Geocoding service error: {}").format(final_error) # Use 't'
+                                else: st.session_state.location_search_status_msg = t.get('location_search_error_fallback2_failed', "All geocoding services (Nominatim, ArcGIS, Photon) failed: {}").format(final_error) # Use 't'
+                            else: st.session_state.location_search_status_msg = t.get('location_search_error_not_found', "Location not found.") # Use 't'
 
                             # Display the stored error message
                             status_placeholder.error(st.session_state.location_search_status_msg)
@@ -1055,39 +1056,39 @@ def main():
                         if found_tz:
                             pytz.timezone(found_tz) # Validate timezone using pytz
                             st.session_state.selected_timezone = found_tz # Update state
-                            auto_timezone_msg = f"{t.get('timezone_auto_set_label', 'Detected Timezone:')} **{found_tz}**"
+                            auto_timezone_msg = f"{t.get('timezone_auto_set_label', 'Detected Timezone:')} **{found_tz}**" # Use 't'
                         else:
                             # Fallback to UTC if timezone not found
                             st.session_state.selected_timezone = 'UTC'
-                            auto_timezone_msg = f"{t.get('timezone_auto_fail_label', 'Timezone:')} **UTC** ({t.get('timezone_auto_fail_msg', 'Could not detect timezone, using UTC.')})"
+                            auto_timezone_msg = f"{t.get('timezone_auto_fail_label', 'Timezone:')} **UTC** ({t.get('timezone_auto_fail_msg', 'Could not detect timezone, using UTC.')})" # Use 't'
                     except pytz.UnknownTimeZoneError:
                         # Handle case where found timezone is invalid
                         st.session_state.selected_timezone = 'UTC'
-                        auto_timezone_msg = f"{t.get('timezone_auto_fail_label', 'Timezone:')} **UTC** (Invalid TZ: '{found_tz}')"
+                        auto_timezone_msg = f"{t.get('timezone_auto_fail_label', 'Timezone:')} **UTC** (Invalid TZ: '{found_tz}')" # Use 't'
                     except Exception as tz_find_e:
                         # Handle other errors during timezone lookup
                         print(f"Error finding timezone for ({lat_val}, {lon_val}): {tz_find_e}")
                         st.session_state.selected_timezone = 'UTC'
-                        auto_timezone_msg = f"{t.get('timezone_auto_fail_label', 'Timezone:')} **UTC** (Error)"
+                        auto_timezone_msg = f"{t.get('timezone_auto_fail_label', 'Timezone:')} **UTC** (Error)" # Use 't'
                 else:
                     # TimezoneFinder not available
-                    auto_timezone_msg = f"{t.get('timezone_auto_fail_label', 'Timezone:')} **{INITIAL_TIMEZONE}** (Auto-detect N/A)"
+                    auto_timezone_msg = f"{t.get('timezone_auto_fail_label', 'Timezone:')} **{INITIAL_TIMEZONE}** (Auto-detect N/A)" # Use 't'
                     st.session_state.selected_timezone = INITIAL_TIMEZONE # Use initial default
             else:
                 # Location is invalid for timezone detection *in this run*
-                auto_timezone_msg = f"{t.get('timezone_auto_fail_label', 'Timezone:')} **{st.session_state.selected_timezone}** (Location Invalid/Not Set)"
+                auto_timezone_msg = f"{t.get('timezone_auto_fail_label', 'Timezone:')} **{st.session_state.selected_timezone}** (Location Invalid/Not Set)" # Use 't'
                 # Keep the existing timezone in state if location becomes invalid
 
             st.markdown(auto_timezone_msg, unsafe_allow_html=True)
 
 
         # --- Time Settings ---
-        with st.expander(t.get('time_expander', "⏱️ Time & Timezone"), expanded=False):
-            time_options_map = {'Now': t.get('time_option_now', "Now (Upcoming Night)"), 'Specific': t.get('time_option_specific', "Specific Night")}
+        with st.expander(t.get('time_expander', "⏱️ Time & Timezone"), expanded=False): # Use 't'
+            time_options_map = {'Now': t.get('time_option_now', "Now (Upcoming Night)"), 'Specific': t.get('time_option_specific', "Specific Night")} # Use 't'
 
             # Time selection (Now/Specific Night) - Reads from and writes to session state
             st.radio(
-                t.get('time_select_label', "Select Time"), options=list(time_options_map.keys()),
+                t.get('time_select_label', "Select Time"), options=list(time_options_map.keys()), # Use 't'
                 format_func=lambda key: time_options_map[key],
                 key="time_choice_exp", # This key is initialized
                 horizontal=True
@@ -1101,7 +1102,7 @@ def main():
             else:
                 # Use date_input for specific night selection - Reads from and writes to session state
                 st.date_input(
-                    t.get('time_date_select_label', "Select Date:"),
+                    t.get('time_date_select_label', "Select Date:"), # Use 't'
                     value=st.session_state.selected_date_widget, # Use initialized value
                     min_value=date.today()-timedelta(days=365*10), # Allow further back
                     max_value=date.today()+timedelta(days=365*2), # Allow further forward
@@ -1110,37 +1111,37 @@ def main():
 
 
         # --- Filter Settings ---
-        with st.expander(t.get('filters_expander', "✨ Filters & Conditions"), expanded=False):
+        with st.expander(t.get('filters_expander', "✨ Filters & Conditions"), expanded=False): # Use 't'
             # --- Magnitude Filter ---
-            st.markdown(t.get('mag_filter_header', "**Magnitude Filter**"))
-            mag_filter_options_map = {'Bortle Scale': t.get('mag_filter_option_bortle', "Bortle Scale"), 'Manual': t.get('mag_filter_option_manual', "Manual")}
+            st.markdown(t.get('mag_filter_header', "**Magnitude Filter**")) # Use 't'
+            mag_filter_options_map = {'Bortle Scale': t.get('mag_filter_option_bortle', "Bortle Scale"), 'Manual': t.get('mag_filter_option_manual', "Manual")} # Use 't'
             # Ensure state is valid, default if not (already handled by init)
             if st.session_state.mag_filter_mode_exp not in mag_filter_options_map:
                 st.session_state.mag_filter_mode_exp = 'Bortle Scale'
 
             # Magnitude filter method selection - Reads/Writes state
-            st.radio(t.get('mag_filter_method_label', "Filter Method:"), options=list(mag_filter_options_map.keys()),
+            st.radio(t.get('mag_filter_method_label', "Filter Method:"), options=list(mag_filter_options_map.keys()), # Use 't'
                      format_func=lambda key: mag_filter_options_map[key],
                      key="mag_filter_mode_exp", horizontal=True)
 
             # Bortle scale slider - Reads/Writes state
-            st.slider(t.get('mag_filter_bortle_label', "Bortle Scale:"), min_value=1, max_value=9, key='bortle_slider', help=t.get('mag_filter_bortle_help', "Sky darkness: 1=Excellent Dark, 9=Inner-city Sky"))
+            st.slider(t.get('mag_filter_bortle_label', "Bortle Scale:"), min_value=1, max_value=9, key='bortle_slider', help=t.get('mag_filter_bortle_help', "Sky darkness: 1=Excellent Dark, 9=Inner-city Sky")) # Use 't'
 
             # Manual magnitude sliders (shown only if Manual mode selected)
             if st.session_state.mag_filter_mode_exp == "Manual":
                 # Reads/Writes state
-                st.slider(t.get('mag_filter_min_mag_label', "Min. Magnitude:"), min_value=-5.0, max_value=20.0, step=0.5, format="%.1f", help=t.get('mag_filter_min_mag_help', "Brightest object magnitude to include"), key='manual_min_mag_slider')
-                st.slider(t.get('mag_filter_max_mag_label', "Max. Magnitude:"), min_value=-5.0, max_value=20.0, step=0.5, format="%.1f", help=t.get('mag_filter_max_mag_help', "Dimest object magnitude to include"), key='manual_max_mag_slider')
+                st.slider(t.get('mag_filter_min_mag_label', "Min. Magnitude:"), min_value=-5.0, max_value=20.0, step=0.5, format="%.1f", help=t.get('mag_filter_min_mag_help', "Brightest object magnitude to include"), key='manual_min_mag_slider') # Use 't'
+                st.slider(t.get('mag_filter_max_mag_label', "Max. Magnitude:"), min_value=-5.0, max_value=20.0, step=0.5, format="%.1f", help=t.get('mag_filter_max_mag_help', "Dimest object magnitude to include"), key='manual_max_mag_slider') # Use 't'
 
                 # Warn if min magnitude > max magnitude (based on current state)
                 if isinstance(st.session_state.manual_min_mag_slider, (int, float)) and \
                    isinstance(st.session_state.manual_max_mag_slider, (int, float)) and \
                    st.session_state.manual_min_mag_slider > st.session_state.manual_max_mag_slider:
-                    st.warning(t.get('mag_filter_warning_min_max', "Min. Magnitude is greater than Max. Magnitude!"))
+                    st.warning(t.get('mag_filter_warning_min_max', "Min. Magnitude is greater than Max. Magnitude!")) # Use 't'
 
             # --- Altitude Filter ---
             st.markdown("---")
-            st.markdown(t.get('min_alt_header', "**Object Altitude Above Horizon**"))
+            st.markdown(t.get('min_alt_header', "**Object Altitude Above Horizon**")) # Use 't'
             # Read current values before drawing sliders
             min_alt_val = st.session_state.min_alt_slider
             max_alt_val = st.session_state.max_alt_slider
@@ -1150,25 +1151,25 @@ def main():
                 min_alt_val = max_alt_val # Update local var for this run
 
             # Min altitude slider - Reads/Writes state
-            st.slider(t.get('min_alt_label', "Min. Object Altitude (°):"), min_value=0, max_value=90, key='min_alt_slider', step=1)
+            st.slider(t.get('min_alt_label', "Min. Object Altitude (°):"), min_value=0, max_value=90, key='min_alt_slider', step=1) # Use 't'
             # Max altitude slider - Reads/Writes state
-            st.slider(t.get('max_alt_label', "Max. Object Altitude (°):"), min_value=0, max_value=90, key='max_alt_slider', step=1)
+            st.slider(t.get('max_alt_label', "Max. Object Altitude (°):"), min_value=0, max_value=90, key='max_alt_slider', step=1) # Use 't'
 
             # Re-check min/max after both sliders are drawn and warn if still inconsistent (e.g., user interaction)
             if st.session_state.min_alt_slider > st.session_state.max_alt_slider:
-                # Use German for the warning as per original code context
+                # Use German for the warning as per original code context (or use t.get)
                 st.warning("Min. Höhe ist größer als Max. Höhe!")
 
 
             # --- Moon Filter ---
             st.markdown("---")
-            st.markdown(t.get('moon_warning_header', "**Moon Warning**"))
+            st.markdown(t.get('moon_warning_header', "**Moon Warning**")) # Use 't'
             # Moon illumination warning threshold slider - Reads/Writes state
-            st.slider(t.get('moon_warning_label', "Warn if Moon > (% Illumination):"), min_value=0, max_value=100, key='moon_phase_slider', step=5)
+            st.slider(t.get('moon_warning_label', "Warn if Moon > (% Illumination):"), min_value=0, max_value=100, key='moon_phase_slider', step=5) # Use 't'
 
             # --- Object Type Filter ---
             st.markdown("---")
-            st.markdown(t.get('object_types_header', "**Object Types**"))
+            st.markdown(t.get('object_types_header', "**Object Types**")) # Use 't'
             all_types = []
             # Populate object types if catalog is loaded
             if df_catalog_data is not None and not df_catalog_data.empty:
@@ -1176,7 +1177,7 @@ def main():
                     if 'Type' in df_catalog_data.columns:
                         all_types = sorted(list(df_catalog_data['Type'].dropna().astype(str).unique()))
                     else: st.warning("Catalog is missing the 'Type' column.")
-                except Exception as e: st.warning(f"{t.get('object_types_error_extract', 'Could not extract object types from catalog')}: {e}")
+                except Exception as e: st.warning(f"{t.get('object_types_error_extract', 'Could not extract object types from catalog')}: {e}") # Use 't'
 
             # Object type multiselect widget - Reads/Writes state
             if all_types:
@@ -1188,7 +1189,7 @@ def main():
                 # Set default for the widget based on corrected state
                 default_for_widget = current_selection_in_state # Use current state as default
                 st.multiselect(
-                    t.get('object_types_label', "Filter Types (leave empty for all):"), options=all_types,
+                    t.get('object_types_label', "Filter Types (leave empty for all):"), options=all_types, # Use 't'
                     default=default_for_widget, # Default to current selection
                     key="object_type_filter_exp" # Reads/Writes state
                 )
@@ -1200,7 +1201,7 @@ def main():
 
             # --- Angular Size Filter ---
             st.markdown("---")
-            st.markdown(t.get('size_filter_header', "**Angular Size Filter**"))
+            st.markdown(t.get('size_filter_header', "**Angular Size Filter**")) # Use 't'
             # Check if size data is available and valid
             size_col_exists = df_catalog_data is not None and 'MajAx' in df_catalog_data.columns and df_catalog_data['MajAx'].notna().any()
             size_slider_disabled = not size_col_exists
@@ -1226,14 +1227,14 @@ def main():
                     slider_step = 0.1 if max_size_possible <= 20 else (0.5 if max_size_possible <= 100 else 1.0)
 
                     st.slider(
-                        t.get('size_filter_label', "Object Size (arcminutes):"),
+                        t.get('size_filter_label', "Object Size (arcminutes):"), # Use 't'
                         min_value=min_size_possible,
                         max_value=max_size_possible,
                         # value=st.session_state.size_arcmin_range, # Value is implicitly handled by key
                         step=slider_step,
                         format="%.1f arcmin",
                         key='size_arcmin_range', # Reads/Writes state
-                        help=t.get('size_filter_help', "Filter objects by their apparent size (major axis). 1 arcminute = 1/60 degree."),
+                        help=t.get('size_filter_help', "Filter objects by their apparent size (major axis). 1 arcminute = 1/60 degree."), # Use 't'
                         disabled=size_slider_disabled
                     )
                 except Exception as size_slider_e:
@@ -1247,7 +1248,7 @@ def main():
             # Render a disabled slider placeholder if needed
             if size_slider_disabled:
                 st.slider(
-                    t.get('size_filter_label', "Object Size (arcminutes):"), min_value=0.0, max_value=1.0, value=(0.0, 1.0),
+                    t.get('size_filter_label', "Object Size (arcminutes):"), min_value=0.0, max_value=1.0, value=(0.0, 1.0), # Use 't'
                     key='size_arcmin_range_disabled', # Use a different key for the disabled one
                     disabled=True
                 )
@@ -1255,8 +1256,8 @@ def main():
 
             # --- Direction Filter ---
             st.markdown("---")
-            st.markdown(t.get('direction_filter_header', "**Filter by Cardinal Direction**")) # Uses updated translation
-            all_directions_str = t.get('direction_option_all', "All")
+            st.markdown(t.get('direction_filter_header', "**Filter by Cardinal Direction**")) # Use 't'
+            all_directions_str = t.get('direction_option_all', "All") # Use 't'
             # Display options use translated 'All', internal use ALL_DIRECTIONS_KEY
             direction_options_display = [all_directions_str] + CARDINAL_DIRECTIONS
             direction_options_internal = [ALL_DIRECTIONS_KEY] + CARDINAL_DIRECTIONS
@@ -1272,7 +1273,7 @@ def main():
 
             # Direction selection selectbox - Reads/Writes state
             selected_direction_display = st.selectbox(
-                t.get('direction_filter_label', "Show objects culminating towards:"), # Uses updated translation
+                t.get('direction_filter_label', "Show objects culminating towards:"), # Use 't'
                 options=direction_options_display,
                 index=current_direction_index, # Set initial display based on state
                 key='direction_selectbox' # Use a key to manage state implicitly
@@ -1293,7 +1294,7 @@ def main():
 
 
         # --- Result Options ---
-        with st.expander(t.get('results_options_expander', "⚙️ Result Options"), expanded=False):
+        with st.expander(t.get('results_options_expander', "⚙️ Result Options"), expanded=False): # Use 't'
             # Max number of objects slider - Reads/Writes state
             max_slider_val = len(df_catalog_data) if df_catalog_data is not None and not df_catalog_data.empty else 50
             min_slider_val = 5
@@ -1307,7 +1308,7 @@ def main():
                  st.session_state.num_objects_slider = clamped_default # Correct state if needed
 
             st.slider(
-                t.get('results_options_max_objects_label', "Max. Number of Objects to Display:"),
+                t.get('results_options_max_objects_label', "Max. Number of Objects to Display:"), # Use 't'
                 min_value=min_slider_val,
                 max_value=actual_max_slider,
                 # value=st.session_state.num_objects_slider, # Value handled by key
@@ -1318,15 +1319,15 @@ def main():
 
             # Result sorting method radio buttons - Reads/Writes state
             sort_options_map = {
-                'Duration & Altitude': t.get('results_options_sort_duration', "Duration & Altitude"),
-                'Brightness': t.get('results_options_sort_magnitude', "Brightness")
+                'Duration & Altitude': t.get('results_options_sort_duration', "Duration & Altitude"), # Use 't'
+                'Brightness': t.get('results_options_sort_magnitude', "Brightness") # Use 't'
             }
             # Ensure state is valid (already handled by init)
             if st.session_state.sort_method not in sort_options_map:
                 st.session_state.sort_method = 'Duration & Altitude'
 
             st.radio(
-                t.get('results_options_sort_method_label', "Sort Results By:"),
+                t.get('results_options_sort_method_label', "Sort Results By:"), # Use 't'
                 options=list(sort_options_map.keys()),
                 format_func=lambda key: sort_options_map[key],
                 key='sort_method', # Reads/Writes state
@@ -1338,19 +1339,19 @@ def main():
         bug_report_email = "debrun2005@gmail.com"
         bug_report_subject = urllib.parse.quote("Bug Report: Advanced DSO Finder")
         # Use translation key for body placeholder
-        bug_report_body = urllib.parse.quote(t.get('bug_report_body', "\n\n(Please describe the bug and steps to reproduce)"))
+        bug_report_body = urllib.parse.quote(t.get('bug_report_body', "\n\n(Please describe the bug and steps to reproduce)")) # Use 't'
         bug_report_link = f"mailto:{bug_report_email}?subject={bug_report_subject}&body={bug_report_body}"
         # Use translation key for button label
-        st.sidebar.markdown(f"<a href='{bug_report_link}' target='_blank'>{t.get('bug_report_button', '🐞 Report Bug')}</a>", unsafe_allow_html=True)
+        st.sidebar.markdown(f"<a href='{bug_report_link}' target='_blank'>{t.get('bug_report_button', '🐞 Report Bug')}</a>", unsafe_allow_html=True) # Use 't'
 
     # --- Main Area ---
 
     # --- Display Search Parameters ---
-    st.subheader(t.get('search_params_header', "Search Parameters"))
+    st.subheader(t.get('search_params_header', "Search Parameters")) # Use 't'
     param_col1, param_col2 = st.columns(2)
 
     # Location Parameter Display
-    location_display = t.get('location_error', "Location Error: {}").format("Not Set")
+    location_display = t.get('location_error', "Location Error: {}").format("Not Set") # Use 't'
     observer_for_run = None
     # Create observer object only if location state is valid
     if st.session_state.location_is_valid_for_run:
@@ -1363,18 +1364,18 @@ def main():
             observer_for_run = Observer(latitude=lat * u.deg, longitude=lon * u.deg, elevation=height * u.m, timezone=tz_str)
             # Format location display string based on input method state
             if st.session_state.location_choice_key == "Manual":
-                location_display = t.get('location_manual_display', "Manual ({:.4f}, {:.4f})").format(lat, lon)
+                location_display = t.get('location_manual_display', "Manual ({:.4f}, {:.4f})").format(lat, lon) # Use 't'
             elif st.session_state.searched_location_name: # Check if search was successful
-                location_display = t.get('location_search_display', "Searched: {} ({:.4f}, {:.4f})").format(st.session_state.searched_location_name, lat, lon)
+                location_display = t.get('location_search_display', "Searched: {} ({:.4f}, {:.4f})").format(st.session_state.searched_location_name, lat, lon) # Use 't'
             else: # Fallback if state is somehow inconsistent (e.g., valid coords but no search name)
                 location_display = f"Lat: {lat:.4f}, Lon: {lon:.4f}" # Should ideally not happen
         except Exception as obs_e:
              # Handle observer creation errors
-             location_display = t.get('location_error', "Location Error: {}").format(f"Observer creation failed: {obs_e}")
+             location_display = t.get('location_error', "Location Error: {}").format(f"Observer creation failed: {obs_e}") # Use 't'
              st.session_state.location_is_valid_for_run = False # Mark state as invalid if observer fails
              observer_for_run = None # Ensure observer is None
 
-    param_col1.markdown(t.get('search_params_location', "📍 Location: {}").format(location_display))
+    param_col1.markdown(t.get('search_params_location', "📍 Location: {}").format(location_display)) # Use 't'
 
     # Time Parameter Display
     time_display = ""
@@ -1387,16 +1388,16 @@ def main():
         try:
             # Attempt to get local time for display, fallback to UTC
             local_now_str, local_tz_now = get_local_time_str(ref_time_main, st.session_state.selected_timezone)
-            time_display = t.get('search_params_time_now', "Upcoming Night (from {} UTC)").format(f"{local_now_str} {local_tz_now}")
+            time_display = t.get('search_params_time_now', "Upcoming Night (from {} UTC)").format(f"{local_now_str} {local_tz_now}") # Use 't'
         except Exception:
-            time_display = t.get('search_params_time_now', "Upcoming Night (from {} UTC)").format(f"{ref_time_main.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC")
+            time_display = t.get('search_params_time_now', "Upcoming Night (from {} UTC)").format(f"{ref_time_main.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC") # Use 't'
     else:
         # Read selected date from session state
         selected_date_main = st.session_state.selected_date_widget
         ref_time_main = Time(datetime.combine(selected_date_main, time(12, 0)), scale='utc')
-        time_display = t.get('search_params_time_specific', "Night after {}").format(selected_date_main.strftime('%Y-%m-%d'))
+        time_display = t.get('search_params_time_specific', "Night after {}").format(selected_date_main.strftime('%Y-%m-%d')) # Use 't'
 
-    param_col1.markdown(t.get('search_params_time', "⏱️ Time: {}").format(time_display))
+    param_col1.markdown(t.get('search_params_time', "⏱️ Time: {}").format(time_display)) # Use 't'
 
     # Magnitude Filter Display
     mag_filter_display = ""
@@ -1404,43 +1405,43 @@ def main():
     # Determine magnitude filter range based on selected method state
     if st.session_state.mag_filter_mode_exp == "Bortle Scale":
         max_mag_filter = get_magnitude_limit(st.session_state.bortle_slider)
-        mag_filter_display = t.get('search_params_filter_mag_bortle', "Bortle {} (<= {:.1f} mag)").format(st.session_state.bortle_slider, max_mag_filter)
+        mag_filter_display = t.get('search_params_filter_mag_bortle', "Bortle {} (<= {:.1f} mag)").format(st.session_state.bortle_slider, max_mag_filter) # Use 't'
     else: # Manual mode
         min_mag_filter = st.session_state.manual_min_mag_slider
         max_mag_filter = st.session_state.manual_max_mag_slider
-        mag_filter_display = t.get('search_params_filter_mag_manual', "Manual ({:.1f}-{:.1f} mag)").format(min_mag_filter, max_mag_filter)
-    param_col2.markdown(t.get('search_params_filter_mag', "✨ Filter: {}").format(mag_filter_display))
+        mag_filter_display = t.get('search_params_filter_mag_manual', "Manual ({:.1f}-{:.1f} mag)").format(min_mag_filter, max_mag_filter) # Use 't'
+    param_col2.markdown(t.get('search_params_filter_mag', "✨ Filter: {}").format(mag_filter_display)) # Use 't'
 
     # Altitude and Type Filter Display
     min_alt_disp = st.session_state.min_alt_slider
     max_alt_disp = st.session_state.max_alt_slider
     selected_types_disp = st.session_state.object_type_filter_exp # Read from state
-    types_str = ', '.join(selected_types_disp) if selected_types_disp else t.get('search_params_types_all', "All")
-    param_col2.markdown(t.get('search_params_filter_alt_types', "🔭 Filter: Alt {}-{}°, Types: {}").format(min_alt_disp, max_alt_disp, types_str))
+    types_str = ', '.join(selected_types_disp) if selected_types_disp else t.get('search_params_types_all', "All") # Use 't'
+    param_col2.markdown(t.get('search_params_filter_alt_types', "🔭 Filter: Alt {}-{}°, Types: {}").format(min_alt_disp, max_alt_disp, types_str)) # Use 't'
 
     # Size Filter Display
     size_min_disp, size_max_disp = st.session_state.size_arcmin_range # Read from state
-    param_col2.markdown(t.get('search_params_filter_size', "📐 Filter: Size {:.1f} - {:.1f} arcmin").format(size_min_disp, size_max_disp))
+    param_col2.markdown(t.get('search_params_filter_size', "📐 Filter: Size {:.1f} - {:.1f} arcmin").format(size_min_disp, size_max_disp)) # Use 't'
 
     # Direction Filter Display
     direction_disp = st.session_state.selected_peak_direction # Read from state
     if direction_disp == ALL_DIRECTIONS_KEY:
-        direction_disp = t.get('search_params_direction_all', "All")
-    param_col2.markdown(t.get('search_params_filter_direction', "🧭 Filter: Direction at Max: {}").format(direction_disp))
+        direction_disp = t.get('search_params_direction_all', "All") # Use 't'
+    param_col2.markdown(t.get('search_params_filter_direction', "🧭 Filter: Direction at Max: {}").format(direction_disp)) # Use 't'
 
 
     # --- Find Objects Button ---
     st.markdown("---")
     # Disable button if catalog not loaded or location state is invalid
     find_button_clicked = st.button(
-        t.get('find_button_label', "🔭 Find Observable Objects"),
+        t.get('find_button_label', "🔭 Find Observable Objects"), # Use 't'
         key="find_button",
         disabled=(df_catalog_data is None or not st.session_state.location_is_valid_for_run)
     )
 
     # Show initial prompt if location state is invalid but catalog is loaded
     if not st.session_state.location_is_valid_for_run and df_catalog_data is not None:
-        st.warning(t.get('info_initial_prompt', "Welcome! Please **Enter Coordinates** or **Search Location** to enable object search."))
+        st.warning(t.get('info_initial_prompt', "Welcome! Please **Enter Coordinates** or **Search Location** to enable object search.")) # Use 't'
 
 
     # --- Results Area ---
@@ -1462,12 +1463,13 @@ def main():
 
         # Proceed only if observer was successfully created and catalog loaded
         if observer_for_run and df_catalog_data is not None:
-            with st.spinner(t.get('spinner_searching', "Calculating window & searching objects...")):
+            with st.spinner(t.get('spinner_searching', "Calculating window & searching objects...")): # Use 't'
                 try:
                     # 1. Calculate Observation Window
                     # Use the reference time calculated earlier based on main area state
+                    # Pass 't' to the function
                     start_time_calc, end_time_calc, window_status = get_observable_window(
-                        observer_for_run, ref_time_main, is_time_now_main, lang
+                        observer_for_run, ref_time_main, is_time_now_main, t
                     )
                     results_placeholder.info(window_status) # Display window info/errors immediately
 
@@ -1506,17 +1508,18 @@ def main():
 
                         # Check if any objects remain after initial filtering
                         if filtered_df.empty:
-                            results_placeholder.warning(t.get('warning_no_objects_found', "No objects found matching all criteria for the calculated observation window.") + " (after initial filtering)")
+                            results_placeholder.warning(t.get('warning_no_objects_found', "No objects found matching all criteria for the calculated observation window.") + " (after initial filtering)") # Use 't'
                             st.session_state.last_results = []
                         else:
                             # 3. Find Observable Objects (reaching min alt)
                             min_altitude_for_search = st.session_state.min_alt_slider * u.deg # Use state value
+                            # Pass 't' to the function
                             found_objects = find_observable_objects(
                                 observer_for_run.location,
                                 observing_times,
                                 min_altitude_for_search,
                                 filtered_df,
-                                lang
+                                t
                             )
 
                             # 4. Apply Max Altitude and Direction Filters (post-calculation, using state)
@@ -1552,20 +1555,20 @@ def main():
 
                             # Display summary message
                             if not final_objects:
-                                results_placeholder.warning(t.get('warning_no_objects_found', "No objects found matching all criteria for the calculated observation window."))
+                                results_placeholder.warning(t.get('warning_no_objects_found', "No objects found matching all criteria for the calculated observation window.")) # Use 't'
                             else:
-                                results_placeholder.success(t.get('success_objects_found', "{} matching objects found.").format(len(final_objects)))
+                                results_placeholder.success(t.get('success_objects_found', "{} matching objects found.").format(len(final_objects))) # Use 't'
                                 sort_msg_key = 'info_showing_list_duration' if sort_key != 'Brightness' else 'info_showing_list_magnitude'
-                                results_placeholder.info(t[sort_msg_key].format(len(st.session_state.last_results)))
+                                results_placeholder.info(t[sort_msg_key].format(len(st.session_state.last_results))) # Use 't'
 
                     else: # Window calculation failed
-                        results_placeholder.error(t.get('error_no_window', "No valid astronomical darkness window found for the selected date and location.") + " Cannot proceed with search.")
+                        results_placeholder.error(t.get('error_no_window', "No valid astronomical darkness window found for the selected date and location.") + " Cannot proceed with search.") # Use 't'
                         st.session_state.last_results = [] # Clear results in state
                         # Ensure window times remain None in session state
 
                 except Exception as search_e:
                     # Catch unexpected errors during the search process
-                    results_placeholder.error(t.get('error_search_unexpected', "An unexpected error occurred during the search:") + f"\n```\n{search_e}\n```")
+                    results_placeholder.error(t.get('error_search_unexpected', "An unexpected error occurred during the search:") + f"\n```\n{search_e}\n```") # Use 't'
                     traceback.print_exc()
                     st.session_state.last_results = [] # Clear results in state
                     # Ensure window times remain None in session state
@@ -1581,7 +1584,7 @@ def main():
     # Display results if they exist in session state from a previous run or the current run
     if st.session_state.last_results:
         results_data = st.session_state.last_results
-        results_placeholder.subheader(t.get('results_list_header', "Result List"))
+        results_placeholder.subheader(t.get('results_list_header', "Result List")) # Use 't'
 
         # --- Moon Phase Display ---
         # Retrieve window times from session state if available
@@ -1602,15 +1605,15 @@ def main():
                 moon_col1, moon_col2 = results_placeholder.columns([1, 3])
                 with moon_col1: st.markdown(moon_svg, unsafe_allow_html=True)
                 with moon_col2:
-                    st.metric(label=t.get('moon_metric_label', "Moon Illumination (approx.)"), value=f"{moon_phase_percent:.0f}%")
+                    st.metric(label=t.get('moon_metric_label', "Moon Illumination (approx.)"), value=f"{moon_phase_percent:.0f}%") # Use 't'
                     # Warn if moon illumination exceeds threshold (use state)
                     moon_warn_threshold = st.session_state.moon_phase_slider
                     if moon_phase_percent > moon_warn_threshold:
-                        st.warning(t.get('moon_warning_message', "Warning: Moon is brighter ({:.0f}%) than threshold ({:.0f}%)!").format(moon_phase_percent, moon_warn_threshold))
+                        st.warning(t.get('moon_warning_message', "Warning: Moon is brighter ({:.0f}%) than threshold ({:.0f}%)!").format(moon_phase_percent, moon_warn_threshold)) # Use 't'
 
             except Exception as moon_e:
                 # Handle errors during moon phase calculation
-                results_placeholder.warning(t.get('moon_phase_error', "Error calculating moon phase: {}").format(moon_e))
+                results_placeholder.warning(t.get('moon_phase_error', "Error calculating moon phase: {}").format(moon_e)) # Use 't'
         elif st.session_state.find_button_pressed: # Only show info if search was attempted but window/observer failed
              results_placeholder.info("Moon phase cannot be calculated (invalid observation window or location).")
 
@@ -1618,8 +1621,8 @@ def main():
         # --- Display Object List ---
         # --- Plot Type Selection ---
         plot_options_map = {
-            'Sky Path': t.get('graph_type_sky_path', "Sky Path (Az/Alt)"),
-            'Altitude Plot': t.get('graph_type_alt_time', "Altitude Plot (Alt/Time)")
+            'Sky Path': t.get('graph_type_sky_path', "Sky Path (Az/Alt)"), # Use 't'
+            'Altitude Plot': t.get('graph_type_alt_time', "Altitude Plot (Alt/Time)") # Use 't'
         }
         # Ensure state is valid (handled by init)
         if st.session_state.plot_type_selection not in plot_options_map:
@@ -1627,7 +1630,7 @@ def main():
 
         # Plot type selection radio buttons - Reads/Writes state
         results_placeholder.radio(
-            t.get('graph_type_label', "Graph Type (for all plots):"),
+            t.get('graph_type_label', "Graph Type (for all plots):"), # Use 't'
             options=list(plot_options_map.keys()),
             format_func=lambda key: plot_options_map[key],
             key='plot_type_selection', # Reads/Writes state
@@ -1640,7 +1643,7 @@ def main():
             obj_type = obj_data.get('Type', 'N/A')
             obj_mag = obj_data.get('Magnitude')
             mag_str = f"{obj_mag:.1f}" if obj_mag is not None else "N/A"
-            expander_title = t.get('results_expander_title', "{} ({}) - Mag: {:.1f}").format(obj_name, obj_type, obj_mag if obj_mag is not None else 99)
+            expander_title = t.get('results_expander_title', "{} ({}) - Mag: {:.1f}").format(obj_name, obj_type, obj_mag if obj_mag is not None else 99) # Use 't'
 
             # Check if this object's expander should be open based on state
             is_expanded = (st.session_state.expanded_object_name == obj_name)
@@ -1652,44 +1655,44 @@ def main():
                 col1, col2, col3 = st.columns([2,2,1])
 
                 # Col 1: Details (Constellation, Size, RA/Dec)
-                col1.markdown(t.get('results_coords_header', "**Details:**"))
-                col1.markdown(f"**{t.get('results_export_constellation', 'Constellation')}:** {obj_data.get('Constellation', 'N/A')}")
+                col1.markdown(t.get('results_coords_header', "**Details:**")) # Use 't'
+                col1.markdown(f"**{t.get('results_export_constellation', 'Constellation')}:** {obj_data.get('Constellation', 'N/A')}") # Use 't'
                 size_arcmin = obj_data.get('Size (arcmin)')
-                col1.markdown(f"**{t.get('results_size_label', 'Size (Major Axis):')}** {t.get('results_size_value', '{:.1f} arcmin').format(size_arcmin) if size_arcmin is not None else 'N/A'}")
+                col1.markdown(f"**{t.get('results_size_label', 'Size (Major Axis):')}** {t.get('results_size_value', '{:.1f} arcmin').format(size_arcmin) if size_arcmin is not None else 'N/A'}") # Use 't'
                 col1.markdown(f"**RA:** {obj_data.get('RA', 'N/A')}")
                 col1.markdown(f"**Dec:** {obj_data.get('Dec', 'N/A')}")
 
                 # Col 2: Visibility (Max Alt, Azimuth, Direction, Best Time, Duration)
-                col2.markdown(t.get('results_max_alt_header', "**Max. Altitude:**"))
+                col2.markdown(t.get('results_max_alt_header', "**Max. Altitude:**")) # Use 't'
                 max_alt = obj_data.get('Max Altitude (°)', 0)
                 az_at_max = obj_data.get('Azimuth at Max (°)', 0)
                 dir_at_max = obj_data.get('Direction at Max', 'N/A')
-                azimuth_formatted = t.get('results_azimuth_label', "(Azimuth: {:.1f}°{})").format(az_at_max, "")
-                direction_formatted = t.get('results_direction_label', ", Direction: {}").format(dir_at_max)
+                azimuth_formatted = t.get('results_azimuth_label', "(Azimuth: {:.1f}°{})").format(az_at_max, "") # Use 't'
+                direction_formatted = t.get('results_direction_label', ", Direction: {}").format(dir_at_max) # Use 't'
                 col2.markdown(f"**{max_alt:.1f}°** {azimuth_formatted}{direction_formatted}")
 
-                col2.markdown(t.get('results_best_time_header', "**Best Time (Local TZ):**"))
+                col2.markdown(t.get('results_best_time_header', "**Best Time (Local TZ):**")) # Use 't'
                 peak_time_utc = obj_data.get('Time at Max (UTC)')
                 # Use timezone from session state for conversion
                 local_time_str, local_tz_name = get_local_time_str(peak_time_utc, st.session_state.selected_timezone)
                 col2.markdown(f"{local_time_str} ({local_tz_name})")
 
-                col2.markdown(t.get('results_cont_duration_header', "**Max. Cont. Duration:**"))
+                col2.markdown(t.get('results_cont_duration_header', "**Max. Cont. Duration:**")) # Use 't'
                 duration_h = obj_data.get('Max Cont. Duration (h)', 0)
-                col2.markdown(t.get('results_duration_value', "{:.1f} hours").format(duration_h))
+                col2.markdown(t.get('results_duration_value', "{:.1f} hours").format(duration_h)) # Use 't'
 
                 # Col 3: Links & Actions (Google, SIMBAD, Plot Button)
                 google_query = urllib.parse.quote_plus(f"{obj_name} astronomy")
                 google_url = f"https://www.google.com/search?q={google_query}"
-                col3.markdown(f"[{t.get('google_link_text', 'Google')}]({google_url})", unsafe_allow_html=True)
+                col3.markdown(f"[{t.get('google_link_text', 'Google')}]({google_url})", unsafe_allow_html=True) # Use 't'
 
                 simbad_query = urllib.parse.quote_plus(obj_name)
                 simbad_url = f"http://simbad.u-strasbg.fr/simbad/sim-basic?Ident={simbad_query}"
-                col3.markdown(f"[{t.get('simbad_link_text', 'SIMBAD')}]({simbad_url})", unsafe_allow_html=True)
+                col3.markdown(f"[{t.get('simbad_link_text', 'SIMBAD')}]({simbad_url})", unsafe_allow_html=True) # Use 't'
 
                 # Plot button for the specific object
                 plot_button_key = f"plot_{obj_name}_{i}"
-                if st.button(t.get('results_graph_button', "📈 Show Plot"), key=plot_button_key):
+                if st.button(t.get('results_graph_button', "📈 Show Plot"), key=plot_button_key): # Use 't'
                     # Update state to show plot for this object
                     st.session_state.plot_object_name = obj_name
                     st.session_state.active_result_plot_data = obj_data
@@ -1706,24 +1709,25 @@ def main():
                     max_alt_line = st.session_state.max_alt_slider # Use state
 
                     st.markdown("---") # Separator before plot
-                    with st.spinner(t.get('results_spinner_plotting', "Creating plot...")):
+                    with st.spinner(t.get('results_spinner_plotting', "Creating plot...")): # Use 't'
                         try:
                             # Create the plot using the updated function (pass state values)
-                            fig = create_plot(plot_data, min_alt_line, max_alt_line, st.session_state.plot_type_selection, lang)
+                            # Pass 't' to the plotting function
+                            fig = create_plot(plot_data, min_alt_line, max_alt_line, st.session_state.plot_type_selection, t)
                             if fig:
                                 st.pyplot(fig)
                                 # Add a button to close the plot
                                 close_button_key = f"close_plot_{obj_name}_{i}"
-                                if st.button(t.get('results_close_graph_button', "Close Plot"), key=close_button_key):
+                                if st.button(t.get('results_close_graph_button', "Close Plot"), key=close_button_key): # Use 't'
                                     # Update state to hide the plot
                                     st.session_state.show_plot = False
                                     st.session_state.active_result_plot_data = None
                                     st.session_state.expanded_object_name = None # Close this expander
                                     st.rerun() # Rerun to hide the plot
                             else:
-                                st.error(t.get('results_graph_not_created', "Plot could not be created."))
+                                st.error(t.get('results_graph_not_created', "Plot could not be created.")) # Use 't'
                         except Exception as plot_err:
-                            st.error(t.get('results_graph_error', "Plot Error: {}").format(plot_err))
+                            st.error(t.get('results_graph_error', "Plot Error: {}").format(plot_err)) # Use 't'
                             traceback.print_exc()
 
 
@@ -1739,19 +1743,19 @@ def main():
                     # Use timezone from state for local time conversion
                     local_time_str, _ = get_local_time_str(peak_time_utc, st.session_state.selected_timezone)
                     export_data.append({
-                        t.get('results_export_name', "Name"): obj.get('Name', 'N/A'),
-                        t.get('results_export_type', "Type"): obj.get('Type', 'N/A'),
-                        t.get('results_export_constellation', "Constellation"): obj.get('Constellation', 'N/A'),
-                        t.get('results_export_mag', "Magnitude"): obj.get('Magnitude'),
-                        t.get('results_export_size', "Size (arcmin)"): obj.get('Size (arcmin)'),
-                        t.get('results_export_ra', "RA"): obj.get('RA', 'N/A'),
-                        t.get('results_export_dec', "Dec"): obj.get('Dec', 'N/A'),
-                        t.get('results_export_max_alt', "Max Altitude (°)"): obj.get('Max Altitude (°)', 0),
-                        t.get('results_export_az_at_max', "Azimuth at Max (°)"): obj.get('Azimuth at Max (°)', 0),
-                        t.get('results_export_direction_at_max', "Direction at Max"): obj.get('Direction at Max', 'N/A'),
-                        t.get('results_export_time_max_utc', "Time at Max (UTC)"): peak_time_utc.iso if peak_time_utc else "N/A",
-                        t.get('results_export_time_max_local', "Time at Max (Local TZ)"): local_time_str,
-                        t.get('results_export_cont_duration', "Max Cont Duration (h)"): obj.get('Max Cont. Duration (h)', 0)
+                        t.get('results_export_name', "Name"): obj.get('Name', 'N/A'), # Use 't'
+                        t.get('results_export_type', "Type"): obj.get('Type', 'N/A'), # Use 't'
+                        t.get('results_export_constellation', "Constellation"): obj.get('Constellation', 'N/A'), # Use 't'
+                        t.get('results_export_mag', "Magnitude"): obj.get('Magnitude'), # Use 't'
+                        t.get('results_export_size', "Size (arcmin)"): obj.get('Size (arcmin)'), # Use 't'
+                        t.get('results_export_ra', "RA"): obj.get('RA', 'N/A'), # Use 't'
+                        t.get('results_export_dec', "Dec"): obj.get('Dec', 'N/A'), # Use 't'
+                        t.get('results_export_max_alt', "Max Altitude (°)"): obj.get('Max Altitude (°)', 0), # Use 't'
+                        t.get('results_export_az_at_max', "Azimuth at Max (°)"): obj.get('Azimuth at Max (°)', 0), # Use 't'
+                        t.get('results_export_direction_at_max', "Direction at Max"): obj.get('Direction at Max', 'N/A'), # Use 't'
+                        t.get('results_export_time_max_utc', "Time at Max (UTC)"): peak_time_utc.iso if peak_time_utc else "N/A", # Use 't'
+                        t.get('results_export_time_max_local', "Time at Max (Local TZ)"): local_time_str, # Use 't'
+                        t.get('results_export_cont_duration', "Max Cont Duration (h)"): obj.get('Max Cont. Duration (h)', 0) # Use 't'
                     })
 
                 df_export = pd.DataFrame(export_data)
@@ -1761,11 +1765,11 @@ def main():
                 csv_string = df_export.to_csv(index=False, sep=';', encoding='utf-8-sig', decimal=decimal_sep)
 
                 now_str = datetime.now().strftime("%Y%m%d_%H%M")
-                csv_filename = t.get('results_csv_filename', "dso_observation_list_{}.csv").format(now_str)
+                csv_filename = t.get('results_csv_filename', "dso_observation_list_{}.csv").format(now_str) # Use 't'
 
                 # Create download button using the placeholder
                 csv_export_placeholder.download_button(
-                    label=t.get('results_save_csv_button', "💾 Save Result List as CSV"),
+                    label=t.get('results_save_csv_button', "💾 Save Result List as CSV"), # Use 't'
                     data=csv_string,
                     file_name=csv_filename,
                     mime='text/csv',
@@ -1773,21 +1777,21 @@ def main():
                 )
             except Exception as csv_e:
                 # Handle errors during CSV export
-                csv_export_placeholder.error(t.get('results_csv_export_error', "CSV Export Error: {}").format(csv_e))
+                csv_export_placeholder.error(t.get('results_csv_export_error', "CSV Export Error: {}").format(csv_e)) # Use 't'
 
     elif st.session_state.find_button_pressed: # Show message if button was pressed but no results in state
-        results_placeholder.info(t.get('warning_no_objects_found', "No objects found matching all criteria for the calculated observation window."))
+        results_placeholder.info(t.get('warning_no_objects_found', "No objects found matching all criteria for the calculated observation window.")) # Use 't'
 
 
     # --- Custom Target Plotting ---
     st.markdown("---")
-    with st.expander(t.get('custom_target_expander', "Plot Custom Target")):
+    with st.expander(t.get('custom_target_expander', "Plot Custom Target")): # Use 't'
         with st.form("custom_target_form"):
              # Input fields read/write state
-             st.text_input(t.get('custom_target_ra_label', "Right Ascension (RA):"), key="custom_target_ra", placeholder=t.get('custom_target_ra_placeholder', "e.g., 10:45:03.6 or 161.265"))
-             st.text_input(t.get('custom_target_dec_label', "Declination (Dec):"), key="custom_target_dec", placeholder=t.get('custom_target_dec_placeholder', "e.g., -16:42:58 or -16.716"))
-             st.text_input(t.get('custom_target_name_label', "Target Name (Optional):"), key="custom_target_name", placeholder="My Comet")
-             custom_plot_submitted = st.form_submit_button(t.get('custom_target_button', "Create Custom Plot"))
+             st.text_input(t.get('custom_target_ra_label', "Right Ascension (RA):"), key="custom_target_ra", placeholder=t.get('custom_target_ra_placeholder', "e.g., 10:45:03.6 or 161.265")) # Use 't'
+             st.text_input(t.get('custom_target_dec_label', "Declination (Dec):"), key="custom_target_dec", placeholder=t.get('custom_target_dec_placeholder', "e.g., -16:42:58 or -16.716")) # Use 't'
+             st.text_input(t.get('custom_target_name_label', "Target Name (Optional):"), key="custom_target_name", placeholder="My Comet") # Use 't'
+             custom_plot_submitted = st.form_submit_button(t.get('custom_target_button', "Create Custom Plot")) # Use 't'
 
         custom_plot_error_placeholder = st.empty()
         custom_plot_display_area = st.empty()
@@ -1802,7 +1806,7 @@ def main():
 
              custom_ra = st.session_state.custom_target_ra
              custom_dec = st.session_state.custom_target_dec
-             custom_name = st.session_state.custom_target_name or t.get('custom_target_name_label', "Target Name (Optional):").replace(":", "") # Use translated default if empty
+             custom_name = st.session_state.custom_target_name or t.get('custom_target_name_label', "Target Name (Optional):").replace(":", "") # Use 't'
 
              # Retrieve window times and check observer from session state
              window_start_cust = st.session_state.get('window_start_time')
@@ -1811,11 +1815,11 @@ def main():
 
              # Validate inputs: RA/Dec must be provided
              if not custom_ra or not custom_dec:
-                 st.session_state.custom_target_error = t.get('custom_target_error_coords', "Invalid RA/Dec format. Use HH:MM:SS.s / DD:MM:SS or decimal degrees.")
+                 st.session_state.custom_target_error = t.get('custom_target_error_coords', "Invalid RA/Dec format. Use HH:MM:SS.s / DD:MM:SS or decimal degrees.") # Use 't'
                  custom_plot_error_placeholder.error(st.session_state.custom_target_error)
              # Validate inputs: Observer and valid window times must exist from state
              elif not observer_exists_cust or not isinstance(window_start_cust, Time) or not isinstance(window_end_cust, Time):
-                 st.session_state.custom_target_error = t.get('custom_target_error_window', "Cannot create plot. Ensure location and time window are valid (try clicking 'Find Observable Objects' first).")
+                 st.session_state.custom_target_error = t.get('custom_target_error_window', "Cannot create plot. Ensure location and time window are valid (try clicking 'Find Observable Objects' first).") # Use 't'
                  custom_plot_error_placeholder.error(st.session_state.custom_target_error)
              else:
                  # Proceed with custom plot calculation
@@ -1853,7 +1857,7 @@ def main():
 
                  except ValueError as custom_coord_err:
                      # Handle coordinate format errors
-                     st.session_state.custom_target_error = f"{t.get('custom_target_error_coords', 'Invalid RA/Dec format. Use HH:MM:SS.s / DD:MM:SS or decimal degrees.')} ({custom_coord_err})"
+                     st.session_state.custom_target_error = f"{t.get('custom_target_error_coords', 'Invalid RA/Dec format. Use HH:MM:SS.s / DD:MM:SS or decimal degrees.')} ({custom_coord_err})" # Use 't'
                      custom_plot_error_placeholder.error(st.session_state.custom_target_error)
                  except Exception as custom_e:
                      # Handle other errors during custom plot creation
@@ -1869,22 +1873,23 @@ def main():
 
             with custom_plot_display_area.container():
                  st.markdown("---")
-                 with st.spinner(t.get('results_spinner_plotting', "Creating plot...")):
+                 with st.spinner(t.get('results_spinner_plotting', "Creating plot...")): # Use 't'
                      try:
                          # Create the custom plot (pass state values)
-                         fig_cust = create_plot(custom_plot_data, min_alt_line_cust, max_alt_line_cust, st.session_state.plot_type_selection, lang)
+                         # Pass 't' to the plotting function
+                         fig_cust = create_plot(custom_plot_data, min_alt_line_cust, max_alt_line_cust, st.session_state.plot_type_selection, t)
                          if fig_cust:
                              st.pyplot(fig_cust)
                              # Add button to close the custom plot
-                             if st.button(t.get('results_close_graph_button', "Close Plot"), key="close_custom_plot"):
+                             if st.button(t.get('results_close_graph_button', "Close Plot"), key="close_custom_plot"): # Use 't'
                                  # Update state to hide the plot
                                  st.session_state.show_custom_plot = False
                                  st.session_state.custom_target_plot_data = None
                                  st.rerun() # Rerun to hide the plot
-                         else: st.error(t.get('results_graph_not_created', "Plot could not be created."))
+                         else: st.error(t.get('results_graph_not_created', "Plot could not be created.")) # Use 't'
                      except Exception as plot_err_cust:
                          # Handle errors during custom plot display
-                         st.error(t.get('results_graph_error', "Plot Error: {}").format(plot_err_cust))
+                         st.error(t.get('results_graph_error', "Plot Error: {}").format(plot_err_cust)) # Use 't'
                          traceback.print_exc()
         # Display error message if it exists in state
         elif st.session_state.custom_target_error:
@@ -1893,14 +1898,14 @@ def main():
 
     # --- Add Donation Link at the bottom ---
     st.markdown("---") # Add a separator line
-    st.caption(t.get('donation_text', "Like the app? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)"), unsafe_allow_html=True)
+    st.caption(t.get('donation_text', "Like the app? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)"), unsafe_allow_html=True) # Use 't'
 
 
 # --- Plotting Function (Revised for Robustness and Visibility) ---
 #@st.cache_data(show_spinner=False) # Cache plot generation - consider if plot_data is hashable
-def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: float, plot_type: str, lang: str) -> plt.Figure | None:
+def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: float, plot_type: str, t: dict) -> plt.Figure | None:
     """Creates either an Altitude vs Time or Sky Path (Alt/Az) plot with improved robustness and theme handling."""
-    t = translations.get(lang, translations['en'])
+    # t = translations.get(lang, translations['en']) # 't' is now passed in
     fig = None # Initialize fig to None
 
     try:
@@ -1977,14 +1982,14 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
             ax.plot(plot_times, altitudes, color=primary_color, alpha=0.9, linewidth=1.5, label=obj_name)
 
             # Add Min/Max Altitude Lines
-            ax.axhline(min_altitude_deg, color=min_alt_color, linestyle='--', linewidth=1.2, label=t.get('graph_min_altitude_label', "Min Altitude ({:.0f}°)").format(min_altitude_deg), alpha=0.8)
+            ax.axhline(min_altitude_deg, color=min_alt_color, linestyle='--', linewidth=1.2, label=t.get('graph_min_altitude_label', "Min Altitude ({:.0f}°)").format(min_altitude_deg), alpha=0.8) # Use 't'
             if max_altitude_deg < 90: # Only plot max line if it's not 90
-                 ax.axhline(max_altitude_deg, color=max_alt_color, linestyle=':', linewidth=1.2, label=t.get('graph_max_altitude_label', "Max Altitude ({:.0f}°)").format(max_altitude_deg), alpha=0.8)
+                 ax.axhline(max_altitude_deg, color=max_alt_color, linestyle=':', linewidth=1.2, label=t.get('graph_max_altitude_label', "Max Altitude ({:.0f}°)").format(max_altitude_deg), alpha=0.8) # Use 't'
 
             # Configure Altitude Plot axes
             ax.set_xlabel("Time (UTC)", color=label_color, fontsize=11)
-            ax.set_ylabel(t.get('graph_ylabel', "Altitude (°)"), color=label_color, fontsize=11)
-            ax.set_title(t.get('graph_title_alt_time', "Altitude Plot for {}").format(obj_name), color=title_color, fontsize=13, weight='bold')
+            ax.set_ylabel(t.get('graph_ylabel', "Altitude (°)"), color=label_color, fontsize=11) # Use 't'
+            ax.set_title(t.get('graph_title_alt_time', "Altitude Plot for {}").format(obj_name), color=title_color, fontsize=13, weight='bold') # Use 't'
             ax.set_ylim(0, 90)
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
             fig.autofmt_xdate(rotation=30) # Slightly rotate labels
@@ -2025,9 +2030,9 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
 
 
             # Add Min/Max Altitude Circles
-            ax.plot(np.linspace(0, 2*np.pi, 100), np.full(100, 90 - min_altitude_deg), color=min_alt_color, linestyle='--', linewidth=1.2, label=t.get('graph_min_altitude_label', "Min Altitude ({:.0f}°)").format(min_altitude_deg), alpha=0.8)
+            ax.plot(np.linspace(0, 2*np.pi, 100), np.full(100, 90 - min_altitude_deg), color=min_alt_color, linestyle='--', linewidth=1.2, label=t.get('graph_min_altitude_label', "Min Altitude ({:.0f}°)").format(min_altitude_deg), alpha=0.8) # Use 't'
             if max_altitude_deg < 90: # Only plot max circle if not 90
-                 ax.plot(np.linspace(0, 2*np.pi, 100), np.full(100, 90 - max_altitude_deg), color=max_alt_color, linestyle=':', linewidth=1.2, label=t.get('graph_max_altitude_label', "Max Altitude ({:.0f}°)").format(max_altitude_deg), alpha=0.8)
+                 ax.plot(np.linspace(0, 2*np.pi, 100), np.full(100, 90 - max_altitude_deg), color=max_alt_color, linestyle=':', linewidth=1.2, label=t.get('graph_max_altitude_label', "Max Altitude ({:.0f}°)").format(max_altitude_deg), alpha=0.8) # Use 't'
 
 
             # Configure Polar Plot axes
@@ -2036,7 +2041,7 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
             ax.set_yticks(np.arange(0, 91, 15)) # Altitude circles every 15 deg
             ax.set_yticklabels([f"{90-alt}°" for alt in np.arange(0, 91, 15)], color=label_color)
             ax.set_ylim(0, 90) # Radial limit (0=zenith, 90=horizon) -> Corrected radius means ylim is 0-90
-            ax.set_title(t.get('graph_title_sky_path', "Sky Path for {}").format(obj_name), va='bottom', color=title_color, fontsize=13, weight='bold', y=1.1) # Adjust title position
+            ax.set_title(t.get('graph_title_sky_path', "Sky Path for {}").format(obj_name), va='bottom', color=title_color, fontsize=13, weight='bold', y=1.1) # Use 't'
 
             # Set grid and spine colors
             ax.grid(True, linestyle=':', alpha=0.5, color=grid_color) # Increased alpha for visibility
