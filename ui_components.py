@@ -164,134 +164,135 @@ def create_sidebar(t: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFi
     """Erstellt die Sidebar UI Elemente."""
     with st.sidebar:
         # --- Debug Check ---
+        # Print the type of 't' right before it's used in st.header
+        print(f"DEBUG: Type of 't' at start of create_sidebar: {type(t)}")
         if not isinstance(t, dict):
              st.error(f"Interner Fehler: 't' ist kein Dictionary in create_sidebar! Typ: {type(t)}")
-             # Optionally stop execution if t is critical and wrong type
-             # st.stop()
-             # Provide a dummy dict to prevent further errors in this function
-             t = {}
+             t = {} # Provide dummy dict to prevent immediate crash
+        # --- End Debug Check ---
+
+        # Use t.get() for all translatable strings
+        # This line (approx 167) was causing the error according to traceback
+        st.header(t.get('settings_header', "Einstellungen"))
+
+        # Katalog Status
+        if 'catalog_status_msg' not in st.session_state: st.session_state.catalog_status_msg = ""
+        if df_catalog_data is not None:
+            new_msg = t.get('info_catalog_loaded', "Katalog geladen: {} Objekte.").format(len(df_catalog_data))
+            if st.session_state.catalog_status_msg != new_msg:
+                st.success(new_msg); st.session_state.catalog_status_msg = new_msg
         else:
-             # Proceed only if t is a dictionary
-             st.header(t.get('settings_header', "Einstellungen")) # Line 167 (approx)
+            new_msg = t.get('error_catalog_load_failed', "Katalog konnte nicht geladen werden. Datei prüfen.")
+            if st.session_state.catalog_status_msg != new_msg:
+                st.error(new_msg); st.session_state.catalog_status_msg = new_msg
 
-             # Katalog Status
-             if 'catalog_status_msg' not in st.session_state: st.session_state.catalog_status_msg = ""
-             if df_catalog_data is not None:
-                 new_msg = t.get('info_catalog_loaded', "Katalog geladen: {} Objekte.").format(len(df_catalog_data))
-                 if st.session_state.catalog_status_msg != new_msg:
-                     st.success(new_msg); st.session_state.catalog_status_msg = new_msg
-             else:
-                 new_msg = t.get('error_catalog_load_failed', "Katalog konnte nicht geladen werden. Datei prüfen.")
-                 if st.session_state.catalog_status_msg != new_msg:
-                     st.error(new_msg); st.session_state.catalog_status_msg = new_msg
+        # Sprachauswahl
+        language_options = {'DE': 'Deutsch', 'EN': 'English', 'FR': 'Français'}
+        lang_keys = list(language_options.keys())
+        try:
+            current_lang_key = st.session_state.language.upper()
+            if current_lang_key not in lang_keys: current_lang_key = 'EN'; st.session_state.language = current_lang_key
+            current_lang_idx = lang_keys.index(current_lang_key)
+        except ValueError: current_lang_idx = lang_keys.index('EN') if 'EN' in lang_keys else 0
 
-             # Sprachauswahl
-             language_options = {'DE': 'Deutsch', 'EN': 'English', 'FR': 'Français'}
-             lang_keys = list(language_options.keys())
-             try:
-                 current_lang_key = st.session_state.language.upper()
-                 if current_lang_key not in lang_keys: current_lang_key = 'EN'; st.session_state.language = current_lang_key
-                 current_lang_idx = lang_keys.index(current_lang_key)
-             except ValueError: current_lang_idx = lang_keys.index('EN') if 'EN' in lang_keys else 0
+        selected_lang_key = st.radio(
+            t.get('language_select_label', "Sprache"),
+            lang_keys, format_func=lambda k: language_options[k],
+            key='language_radio', index=current_lang_idx, horizontal=True
+        )
+        if selected_lang_key != st.session_state.language:
+            st.session_state.language = selected_lang_key
+            st.session_state.location_search_status_msg = ""
+            print(f"Sprache geändert zu: {selected_lang_key}. Rerun.")
+            st.rerun()
 
-             selected_lang_key = st.radio(
-                 t.get('language_select_label', "Sprache"),
-                 lang_keys, format_func=lambda k: language_options[k],
-                 key='language_radio', index=current_lang_idx, horizontal=True
-             )
-             if selected_lang_key != st.session_state.language:
-                 st.session_state.language = selected_lang_key
-                 st.session_state.location_search_status_msg = ""
-                 print(f"Sprache geändert zu: {selected_lang_key}. Rerun.")
-                 st.rerun()
+        # --- Standort Expander ---
+        with st.expander(t.get('location_expander', "📍 Standort"), expanded=True):
+            loc_opts = {'Search': t.get('location_option_search', "Suche"), 'Manual': t.get('location_option_manual', "Manuell")}
+            st.radio(t.get('location_select_label', "Standortmethode"), list(loc_opts.keys()), format_func=lambda k: loc_opts[k], key="location_choice_key", horizontal=True)
 
-             # --- Standort Expander ---
-             with st.expander(t.get('location_expander', "📍 Standort"), expanded=True):
-                 loc_opts = {'Search': t.get('location_option_search', "Suche"), 'Manual': t.get('location_option_manual', "Manuell")}
-                 st.radio(t.get('location_select_label', "Standortmethode"), list(loc_opts.keys()), format_func=lambda k: loc_opts[k], key="location_choice_key", horizontal=True)
+            lat, lon, hgt = None, None, None
+            loc_valid_for_tz_lookup = False
+            current_location_is_valid = False
 
-                 lat, lon, hgt = None, None, None
-                 loc_valid_for_tz_lookup = False
-                 current_location_is_valid = False
+            if st.session_state.location_choice_key == "Manual":
+                st.number_input(t.get('location_lat_label', "Breite (°N)"), -90.0, 90.0, step=0.01, format="%.4f", key="manual_lat_val")
+                st.number_input(t.get('location_lon_label', "Länge (°E)"), -180.0, 180.0, step=0.01, format="%.4f", key="manual_lon_val")
+                st.number_input(t.get('location_elev_label', "Höhe (m)"), -500, step=10, format="%d", key="manual_height_val")
+                lat = st.session_state.manual_lat_val; lon = st.session_state.manual_lon_val; hgt = st.session_state.manual_height_val
+                if isinstance(lat, (int, float)) and isinstance(lon, (int, float)) and isinstance(hgt, (int, float)):
+                    loc_valid_for_tz_lookup = True; current_location_is_valid = True
+                    st.session_state.location_is_valid_for_run = True
+                    if st.session_state.location_search_success: st.session_state.location_search_success = False; st.session_state.searched_location_name = None; st.session_state.location_search_status_msg = ""
+                else: st.warning(t.get('location_error_manual_invalid', "Manuelle Koordinaten oder Höhe ungültig.")); current_location_is_valid = False; st.session_state.location_is_valid_for_run = False
 
-                 if st.session_state.location_choice_key == "Manual":
-                     st.number_input(t.get('location_lat_label', "Breite (°N)"), -90.0, 90.0, step=0.01, format="%.4f", key="manual_lat_val")
-                     st.number_input(t.get('location_lon_label', "Länge (°E)"), -180.0, 180.0, step=0.01, format="%.4f", key="manual_lon_val")
-                     st.number_input(t.get('location_elev_label', "Höhe (m)"), -500, step=10, format="%d", key="manual_height_val")
-                     lat = st.session_state.manual_lat_val; lon = st.session_state.manual_lon_val; hgt = st.session_state.manual_height_val
-                     if isinstance(lat, (int, float)) and isinstance(lon, (int, float)) and isinstance(hgt, (int, float)):
-                         loc_valid_for_tz_lookup = True; current_location_is_valid = True
-                         st.session_state.location_is_valid_for_run = True
-                         if st.session_state.location_search_success: st.session_state.location_search_success = False; st.session_state.searched_location_name = None; st.session_state.location_search_status_msg = ""
-                     else: st.warning(t.get('location_error_manual_invalid', "Manuelle Koordinaten oder Höhe ungültig.")); current_location_is_valid = False; st.session_state.location_is_valid_for_run = False
+            elif st.session_state.location_choice_key == "Search":
+                with st.form("loc_search_form"):
+                    st.text_input(t.get('location_search_label', "Ort/Adresse suchen:"), key="location_search_query", placeholder=t.get('location_search_placeholder', "z.B. Berlin, Deutschland oder PLZ"))
+                    st.number_input(t.get('location_elev_label', "Höhe (m)"), -500, step=10, format="%d", key="manual_height_val")
+                    search_submitted = st.form_submit_button(t.get('location_search_submit_button', "Koordinaten finden"))
 
-                 elif st.session_state.location_choice_key == "Search":
-                     with st.form("loc_search_form"):
-                         st.text_input(t.get('location_search_label', "Ort/Adresse suchen:"), key="location_search_query", placeholder=t.get('location_search_placeholder', "z.B. Berlin, Deutschland oder PLZ"))
-                         st.number_input(t.get('location_elev_label', "Höhe (m)"), -500, step=10, format="%d", key="manual_height_val")
-                         search_submitted = st.form_submit_button(t.get('location_search_submit_button', "Koordinaten finden"))
+                status_placeholder = st.empty()
+                if st.session_state.location_search_status_msg:
+                    if st.session_state.location_search_success: status_placeholder.success(st.session_state.location_search_status_msg)
+                    else: status_placeholder.error(st.session_state.location_search_status_msg)
 
-                     status_placeholder = st.empty()
-                     if st.session_state.location_search_status_msg:
-                         if st.session_state.location_search_success: status_placeholder.success(st.session_state.location_search_status_msg)
-                         else: status_placeholder.error(st.session_state.location_search_status_msg)
+                if search_submitted and st.session_state.location_search_query:
+                    location_result = None; service_used = None; error_occurred = None
+                    query = st.session_state.location_search_query; user_agent = f"AdvancedDSOFinder/{random.randint(1000,9999)}"
+                    with st.spinner(t.get('spinner_geocoding', "Suche Standort...")):
+                        try: geolocator = Nominatim(user_agent=user_agent); location_result = geolocator.geocode(query, timeout=10); service_used = "Nominatim"; print("Nominatim success.")
+                        except (GeocoderTimedOut, GeocoderServiceError) as e: print(f"Nominatim fail: {e}"); status_placeholder.info(t.get('location_search_info_fallback', "..."))
+                        except Exception as e: print(f"Nominatim error: {e}"); status_placeholder.info(t.get('location_search_info_fallback', "...")); error_occurred = e
+                        if not location_result:
+                            try: fallback_geolocator = ArcGIS(timeout=15); location_result = fallback_geolocator.geocode(query, timeout=15); service_used = "ArcGIS"; print("ArcGIS success.")
+                            except (GeocoderTimedOut, GeocoderServiceError) as e2: print(f"ArcGIS fail: {e2}"); status_placeholder.info(t.get('location_search_info_fallback2', "...")); error_occurred = e2 if not error_occurred else error_occurred
+                            except Exception as e2: print(f"ArcGIS error: {e2}"); status_placeholder.info(t.get('location_search_info_fallback2', "...")); error_occurred = e2 if not error_occurred else error_occurred
+                        if not location_result:
+                             try: fallback_geolocator2 = Photon(user_agent=user_agent, timeout=15); location_result = fallback_geolocator2.geocode(query, timeout=15); service_used = "Photon"; print("Photon success.")
+                             except (GeocoderTimedOut, GeocoderServiceError) as e3: print(f"Photon fail: {e3}"); error_occurred = e3 if not error_occurred else error_occurred
+                             except Exception as e3: print(f"Photon error: {e3}"); error_occurred = e3 if not error_occurred else error_occurred
 
-                     if search_submitted and st.session_state.location_search_query:
-                         location_result = None; service_used = None; error_occurred = None
-                         query = st.session_state.location_search_query; user_agent = f"AdvancedDSOFinder/{random.randint(1000,9999)}"
-                         with st.spinner(t.get('spinner_geocoding', "Suche Standort...")):
-                             try: geolocator = Nominatim(user_agent=user_agent); location_result = geolocator.geocode(query, timeout=10); service_used = "Nominatim"; print("Nominatim success.")
-                             except (GeocoderTimedOut, GeocoderServiceError) as e: print(f"Nominatim fail: {e}"); status_placeholder.info(t.get('location_search_info_fallback', "..."))
-                             except Exception as e: print(f"Nominatim error: {e}"); status_placeholder.info(t.get('location_search_info_fallback', "...")); error_occurred = e
-                             if not location_result:
-                                 try: fallback_geolocator = ArcGIS(timeout=15); location_result = fallback_geolocator.geocode(query, timeout=15); service_used = "ArcGIS"; print("ArcGIS success.")
-                                 except (GeocoderTimedOut, GeocoderServiceError) as e2: print(f"ArcGIS fail: {e2}"); status_placeholder.info(t.get('location_search_info_fallback2', "...")); error_occurred = e2 if not error_occurred else error_occurred
-                                 except Exception as e2: print(f"ArcGIS error: {e2}"); status_placeholder.info(t.get('location_search_info_fallback2', "...")); error_occurred = e2 if not error_occurred else error_occurred
-                             if not location_result:
-                                  try: fallback_geolocator2 = Photon(user_agent=user_agent, timeout=15); location_result = fallback_geolocator2.geocode(query, timeout=15); service_used = "Photon"; print("Photon success.")
-                                  except (GeocoderTimedOut, GeocoderServiceError) as e3: print(f"Photon fail: {e3}"); error_occurred = e3 if not error_occurred else error_occurred
-                                  except Exception as e3: print(f"Photon error: {e3}"); error_occurred = e3 if not error_occurred else error_occurred
+                        if location_result and service_used:
+                            found_lat = location_result.latitude; found_lon = location_result.longitude; found_name = location_result.address
+                            st.session_state.searched_location_name = found_name; st.session_state.location_search_success = True
+                            st.session_state.manual_lat_val = found_lat; st.session_state.manual_lon_val = found_lon
+                            coords_str = t.get('location_search_coords',"Lat:{:.4f}, Lon:{:.4f}").format(found_lat, found_lon)
+                            service_map = {"Nominatim": "N", "ArcGIS": "A", "Photon": "P"}; service_tag = service_map.get(service_used, "?")
+                            st.session_state.location_search_status_msg = f"{t.get(f'location_search_found_{service_used.lower()}',f'Gefunden ({service_tag}): {{}}').format(found_name)}\n({coords_str})"
+                            status_placeholder.success(st.session_state.location_search_status_msg)
+                            lat = found_lat; lon = found_lon; hgt = st.session_state.manual_height_val
+                            loc_valid_for_tz_lookup = True; current_location_is_valid = True; st.session_state.location_is_valid_for_run = True
+                        else:
+                            st.session_state.location_search_success = False; st.session_state.searched_location_name = None
+                            if error_occurred:
+                                if isinstance(error_occurred, GeocoderTimedOut): st.session_state.location_search_status_msg = t.get('location_search_error_timeout',"Zeitüberschreitung bei Geocoding.")
+                                elif isinstance(error_occurred, GeocoderServiceError): st.session_state.location_search_status_msg = t.get('location_search_error_service',"Geocoding Dienstfehler: {}").format(error_occurred)
+                                else: st.session_state.location_search_status_msg = t.get('location_search_error_fallback2_failed',"Alle Geocoding Dienste fehlgeschlagen: {}").format(error_occurred)
+                            else: st.session_state.location_search_status_msg = t.get('location_search_error_not_found',"Standort nicht gefunden.")
+                            status_placeholder.error(st.session_state.location_search_status_msg)
+                            current_location_is_valid = False; st.session_state.location_is_valid_for_run = False
 
-                             if location_result and service_used:
-                                 found_lat = location_result.latitude; found_lon = location_result.longitude; found_name = location_result.address
-                                 st.session_state.searched_location_name = found_name; st.session_state.location_search_success = True
-                                 st.session_state.manual_lat_val = found_lat; st.session_state.manual_lon_val = found_lon
-                                 coords_str = t.get('location_search_coords',"Lat:{:.4f}, Lon:{:.4f}").format(found_lat, found_lon)
-                                 service_map = {"Nominatim": "N", "ArcGIS": "A", "Photon": "P"}; service_tag = service_map.get(service_used, "?")
-                                 st.session_state.location_search_status_msg = f"{t.get(f'location_search_found_{service_used.lower()}',f'Gefunden ({service_tag}): {{}}').format(found_name)}\n({coords_str})"
-                                 status_placeholder.success(st.session_state.location_search_status_msg)
-                                 lat = found_lat; lon = found_lon; hgt = st.session_state.manual_height_val
-                                 loc_valid_for_tz_lookup = True; current_location_is_valid = True; st.session_state.location_is_valid_for_run = True
-                             else:
-                                 st.session_state.location_search_success = False; st.session_state.searched_location_name = None
-                                 if error_occurred:
-                                     if isinstance(error_occurred, GeocoderTimedOut): st.session_state.location_search_status_msg = t.get('location_search_error_timeout',"Zeitüberschreitung bei Geocoding.")
-                                     elif isinstance(error_occurred, GeocoderServiceError): st.session_state.location_search_status_msg = t.get('location_search_error_service',"Geocoding Dienstfehler: {}").format(error_occurred)
-                                     else: st.session_state.location_search_status_msg = t.get('location_search_error_fallback2_failed',"Alle Geocoding Dienste fehlgeschlagen: {}").format(error_occurred)
-                                 else: st.session_state.location_search_status_msg = t.get('location_search_error_not_found',"Standort nicht gefunden.")
-                                 status_placeholder.error(st.session_state.location_search_status_msg)
-                                 current_location_is_valid = False; st.session_state.location_is_valid_for_run = False
+                elif st.session_state.location_search_success:
+                    lat = st.session_state.manual_lat_val; lon = st.session_state.manual_lon_val; hgt = st.session_state.manual_height_val
+                    loc_valid_for_tz_lookup = True; current_location_is_valid = True; st.session_state.location_is_valid_for_run = True
+                    status_placeholder.success(st.session_state.location_search_status_msg)
+                else: current_location_is_valid = False; st.session_state.location_is_valid_for_run = False
 
-                 elif st.session_state.location_search_success:
-                     lat = st.session_state.manual_lat_val; lon = st.session_state.manual_lon_val; hgt = st.session_state.manual_height_val
-                     loc_valid_for_tz_lookup = True; current_location_is_valid = True; st.session_state.location_is_valid_for_run = True
-                     status_placeholder.success(st.session_state.location_search_status_msg)
-                 else: current_location_is_valid = False; st.session_state.location_is_valid_for_run = False
-
-             # --- Zeitzonen-Erkennung ---
-             st.markdown("---")
-             timezone_message = ""
-             if loc_valid_for_tz_lookup and lat is not None and lon is not None:
-                 if tf:
-                     try: found_timezone_val = tf.timezone_at(lng=lon, lat=lat)
-                     except Exception as e: print(f"Fehler bei Zeitzonen-Suche: {e}"); found_timezone_val = None
-                     if found_timezone_val:
-                         try: pytz.timezone(found_timezone_val); st.session_state.selected_timezone = found_timezone_val; timezone_message = f"{t.get('timezone_auto_set_label','Erkannte Zeitzone:')} **{found_timezone_val}**"
-                         except pytz.UnknownTimeZoneError: st.session_state.selected_timezone = 'UTC'; invalid_tz_name = locals().get('found_timezone_val', 'Unbekannt'); timezone_message = t.get('timezone_auto_fail_invalid_label','Zeitzone:') + f" **UTC** ({t.get('timezone_auto_fail_invalid_msg','Ungültiger Name:')} '{invalid_tz_name}')"
-                     else: st.session_state.selected_timezone = 'UTC'; timezone_message = f"{t.get('timezone_auto_fail_label','Zeitzone:')} **UTC** ({t.get('timezone_auto_fail_msg','Erkennung fehlgeschlagen')})"
-                 else: timezone_message = f"{t.get('timezone_finder_unavailable_label','Zeitzone:')} **{st.session_state.selected_timezone}** ({t.get('timezone_finder_unavailable_msg','Finder n.v.')})"
-             else: timezone_message = f"{t.get('timezone_invalid_location_label','Zeitzone:')} **{st.session_state.selected_timezone}** ({t.get('timezone_invalid_location_msg','Standort ungültig')})"
-             st.markdown(timezone_message, unsafe_allow_html=True)
+            # --- Zeitzonen-Erkennung ---
+            st.markdown("---")
+            timezone_message = ""
+            if loc_valid_for_tz_lookup and lat is not None and lon is not None:
+                if tf:
+                    try: found_timezone_val = tf.timezone_at(lng=lon, lat=lat)
+                    except Exception as e: print(f"Fehler bei Zeitzonen-Suche: {e}"); found_timezone_val = None
+                    if found_timezone_val:
+                        try: pytz.timezone(found_timezone_val); st.session_state.selected_timezone = found_timezone_val; timezone_message = f"{t.get('timezone_auto_set_label','Erkannte Zeitzone:')} **{found_timezone_val}**"
+                        except pytz.UnknownTimeZoneError: st.session_state.selected_timezone = 'UTC'; invalid_tz_name = locals().get('found_timezone_val', 'Unbekannt'); timezone_message = t.get('timezone_auto_fail_invalid_label','Zeitzone:') + f" **UTC** ({t.get('timezone_auto_fail_invalid_msg','Ungültiger Name:')} '{invalid_tz_name}')"
+                    else: st.session_state.selected_timezone = 'UTC'; timezone_message = f"{t.get('timezone_auto_fail_label','Zeitzone:')} **UTC** ({t.get('timezone_auto_fail_msg','Erkennung fehlgeschlagen')})"
+                else: timezone_message = f"{t.get('timezone_finder_unavailable_label','Zeitzone:')} **{st.session_state.selected_timezone}** ({t.get('timezone_finder_unavailable_msg','Finder n.v.')})"
+            else: timezone_message = f"{t.get('timezone_invalid_location_label','Zeitzone:')} **{st.session_state.selected_timezone}** ({t.get('timezone_invalid_location_msg','Standort ungültig')})"
+            st.markdown(timezone_message, unsafe_allow_html=True)
 
              # --- Zeit Expander ---
              with st.expander(t.get('time_expander', "⏱️ Zeit"), expanded=False):
