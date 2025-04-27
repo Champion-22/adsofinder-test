@@ -26,7 +26,7 @@ except ImportError as e:
 
 # --- Import Custom Modules ---
 try:
-    from localization import translations
+    from localization import translations # Import the main translations dictionary
     import astro_calculations # Import the whole module
     import data_handling # Import the whole module
     # Import UI functions from the new module
@@ -92,97 +92,44 @@ def initialize_session_state():
     """Initializes all required session state keys if they don't exist."""
     defaults = {
         'language': 'DE', # Default to uppercase 'DE'
-        'plot_object_name': None, # Name of the object currently plotted (from results)
-        'show_plot': False,       # Flag to show the results plot
-        'active_result_plot_data': None, # Data dict for the active results plot
-        'last_results': [],       # Stores the list of dicts from the last search
-        'find_button_pressed': False, # Flag if the find button was clicked
-        # Location state
-        'location_choice_key': 'Search', # 'Search' or 'Manual'
-        'manual_lat_val': INITIAL_LAT,
-        'manual_lon_val': INITIAL_LON,
-        'manual_height_val': INITIAL_HEIGHT,
-        'location_search_query': "",
-        'searched_location_name': None, # Name found via geocoding
-        'location_search_status_msg': "", # User-facing message about search status
-        'location_search_success': False, # Flag if geocoding was successful
-        'selected_timezone': INITIAL_TIMEZONE, # Currently active timezone string
-        'location_is_valid_for_run': False, # Flag if current location settings allow search
-        # Filter state
-        'manual_min_mag_slider': 0.0,
-        'manual_max_mag_slider': 16.0,
-        'object_type_filter_exp': [], # List of selected object types
-        'mag_filter_mode_exp': 'Bortle Scale', # 'Bortle Scale' or 'Manual'
-        'bortle_slider': 5,
-        'min_alt_slider': INITIAL_MIN_ALT,
-        'max_alt_slider': INITIAL_MAX_ALT,
-        'moon_phase_slider': 35, # Moon warning threshold
-        'size_arcmin_range': (1.0, 120.0), # Tuple (min, max) apparent size
-        'selected_peak_direction': ALL_DIRECTIONS_KEY, # Direction filter ('All', 'N', 'NE', ...)
-        # Results state
-        'sort_method': 'Duration & Altitude', # 'Duration & Altitude' or 'Brightness'
-        'num_objects_slider': 20, # Max number of results to show
-        'plot_type_selection': 'Sky Path', # 'Sky Path' or 'Altitude Plot'
-        # Custom Target state
-        'custom_target_ra': "",
-        'custom_target_dec': "",
-        'custom_target_name': "",
-        'custom_target_error': "", # Error message for custom target section
-        'custom_target_plot_data': None, # Data dict for the custom plot
-        'show_custom_plot': False, # Flag to show the custom plot
-        # Other state
-        'expanded_object_name': None, # Name of the result expander currently open
-        'time_choice_exp': 'Now', # 'Now' or 'Specific'
-        'window_start_time': None, # Astropy Time object for observation window start
-        'window_end_time': None,   # Astropy Time object for observation window end
-        'selected_date_widget': date.today(), # Date selected in the 'Specific Night' picker
+        'plot_object_name': None, 'show_plot': False, 'active_result_plot_data': None,
+        'last_results': [], 'find_button_pressed': False,
+        'location_choice_key': 'Search', 'manual_lat_val': INITIAL_LAT, 'manual_lon_val': INITIAL_LON,
+        'manual_height_val': INITIAL_HEIGHT, 'location_search_query': "",
+        'searched_location_name': None, 'location_search_status_msg': "",
+        'location_search_success': False, 'selected_timezone': INITIAL_TIMEZONE,
+        'location_is_valid_for_run': False,
+        'manual_min_mag_slider': 0.0, 'manual_max_mag_slider': 16.0,
+        'object_type_filter_exp': [], 'mag_filter_mode_exp': 'Bortle Scale',
+        'bortle_slider': 5, 'min_alt_slider': INITIAL_MIN_ALT, 'max_alt_slider': INITIAL_MAX_ALT,
+        'moon_phase_slider': 35, 'size_arcmin_range': (1.0, 120.0),
+        'selected_peak_direction': ALL_DIRECTIONS_KEY,
+        'sort_method': 'Duration & Altitude', 'num_objects_slider': 20,
+        'plot_type_selection': 'Sky Path',
+        'custom_target_ra': "", 'custom_target_dec': "", 'custom_target_name': "",
+        'custom_target_error': "", 'custom_target_plot_data': None, 'show_custom_plot': False,
+        'expanded_object_name': None, 'time_choice_exp': 'Now',
+        'window_start_time': None, 'window_end_time': None,
+        'selected_date_widget': date.today(),
     }
-    # Initialize session state keys if they don't exist
     for key, default_value in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = default_value
-    # Ensure language key in session state is uppercase
-    if 'language' in st.session_state:
-        st.session_state.language = st.session_state.language.upper()
+        if key not in st.session_state: st.session_state[key] = default_value
+    if 'language' in st.session_state: st.session_state.language = st.session_state.language.upper()
 
-
-# --- Helper Functions REMAINING in main script ---
-# Most helpers moved to ui_components or astro_calculations
 
 # --- Main App Logic ---
 def main():
     # 1. Initialize state and load language translations
     initialize_session_state()
-    lang = st.session_state.language # Now guaranteed to be uppercase ('DE', 'EN', 'FR', etc.)
+    lang = st.session_state.language
+    # --- Rename variable 't' to 'trans' ---
     if lang not in translations:
         print(f"Warning: Language '{lang}' not found in translations dictionary. Falling back to 'EN'.")
-        lang = 'EN' # Fallback to uppercase 'EN'
-        st.session_state.language = lang # Update state if fallback occurred
-    # Load the actual translation dictionary for the selected language
-    translation_dict = translations.get(lang, translations.get('EN', {}))
-
-    # --- Define the translation helper function 't' ---
-    def t_func(key: str, default: str | None = None, **kwargs) -> str:
-        """
-        Gets a translation string for the given key and formats it.
-        Uses the 'translation_dict' loaded above.
-        """
-        # Use the provided default if key is not found, otherwise use the key itself as fallback
-        text_template = translation_dict.get(key, default if default is not None else key)
-        try:
-            # Attempt to format the string with provided keyword arguments
-            return text_template.format(**kwargs)
-        except KeyError as e:
-            # Warning if a format key is missing in the translation string
-            print(f"Warning: Missing format key {e} for text '{key}' in language {lang}. Template: '{text_template}'")
-            return text_template # Return the unformatted template
-        except Exception as format_err:
-            # Catch other potential formatting errors
-            print(f"Error formatting text '{key}' in language {lang}: {format_err}. Template: '{text_template}'")
-            return text_template # Return the unformatted template
-
-    # --- Pass the translation *function* 't_func' to other modules ---
-    t = t_func # Assign the function to the variable 't' for convenience
+        lang = 'EN'
+        st.session_state.language = lang
+    # Assign the selected language dictionary to 'trans'
+    trans = translations.get(lang, translations.get('EN', {}))
+    # --- End rename ---
 
     # 2. Load Catalog Data (Cached)
     @st.cache_data
@@ -190,17 +137,16 @@ def main():
         """Cached function to load ONGC data."""
         print(f"Cache miss: Loading ONGC data from {path}")
         try: return data_handling.load_ongc_data(path)
-        except ModuleNotFoundError: st.error(f"{t('error_module_missing', 'Error: Module missing:')} data_handling.py"); return None
-        except FileNotFoundError: st.error(f"{t('error_catalog_not_found', 'Error: Catalog file not found at path:')} {path}"); return None
-        except Exception as load_err: st.error(f"{t('error_catalog_load_failed', 'Failed to load catalog')}: {load_err}"); return None
+        except ModuleNotFoundError: st.error(f"{trans.get('error_module_missing', 'Error: Module missing:')} data_handling.py"); return None # Use trans.get
+        except FileNotFoundError: st.error(f"{trans.get('error_catalog_not_found', 'Error: Catalog file not found at path:')} {path}"); return None # Use trans.get
+        except Exception as load_err: st.error(f"{trans.get('error_catalog_load_failed', 'Failed to load catalog')}: {load_err}"); return None # Use trans.get
 
     df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH)
 
     # 3. Display Title and Glossary
-    st.title(t('app_title', default="Advanced DSO Finder")) # Use t function
-    with st.expander(t('object_type_glossary_title', default="Object Type Glossary")):
-        # Assuming object_type_glossary is nested within the main translation dict
-        glossary_items = translation_dict.get('object_type_glossary', {}) # Get from dict directly
+    st.title(trans.get('app_title', "Advanced DSO Finder")) # Use trans.get
+    with st.expander(trans.get('object_type_glossary_title', "Object Type Glossary")): # Use trans.get
+        glossary_items = trans.get('object_type_glossary', {}) # Use trans.get
         if glossary_items:
             col1, col2 = st.columns(2); col_index = 0
             sorted_items = sorted(glossary_items.items())
@@ -208,116 +154,100 @@ def main():
                 target_col = col1 if col_index % 2 == 0 else col2
                 target_col.markdown(f"**{abbr}:** {full_name}")
                 col_index += 1
-        else: st.info(t('glossary_unavailable', default="Glossary not available..."))
+        else: st.info(trans.get('glossary_unavailable', "Glossary not available for the selected language.")) # Use trans.get
 
     st.markdown("---")
 
-    # 4. Create Sidebar UI (Pass the translation function 't')
-    ui_components.create_sidebar(t, df_catalog_data, tf)
+    # 4. Create Sidebar UI (Pass 'trans' instead of 't')
+    ui_components.create_sidebar(trans, df_catalog_data, tf)
 
     # 5. Prepare Observer Object
     observer_run = None
     if st.session_state.location_is_valid_for_run:
         lat = st.session_state.manual_lat_val; lon = st.session_state.manual_lon_val; hgt = st.session_state.manual_height_val; tz_str = st.session_state.selected_timezone
         try: observer_run = Observer(latitude=lat*u.deg, longitude=lon*u.deg, elevation=hgt*u.m, timezone=tz_str)
-        except Exception as obs_err: st.error(t('error_observer_creation', default="Error creating observer: {}").format(obs_err)); st.session_state.location_is_valid_for_run = False; observer_run = None
+        except Exception as obs_err: st.error(trans.get('error_observer_creation', "Error creating observer location: {}").format(obs_err)); st.session_state.location_is_valid_for_run = False; observer_run = None # Use trans.get
 
     # 6. Determine Reference Time
-    ref_time = None; is_now_mode_main = (st.session_state.time_choice_exp == "Now")
+    ref_time = None
+    is_now_mode_main = (st.session_state.time_choice_exp == "Now")
     if is_now_mode_main: ref_time = Time.now()
     else:
         selected_date_main = st.session_state.selected_date_widget
         try: ref_time = Time(datetime.combine(selected_date_main, time(12, 0)), scale='utc'); print(f"Calculating 'Specific Night' window based on UTC noon: {ref_time.iso}")
-        except Exception as time_err: st.error(t('error_ref_time_creation', default="Error setting time: {}").format(time_err)); ref_time = None
+        except Exception as time_err: st.error(trans.get('error_ref_time_creation', "Error setting reference time: {}").format(time_err)); ref_time = None # Use trans.get
 
-    # 7. Display Search Parameters Summary (Pass 't' function)
-    min_mag_filt_calc, max_mag_filt_calc = ui_components.display_search_parameters(t, observer_run, ref_time if ref_time else Time.now())
+    # 7. Display Search Parameters Summary (Pass 'trans' instead of 't')
+    min_mag_filt_calc, max_mag_filt_calc = ui_components.display_search_parameters(
+        trans, observer_run, ref_time if ref_time else Time.now()
+    )
+
     st.markdown("---")
 
     # 8. "Find Objects" Button and Core Logic Trigger
     results_placeholder = st.container()
     find_button_disabled = (df_catalog_data is None or not st.session_state.location_is_valid_for_run or ref_time is None)
-    find_button_clicked = st.button(t('find_button_label', default="🔭 Find Observable Objects"), key="find_button", disabled=find_button_disabled)
-    if not st.session_state.location_is_valid_for_run and df_catalog_data is not None: st.warning(t('info_initial_prompt', default="Set location..."))
-    elif ref_time is None and not is_now_mode_main: st.warning(t('info_set_ref_time', default="Set date..."))
-    elif df_catalog_data is None: st.warning(t('info_catalog_missing', default="Catalog missing..."))
+    find_button_clicked = st.button(
+        trans.get('find_button_label', "🔭 Find Observable Objects"), # Use trans.get
+        key="find_button", disabled=find_button_disabled
+    )
 
-    # --- Main Calculation Logic ---
+    if not st.session_state.location_is_valid_for_run and df_catalog_data is not None: st.warning(trans.get('info_initial_prompt', "...")) # Use trans.get
+    elif ref_time is None and not is_now_mode_main: st.warning(trans.get('info_set_ref_time', "...")) # Use trans.get
+    elif df_catalog_data is None: st.warning(trans.get('info_catalog_missing', "...")) # Use trans.get
+
     if find_button_clicked:
         st.session_state.find_button_pressed = True; st.session_state.show_plot = False; st.session_state.show_custom_plot = False; st.session_state.active_result_plot_data = None; st.session_state.custom_target_plot_data = None; st.session_state.last_results = []; st.session_state.window_start_time = None; st.session_state.window_end_time = None; st.session_state.expanded_object_name = None
-        if observer_run and df_catalog_data is not None and ref_time is not None:
-            with st.spinner(t('spinner_searching', default="Searching...")):
-                try:
-                    # a. Calculate Observable Window (Pass 't' function)
-                    start_time_calc, end_time_calc, window_status_msg = astro_calculations.get_observable_window(observer_run, ref_time, is_now_mode_main, t)
-                    results_placeholder.info(window_status_msg)
-                    st.session_state.window_start_time = start_time_calc; st.session_state.window_end_time = end_time_calc
 
-                    # b. Proceed only if a valid window was found
+        if observer_run and df_catalog_data is not None and ref_time is not None:
+            with st.spinner(trans.get('spinner_searching',"Searching for observable objects...")): # Use trans.get
+                try:
+                    start_time_calc, end_time_calc, window_status_msg = astro_calculations.get_observable_window(observer_run, ref_time, is_now_mode_main, trans) # Pass trans
+                    results_placeholder.info(window_status_msg); st.session_state.window_start_time = start_time_calc; st.session_state.window_end_time = end_time_calc
                     if start_time_calc and end_time_calc and start_time_calc < end_time_calc:
                         time_resolution_calc = 5 * u.minute; observation_times_calc = Time(np.arange(start_time_calc.jd, end_time_calc.jd, time_resolution_calc.to(u.day).value), format='jd', scale='utc')
-                        if len(observation_times_calc) < 2: results_placeholder.warning(t('warning_window_too_short_calc', default="Window short..."))
-
-                        # c. Filter Catalog Data
-                        filtered_df = df_catalog_data.copy()
-                        filtered_df = filtered_df[(filtered_df['Mag'] >= min_mag_filt_calc) & (filtered_df['Mag'] <= max_mag_filt_calc)]
+                        if len(observation_times_calc) < 2: results_placeholder.warning(trans.get('warning_window_too_short_calc', "...")) # Use trans.get
+                        filtered_df = df_catalog_data.copy(); filtered_df = filtered_df[(filtered_df['Mag'] >= min_mag_filt_calc) & (filtered_df['Mag'] <= max_mag_filt_calc)]
                         selected_types_calc = st.session_state.object_type_filter_exp
                         if selected_types_calc: filtered_df = filtered_df[filtered_df['Type'].isin(selected_types_calc)]
                         size_data_ok_calc = 'MajAx' in filtered_df.columns and filtered_df['MajAx'].notna().any()
-                        if size_data_ok_calc:
-                            size_min_calc, size_max_calc = st.session_state.size_arcmin_range
-                            filtered_df = filtered_df.dropna(subset=['MajAx'])
-                            filtered_df = filtered_df[(filtered_df['MajAx'] >= size_min_calc) & (filtered_df['MajAx'] <= size_max_calc)]
-
-                        # d. Check if any objects remain
-                        if filtered_df.empty: results_placeholder.warning(t('warning_no_objects_after_filters', default="No objects match filters...")); st.session_state.last_results = []
+                        if size_data_ok_calc: size_min_calc, size_max_calc = st.session_state.size_arcmin_range; filtered_df = filtered_df.dropna(subset=['MajAx']); filtered_df = filtered_df[(filtered_df['MajAx'] >= size_min_calc) & (filtered_df['MajAx'] <= size_max_calc)]
+                        if filtered_df.empty: results_placeholder.warning(trans.get('warning_no_objects_after_filters',"...")); st.session_state.last_results = [] # Use trans.get
                         else:
-                            # e. Find Observable Objects (Pass 't' function)
                             min_alt_search_calc = st.session_state.min_alt_slider * u.deg
-                            found_objects = astro_calculations.find_observable_objects(observer_run.location, observation_times_calc, min_alt_search_calc, filtered_df, t)
-
-                            # f. Apply Post-Calculation Filters
+                            found_objects = astro_calculations.find_observable_objects(observer_run.location, observation_times_calc, min_alt_search_calc, filtered_df, trans) # Pass trans
                             final_results = []; selected_direction_calc = st.session_state.selected_peak_direction; max_alt_filter_calc = st.session_state.max_alt_slider
                             for obj_result in found_objects:
                                 if obj_result.get('Max Altitude (°)', -999) > max_alt_filter_calc: continue
                                 if selected_direction_calc != ALL_DIRECTIONS_KEY and obj_result.get('Direction at Max') != selected_direction_calc: continue
                                 final_results.append(obj_result)
-
-                            # g. Sort Results
                             sort_key = st.session_state.sort_method
                             if sort_key == 'Brightness': final_results.sort(key=lambda x: x.get('Magnitude', float('inf')) if x.get('Magnitude') is not None else float('inf'))
                             else: final_results.sort(key=lambda x: (x.get('Max Cont. Duration (h)', 0), x.get('Max Altitude (°)', 0)), reverse=True)
-
-                            # h. Limit number of results and store in session state
                             num_to_show = st.session_state.num_objects_slider; st.session_state.last_results = final_results[:num_to_show]
-
-                            # i. Display final status messages
-                            if not final_results: results_placeholder.warning(t('warning_no_objects_found_final', default="No objects found..."))
-                            else:
-                                results_placeholder.success(t('success_objects_found', default="{} objects found...").format(len(final_results)))
-                                sort_info_key = 'info_showing_list_duration' if sort_key != 'Brightness' else 'info_showing_list_magnitude'
-                                results_placeholder.info(t(sort_info_key, default="Showing top {} results...").format(len(st.session_state.last_results)))
-                    else: results_placeholder.error(t('error_cannot_search_no_window', default="Cannot search...")); st.session_state.last_results = []
-                except Exception as e: error_msg = t('error_search_unexpected', default="Search error:"); results_placeholder.error(f"{error_msg}\n```\n{traceback.format_exc()}\n```"); print(f"Search Error: {e}"); traceback.print_exc(); st.session_state.last_results = []
+                            if not final_results: results_placeholder.warning(trans.get('warning_no_objects_found_final',"...")) # Use trans.get
+                            else: results_placeholder.success(trans.get('success_objects_found',"{} objects found matching criteria.").format(len(final_results))); sort_info_key = 'info_showing_list_duration' if sort_key != 'Brightness' else 'info_showing_list_magnitude'; results_placeholder.info(trans.get(sort_info_key, "...").format(len(st.session_state.last_results), sort_key)) # Use trans.get
+                    else: results_placeholder.error(trans.get('error_cannot_search_no_window',"...")); st.session_state.last_results = [] # Use trans.get
+                except Exception as e: error_msg = trans.get('error_search_unexpected',"...")); results_placeholder.error(f"{error_msg}\n```\n{traceback.format_exc()}\n```"); print(f"Search Error: {e}"); traceback.print_exc(); st.session_state.last_results = [] # Use trans.get
         else:
-            if df_catalog_data is None: results_placeholder.error(t('error_prereq_catalog', default="Error: No catalog."))
-            if not observer_run: results_placeholder.error(t('error_prereq_location', default="Error: Invalid location."))
-            if ref_time is None: results_placeholder.error(t('error_prereq_time', default="Error: Invalid time."))
+            if df_catalog_data is None: results_placeholder.error(trans.get('error_prereq_catalog',"...")) # Use trans.get
+            if not observer_run: results_placeholder.error(trans.get('error_prereq_location',"...")) # Use trans.get
+            if ref_time is None: results_placeholder.error(trans.get('error_prereq_time',"...")) # Use trans.get
             st.session_state.last_results = []
 
-    # 9. Display Results (Pass 't' function)
+    # 9. Display Results (Pass 'trans' instead of 't')
     if st.session_state.last_results:
-        ui_components.display_results(t, results_placeholder, observer_run)
-    elif st.session_state.find_button_pressed: pass # Message already shown
+        ui_components.display_results(trans, results_placeholder, observer_run)
+    elif st.session_state.find_button_pressed: pass
 
-    # 10. Display Custom Target Section (Pass 't' function)
-    ui_components.create_custom_target_section(t, results_placeholder, observer_run)
+    # 10. Display Custom Target Section (Pass 'trans' instead of 't')
+    ui_components.create_custom_target_section(trans, results_placeholder, observer_run)
 
-    # 11. Display Manual Cosmology Calculator (Pass 't' function)
-    ui_components.create_manual_cosmology_calculator(t)
+    # 11. Display Manual Cosmology Calculator (Pass 'trans' instead of 't')
+    ui_components.create_manual_cosmology_calculator(trans)
 
-    # 12. Display Donation Link (Pass 't' function)
-    ui_components.display_donation_link(t)
+    # 12. Display Donation Link (Pass 'trans' instead of 't')
+    ui_components.display_donation_link(trans)
 
 # --- Run the App ---
 if __name__ == "__main__":
