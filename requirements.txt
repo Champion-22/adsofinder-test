@@ -56,6 +56,7 @@ PyYAML==6.0.2
 referencing==0.36.2
 requests==2.32.3
 rpds-py==0.24.0
+scipy==1.15.2
 sgp4==2.24
 six==1.17.0
 skyfield==1.53
