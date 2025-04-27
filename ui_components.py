@@ -29,12 +29,10 @@ except ImportError as e:
 
 # --- Import Custom Modules ---
 try:
-    # Import specific functions or the whole module as needed
+    # Import only necessary functions/constants from astro_calculations
     from astro_calculations import (
         CARDINAL_DIRECTIONS, calculate_lcdm_distances,
-        convert_mpc_to_gly, format_large_number, get_lookback_comparison,
-        get_comoving_comparison, convert_mpc_to_km, convert_km_to_ly,
-        convert_km_to_au, convert_km_to_ls, # Assuming these might be needed for manual calc display
+        convert_mpc_to_gly, convert_mpc_to_km, convert_km_to_ly, # Keep unit conversions if used here
         H0_DEFAULT, OMEGA_M_DEFAULT, OMEGA_LAMBDA_DEFAULT # Import constants
     )
     # Note: translations 't' will be passed as an argument
@@ -49,38 +47,64 @@ except ImportError as e:
 # --- Constants ---
 ALL_DIRECTIONS_KEY = 'All'
 
-# --- UI Helper Functions (Plotting, Formatting, SVG) ---
-# create_moon_phase_svg, get_local_time_str, create_plot remain unchanged...
+# --- UI Helper Functions (Plotting, Formatting, SVG, Comparisons) ---
+
+# --- Moved UI Helpers from Redshift_Calculator ---
+def format_large_number(number):
+    """Formats large numbers with spaces as thousands separators."""
+    if number == 0: return "0"
+    if not np.isfinite(number): return str(number) # Handle NaN/Inf
+    try:
+        # Format with comma, then replace comma with space
+        formatted = f"{number:,.0f}".replace(",", " ")
+        return formatted
+    except (ValueError, TypeError):
+        return str(number) # Fallback for unexpected types
+
+def get_lookback_comparison(gyr):
+    """Gibt einen Vergleich für die Rückblickzeit zurück (als Übersetzungsschlüssel)."""
+    if gyr < 0.001: return "example_lookback_recent"
+    if gyr < 0.05: return "example_lookback_humans"
+    if gyr < 0.3: return "example_lookback_dinos"
+    if gyr < 1.0: return "example_lookback_multicellular"
+    if gyr < 5.0: return "example_lookback_earth"
+    return "example_lookback_early_univ"
+
+def get_comoving_comparison(mpc):
+    """Gibt einen Vergleich für die mitbewegte Distanz zurück (als Übersetzungsschlüssel)."""
+    if mpc < 5: return "example_comoving_local"
+    if mpc < 50: return "example_comoving_virgo"
+    if mpc < 200: return "example_comoving_coma"
+    if mpc < 1000: return "example_comoving_lss"
+    if mpc < 8000: return "example_comoving_quasars"
+    return "example_comoving_cmb"
+
+# Optional: Include other unit conversions if needed specifically for display
+# KM_PER_AU = 1.495978707e+8
+# KM_PER_LS = C_KM_PER_S # C_KM_PER_S needs to be defined or imported if used here
+# def convert_km_to_au(d_km: float) -> float: ...
+# def convert_km_to_ls(d_km: float) -> float: ...
+# --- End of Moved UI Helpers ---
+
+
 def create_moon_phase_svg(illumination: float, size: int = 100) -> str:
     """Erstellt eine SVG-Darstellung der Mondphase."""
     if not 0 <= illumination <= 1: print(f"Warn: Invalid moon illum ({illumination}). Clamping."); illumination = max(0.0, min(1.0, illumination))
     radius = size / 2; cx = cy = radius
-    # Farben aus Streamlit-Theme verwenden
     light_color = "var(--text-color, #e0e0e0)"; dark_color = "var(--secondary-background-color, #333333)"
     svg = f'<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">'
-    # Dunkler Hintergrundkreis
     svg += f'<circle cx="{cx}" cy="{cy}" r="{radius}" fill="{dark_color}"/>'
-
-    if illumination < 0.01: # Neumond
-        pass # Nur dunkler Kreis
-    elif illumination > 0.99: # Vollmond
-        svg += f'<circle cx="{cx}" cy="{cy}" r="{radius}" fill="{light_color}"/>' # Heller Kreis
+    if illumination < 0.01: pass
+    elif illumination > 0.99: svg += f'<circle cx="{cx}" cy="{cy}" r="{radius}" fill="{light_color}"/>'
     else:
-        # Berechne x-Position des Terminators
-        x = radius * (illumination * 2 - 1)
-        rx = abs(x) # Radius der Ellipse für den Terminator
-
-        if illumination <= 0.5: # Zunehmende Sichel / Erstes Viertel
-            # Pfad: Oben Mitte -> Bogen unten Mitte (Ellipse) -> Bogen oben Mitte (Kreis)
-            large_arc_ellipse = 0; sweep_ellipse = 1 # Ellipse von oben nach unten rechts
-            large_arc_circle = 0; sweep_circle = 1  # Kreisbogen für rechte Kante
+        x = radius * (illumination * 2 - 1); rx = abs(x)
+        if illumination <= 0.5:
+            large_arc_ellipse = 0; sweep_ellipse = 1; large_arc_circle = 0; sweep_circle = 1
             d=f"M {cx},{cy-radius} A {rx},{radius} 0 {large_arc_ellipse},{sweep_ellipse} {cx},{cy+radius} A {radius},{radius} 0 {large_arc_circle},{sweep_circle} {cx},{cy-radius} Z"
-        else: # Zunehmender / Abnehmender Buckelmond
-             # Pfad: Oben Mitte -> Bogen unten Mitte (Kreis) -> Bogen oben Mitte (Ellipse)
-            large_arc_circle = 1; sweep_circle = 1  # Kreisbogen für linke Kante
-            large_arc_ellipse = 0; sweep_ellipse = 1 # Ellipse von unten nach oben rechts
+        else:
+            large_arc_circle = 1; sweep_circle = 1; large_arc_ellipse = 0; sweep_ellipse = 1
             d=f"M {cx},{cy-radius} A {radius},{radius} 0 {large_arc_circle},{sweep_circle} {cx},{cy+radius} A {rx},{radius} 0 {large_arc_ellipse},{sweep_ellipse} {cx},{cy-radius} Z"
-        svg += f'<path d="{d}" fill="{light_color}"/>' # Beleuchteten Teil zeichnen
+        svg += f'<path d="{d}" fill="{light_color}"/>'
     svg += '</svg>'
     return svg
 
@@ -90,146 +114,52 @@ def get_local_time_str(utc_time: Time | None, timezone_str: str) -> tuple[str, s
     if not isinstance(utc_time, Time): print(f"Err: utc_time type {type(utc_time)}"); return "N/A", "N/A"
     if not isinstance(timezone_str, str) or not timezone_str: print(f"Err: tz type '{timezone_str}'"); return "N/A", "N/A"
     try:
-        local_tz = pytz.timezone(timezone_str)
-        utc_dt = utc_time.to_datetime(timezone.utc)
-        local_dt = utc_dt.astimezone(local_tz)
-        local_time_str = local_dt.strftime('%Y-%m-%d %H:%M:%S')
-        tz_display_name = local_dt.tzname()
-        if not tz_display_name: tz_display_name = local_tz.zone # Fallback, falls tzname() None ist
+        local_tz = pytz.timezone(timezone_str); utc_dt = utc_time.to_datetime(timezone.utc); local_dt = utc_dt.astimezone(local_tz)
+        local_time_str = local_dt.strftime('%Y-%m-%d %H:%M:%S'); tz_display_name = local_dt.tzname()
+        if not tz_display_name: tz_display_name = local_tz.zone # Fallback
         return local_time_str, tz_display_name
-    except pytz.exceptions.UnknownTimeZoneError:
-        print(f"Err: Unknown TZ '{timezone_str}'.")
-        return utc_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'), "UTC (TZ Err)"
-    except Exception as e:
-        print(f"Err converting time: {e}")
-        traceback.print_exc()
-        return utc_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'), "UTC (Conv Err)"
+    except pytz.exceptions.UnknownTimeZoneError: print(f"Err: Unknown TZ '{timezone_str}'."); return utc_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'), "UTC (TZ Err)"
+    except Exception as e: print(f"Err converting time: {e}"); traceback.print_exc(); return utc_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'), "UTC (Conv Err)"
 
 def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: float, plot_type: str, t: dict) -> plt.Figure | None:
     """Erstellt entweder ein Höhen-Zeit-Diagramm oder ein Himmelspfad-Diagramm (Alt/Az)."""
     fig = None
     try:
         # --- Datenvalidierung ---
-        if not isinstance(plot_data, dict):
-            st.error(t.get('plot_error_invalid_data_type', "Plot Fehler: Ungültiger plot_data Typ."))
-            return None
-        times = plot_data.get('times')
-        altitudes = plot_data.get('altitudes')
-        azimuths = plot_data.get('azimuths') # Kann None sein für Höhen-Zeit
-        obj_name = plot_data.get('Name', t.get('plot_object_default_name', 'Objekt'))
-
-        if not isinstance(times, Time) or not isinstance(altitudes, np.ndarray):
-            st.error(t.get('plot_error_missing_time_alt', "Plot Fehler: Fehlende oder ungültige Zeit/Höhen-Daten."))
-            return None
-        if plot_type == 'Sky Path' and not isinstance(azimuths, np.ndarray):
-            st.error(t.get('plot_error_missing_azimuth', "Plot Fehler: Fehlende Azimut-Daten für Himmelspfad."))
-            return None
-        if len(times) != len(altitudes) or (azimuths is not None and len(times) != len(azimuths)):
-            st.error(t.get('plot_error_mismatched_lengths', "Plot Fehler: Zeit-, Höhen- und Azimut-Arrays haben unterschiedliche Längen."))
-            return None
-        if len(times) < 1:
-            st.error(t.get('plot_error_no_data_points', "Plot Fehler: Nicht genügend Datenpunkte zum Plotten."))
-            return None
-
-        plot_times = times.plot_date # Konvertiert Astropy Time für matplotlib
+        if not isinstance(plot_data, dict): st.error(t.get('plot_error_invalid_data_type', "...")); return None
+        times = plot_data.get('times'); altitudes = plot_data.get('altitudes'); azimuths = plot_data.get('azimuths'); obj_name = plot_data.get('Name', t.get('plot_object_default_name', 'Objekt'))
+        if not isinstance(times, Time) or not isinstance(altitudes, np.ndarray): st.error(t.get('plot_error_missing_time_alt', "...")); return None
+        if plot_type == 'Sky Path' and not isinstance(azimuths, np.ndarray): st.error(t.get('plot_error_missing_azimuth', "...")); return None
+        if len(times) != len(altitudes) or (azimuths is not None and len(times) != len(azimuths)): st.error(t.get('plot_error_mismatched_lengths', "...")); return None
+        if len(times) < 1: st.error(t.get('plot_error_no_data_points', "...")); return None
+        plot_times = times.plot_date
 
         # --- Theming ---
-        try:
-            theme_opts = st.get_option("theme.base")
-            is_dark_theme = (theme_opts == "dark")
-        except Exception:
-            print("Warnung: Streamlit Theme nicht erkannt. Nehme helles Theme an.")
-            is_dark_theme = False
-
-        if is_dark_theme:
-            plt.style.use('dark_background')
-            fc = '#0E1117'; pc = 'deepskyblue'; gc = '#444'; lc = '#CCC'; tc = '#FFF'; lfc = '#262730'; min_c = 'tomato'; max_c = 'orange'; sc = '#555'
-        else:
-            plt.style.use('default')
-            fc = '#FFFFFF'; pc = 'dodgerblue'; gc = 'darkgray'; lc = '#333'; tc = '#000'; lfc = '#F0F0F0'; min_c = 'red'; max_c = 'darkorange'; sc = '#888'
+        try: theme_opts = st.get_option("theme.base"); is_dark_theme = (theme_opts == "dark")
+        except Exception: print("Warnung: Theme nicht erkannt."); is_dark_theme = False
+        if is_dark_theme: plt.style.use('dark_background'); fc = '#0E1117'; pc = 'deepskyblue'; gc = '#444'; lc = '#CCC'; tc = '#FFF'; lfc = '#262730'; min_c = 'tomato'; max_c = 'orange'; sc = '#555'
+        else: plt.style.use('default'); fc = '#FFFFFF'; pc = 'dodgerblue'; gc = 'darkgray'; lc = '#333'; tc = '#000'; lfc = '#F0F0F0'; min_c = 'red'; max_c = 'darkorange'; sc = '#888'
 
         # --- Plot Erstellung ---
-        fig, ax = plt.subplots(figsize=(10, 6), facecolor=fc, constrained_layout=True)
-        ax.set_facecolor(fc)
-
+        fig, ax = plt.subplots(figsize=(10, 6), facecolor=fc, constrained_layout=True); ax.set_facecolor(fc)
         if plot_type == 'Altitude Plot':
             ax.plot(plot_times, altitudes, color=pc, alpha=0.9, lw=1.5, label=obj_name)
-            ax.axhline(min_altitude_deg, color=min_c, linestyle='--', linewidth=1.2, label=t.get('graph_min_altitude_label', "Min Höhe ({:.0f}°)").format(min_altitude_deg), alpha=0.8)
-            if max_altitude_deg < 90:
-                 ax.axhline(max_altitude_deg, color=max_c, linestyle=':', linewidth=1.2, label=t.get('graph_max_altitude_label', "Max Höhe ({:.0f}°)").format(max_altitude_deg), alpha=0.8)
-
-            ax.set_xlabel(t.get('graph_xlabel_time', "Zeit (UTC)"), color=lc, fontsize=11)
-            ax.set_ylabel(t.get('graph_ylabel_alt', "Höhe (°)"), color=lc, fontsize=11)
-            ax.set_title(t.get('graph_title_alt_time', "Höhe vs. Zeit: {}").format(obj_name), color=tc, fontsize=13, weight='bold')
-            ax.set_ylim(0, 90)
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            fig.autofmt_xdate(rotation=30)
-            ax.grid(True, linestyle='-', alpha=0.5, color=gc)
-            ax.tick_params(axis='x', colors=lc); ax.tick_params(axis='y', colors=lc)
-            for spine in ax.spines.values(): spine.set_color(sc); spine.set_linewidth(0.5)
-
+            ax.axhline(min_altitude_deg, color=min_c, linestyle='--', linewidth=1.2, label=t.get('graph_min_altitude_label', "...").format(min_altitude_deg), alpha=0.8)
+            if max_altitude_deg < 90: ax.axhline(max_altitude_deg, color=max_c, linestyle=':', linewidth=1.2, label=t.get('graph_max_altitude_label', "...").format(max_altitude_deg), alpha=0.8)
+            ax.set_xlabel(t.get('graph_xlabel_time', "..."), color=lc, fontsize=11); ax.set_ylabel(t.get('graph_ylabel_alt', "..."), color=lc, fontsize=11); ax.set_title(t.get('graph_title_alt_time', "...").format(obj_name), color=tc, fontsize=13, weight='bold'); ax.set_ylim(0, 90); ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M')); fig.autofmt_xdate(rotation=30); ax.grid(True, linestyle='-', alpha=0.5, color=gc); ax.tick_params(axis='x', colors=lc); ax.tick_params(axis='y', colors=lc); [spine.set_color(sc) for spine in ax.spines.values()]; [spine.set_linewidth(0.5) for spine in ax.spines.values()]
         elif plot_type == 'Sky Path':
-            if azimuths is None:
-                 st.error(t.get('plot_error_missing_azimuth', "Plot Fehler: Fehlende Azimut-Daten für Himmelspfad."))
-                 plt.close(fig); return None
-
-            ax.remove() # Standard-Achsen entfernen
-            ax = fig.add_subplot(111, projection='polar', facecolor=fc)
-
-            az_rad = np.deg2rad(azimuths)
-            radius = 90 - altitudes # Zenitdistanz
-
-            # Punkte nach Zeit einfärben
-            time_delta = times.jd.max() - times.jd.min()
-            time_normalized = (times.jd - times.jd.min()) / (time_delta + 1e-9) if time_delta > 0 else np.zeros_like(times.jd)
-            colors = plt.cm.viridis(time_normalized)
-
-            scatter = ax.scatter(az_rad, radius, c=colors, s=15, alpha=0.8, edgecolors='none', label=obj_name)
-            ax.plot(az_rad, radius, color=pc, alpha=0.4, lw=0.8) # Punkte verbinden
-
-            # Kreise für Min/Max Höhe
-            ax.plot(np.linspace(0, 2 * np.pi, 100), np.full(100, 90 - min_altitude_deg), color=min_c, linestyle='--', linewidth=1.2, label=t.get('graph_min_altitude_label',"Min Höhe ({:.0f}°)").format(min_altitude_deg), alpha=0.8)
-            if max_altitude_deg < 90:
-                ax.plot(np.linspace(0, 2 * np.pi, 100), np.full(100, 90 - max_altitude_deg), color=max_c, linestyle=':', linewidth=1.2, label=t.get('graph_max_altitude_label',"Max Höhe ({:.0f}°)").format(max_altitude_deg), alpha=0.8)
-
-            # Polardiagramm formatieren
-            ax.set_theta_zero_location('N'); ax.set_theta_direction(-1) # Nord oben, Azimut im Uhrzeigersinn
-            ax.set_yticks(np.arange(0, 91, 15)); ax.set_yticklabels([f"{90-a}°" for a in np.arange(0, 91, 15)], color=lc) # Höhenlinien
-            ax.set_ylim(0, 90) # Radius 0 = Zenit, 90 = Horizont
-            ax.set_title(t.get('graph_title_sky_path',"Himmelspfad: {}").format(obj_name), va='bottom', color=tc, fontsize=13, weight='bold', y=1.1)
-            ax.grid(True, linestyle=':', alpha=0.5, color=gc)
-            ax.spines['polar'].set_color(sc); ax.spines['polar'].set_linewidth(0.5)
-
-            # Farbleiste für Zeit
-            try:
-                cbar = fig.colorbar(scatter, ax=ax, label=t.get('graph_colorbar_label', "Zeit (UTC)"), pad=0.1, shrink=0.7)
-                cbar.set_ticks([0, 1])
-                if len(times) > 0:
-                    start_label = times[0].to_datetime(timezone.utc).strftime('%H:%M')
-                    end_label = times[-1].to_datetime(timezone.utc).strftime('%H:%M')
-                    cbar.ax.set_yticklabels([start_label, end_label])
-                else: cbar.ax.set_yticklabels(['Start', 'Ende'])
-                cbar.set_label(t.get('graph_colorbar_label', "Zeit (UTC)"), color=lc, fontsize=10)
-                cbar.ax.yaxis.set_tick_params(color=lc, labelsize=9)
-                plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color=lc)
-                cbar.outline.set_edgecolor(sc); cbar.outline.set_linewidth(0.5)
-            except Exception as e: print(f"Warnung: Farbleiste konnte nicht erstellt werden: {e}")
-
-        else:
-            st.error(t.get('plot_error_unknown_type', "Plot Fehler: Unbekannter Plot-Typ: '{}'").format(plot_type))
-            plt.close(fig); return None
-
-        # --- Legende ---
-        leg = ax.legend(loc='lower right', fontsize='small', facecolor=lfc, framealpha=0.8, edgecolor=sc)
-        for text in leg.get_texts(): text.set_color(lc)
-
+            if azimuths is None: st.error(t.get('plot_error_missing_azimuth', "...")); plt.close(fig); return None
+            ax.remove(); ax = fig.add_subplot(111, projection='polar', facecolor=fc); az_rad = np.deg2rad(azimuths); radius = 90 - altitudes; time_delta = times.jd.max() - times.jd.min(); time_normalized = (times.jd - times.jd.min()) / (time_delta + 1e-9) if time_delta > 0 else np.zeros_like(times.jd); colors = plt.cm.viridis(time_normalized)
+            scatter = ax.scatter(az_rad, radius, c=colors, s=15, alpha=0.8, edgecolors='none', label=obj_name); ax.plot(az_rad, radius, color=pc, alpha=0.4, lw=0.8)
+            ax.plot(np.linspace(0, 2 * np.pi, 100), np.full(100, 90 - min_altitude_deg), color=min_c, linestyle='--', linewidth=1.2, label=t.get('graph_min_altitude_label',"...").format(min_altitude_deg), alpha=0.8)
+            if max_altitude_deg < 90: ax.plot(np.linspace(0, 2 * np.pi, 100), np.full(100, 90 - max_altitude_deg), color=max_c, linestyle=':', linewidth=1.2, label=t.get('graph_max_altitude_label',"...").format(max_altitude_deg), alpha=0.8)
+            ax.set_theta_zero_location('N'); ax.set_theta_direction(-1); ax.set_yticks(np.arange(0, 91, 15)); ax.set_yticklabels([f"{90-a}°" for a in np.arange(0, 91, 15)], color=lc); ax.set_ylim(0, 90); ax.set_title(t.get('graph_title_sky_path',"...").format(obj_name), va='bottom', color=tc, fontsize=13, weight='bold', y=1.1); ax.grid(True, linestyle=':', alpha=0.5, color=gc); ax.spines['polar'].set_color(sc); ax.spines['polar'].set_linewidth(0.5)
+            try: cbar = fig.colorbar(scatter, ax=ax, label=t.get('graph_colorbar_label', "..."), pad=0.1, shrink=0.7); cbar.set_ticks([0, 1]); start_label = times[0].to_datetime(timezone.utc).strftime('%H:%M') if len(times)>0 else 'S'; end_label = times[-1].to_datetime(timezone.utc).strftime('%H:%M') if len(times)>0 else 'E'; cbar.ax.set_yticklabels([start_label, end_label]); cbar.set_label(t.get('graph_colorbar_label', "..."), color=lc, fontsize=10); cbar.ax.yaxis.set_tick_params(color=lc, labelsize=9); plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color=lc); cbar.outline.set_edgecolor(sc); cbar.outline.set_linewidth(0.5)
+            except Exception as e: print(f"Warnung: Farbleiste: {e}")
+        else: st.error(t.get('plot_error_unknown_type', "...").format(plot_type)); plt.close(fig); return None
+        leg = ax.legend(loc='lower right', fontsize='small', facecolor=lfc, framealpha=0.8, edgecolor=sc); [text.set_color(lc) for text in leg.get_texts()]
         return fig
-
-    except Exception as e:
-        st.error(t.get('plot_error_unexpected', "Plot Fehler: Unerwarteter Fehler bei Plot-Erstellung: {}").format(e))
-        traceback.print_exc()
-        if fig: plt.close(fig)
-        return None
+    except Exception as e: st.error(t.get('plot_error_unexpected', "...").format(e)); traceback.print_exc(); plt.close(fig); return None
 
 # --- Main UI Component Functions ---
 
@@ -493,9 +423,9 @@ def create_sidebar(t: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFi
         mailto_link = f"mailto:{bug_email_address}?subject={bug_email_subject}&body={bug_email_body}"
         st.sidebar.link_button(t.get('bug_report_button', '🐞 Problem melden / Vorschlag machen'), mailto_link)
 
+# Pass Observer class as type hint
 def display_search_parameters(t: dict, observer_run: Observer | None, ref_time: Time) -> tuple[float, float]:
     """Zeigt die Zusammenfassung der Suchparameter im Hauptbereich an."""
-    # ... (Code remains unchanged) ...
     st.subheader(t.get('search_params_header', "Zusammenfassung Suchparameter"))
     p1, p2 = st.columns(2)
 
@@ -552,9 +482,9 @@ def display_search_parameters(t: dict, observer_run: Observer | None, ref_time: 
     # Gibt die tatsächlichen Filterwerte zurück, die für die Berechnung verwendet werden
     return min_mag_filter, max_mag_filter
 
+# Pass Observer class as type hint
 def display_results(t: dict, results_ph: st.container, observer_run: Observer | None) -> None:
     """Zeigt die Ergebnisliste, Plots, Download-Button und Kosmologie-Daten an."""
-    # ... (Code remains unchanged until cosmology integration) ...
     results_data = st.session_state.last_results
     results_ph.subheader(t.get('results_list_header',"Ergebnisse"))
 
@@ -649,14 +579,8 @@ def display_results(t: dict, results_ph: st.container, observer_run: Observer | 
                         st.markdown(f"**{t('cosmology_results_header', 'Kosmologische Daten')} (z={z_value:.5f})**")
                         try:
                             # Berechnungsfunktion aufrufen (ist jetzt in astro_calculations)
-                            # Standardparameter aus astro_calculations verwenden (oder hier definieren)
-                            # --- Correction Start: Use imported constants directly ---
-                            H0_COSMO = H0_DEFAULT
-                            OMEGA_M_COSMO = OMEGA_M_DEFAULT
-                            OMEGA_LAMBDA_COSMO = OMEGA_LAMBDA_DEFAULT
-                            # --- Correction End ---
-
-                            cosmo_results = calculate_lcdm_distances(z_value, H0_COSMO, OMEGA_M_COSMO, OMEGA_LAMBDA_COSMO)
+                            # Standardparameter verwenden (bereits importiert)
+                            cosmo_results = calculate_lcdm_distances(z_value, H0_DEFAULT, OMEGA_M_DEFAULT, OMEGA_LAMBDA_DEFAULT)
 
                             cosmo_error_key = cosmo_results.get('error_msg')
                             if cosmo_error_key:
@@ -672,18 +596,16 @@ def display_results(t: dict, results_ph: st.container, observer_run: Observer | 
                                 comoving_gly_res = convert_mpc_to_gly(comoving_mpc_res)
                                 luminosity_gly_res = convert_mpc_to_gly(luminosity_mpc_res)
                                 ang_diam_gly_res = convert_mpc_to_gly(ang_diam_mpc_res)
-                                # comoving_km_res = convert_mpc_to_km(comoving_mpc_res) # Optional
-                                # comoving_ly_res = convert_km_to_ly(comoving_km_res) # Optional
 
                                 # Ergebnisse anzeigen (adaptiert von Redshift_Calculator)
                                 st.metric(label=t("lookback_time"), value=f"{lookback_gyr_res:.3f}", delta=t("unit_Gyr"))
-                                lookback_example_key = get_lookback_comparison(lookback_gyr_res)
+                                lookback_example_key = get_lookback_comparison(lookback_gyr_res) # Use local helper
                                 st.caption(f"*{t(lookback_example_key)}*")
 
                                 st.markdown(f"**{t('comoving_distance_title')}**")
                                 st.text(f"  {comoving_mpc_res:,.3f} {t('unit_Mpc')}")
                                 st.text(f"  {comoving_gly_res:,.3f} {t('unit_Gly')}")
-                                comoving_example_key = get_comoving_comparison(comoving_mpc_res)
+                                comoving_example_key = get_comoving_comparison(comoving_mpc_res) # Use local helper
                                 st.caption(f"*{t(comoving_example_key)}*")
 
                                 st.markdown(f"**{t('luminosity_distance_title')}**")
@@ -771,7 +693,6 @@ def display_results(t: dict, results_ph: st.container, observer_run: Observer | 
 
 def create_custom_target_section(t: dict, results_ph: st.container, observer_run: Observer | None) -> None:
     """Erstellt den UI-Bereich zum Plotten eines benutzerdefinierten Ziels."""
-    # ... (Code remains unchanged) ...
     st.markdown("---") # Trennlinie
     with st.expander(t.get('custom_target_expander',"Eigenes RA/Dec Ziel plotten")):
         with st.form("custom_target_form"):
@@ -878,13 +799,14 @@ def create_manual_cosmology_calculator(t: dict) -> None:
             ang_diam_gly_res_man = convert_mpc_to_gly(ang_diam_mpc_res_man)
             comoving_km_res_man = convert_mpc_to_km(comoving_mpc_res_man)
             comoving_ly_res_man = convert_km_to_ly(comoving_km_res_man)
-            comoving_au_res_man = convert_km_to_au(comoving_km_res_man) if 'convert_km_to_au' in globals() else None # Optional
-            comoving_ls_res_man = convert_km_to_ls(comoving_km_res_man) if 'convert_km_to_ls' in globals() else None # Optional
-            comoving_km_ausgeschrieben_man = format_large_number(comoving_km_res_man)
+            # Optional: Weitere Einheiten
+            # comoving_au_res_man = convert_km_to_au(comoving_km_res_man) if 'convert_km_to_au' in globals() else None
+            # comoving_ls_res_man = convert_km_to_ls(comoving_km_res_man) if 'convert_km_to_ls' in globals() else None
+            comoving_km_ausgeschrieben_man = format_large_number(comoving_km_res_man) # Use local helper
 
             # Ergebnisse mit Metriken, Text und Captions anzeigen
             st.metric(label=t("lookback_time"), value=f"{lookback_gyr_res_man:.4f}", delta=t("unit_Gyr"))
-            lookback_example_key_man = get_lookback_comparison(lookback_gyr_res_man)
+            lookback_example_key_man = get_lookback_comparison(lookback_gyr_res_man) # Use local helper
             st.caption(f"*{t(lookback_example_key_man)}*")
 
             st.markdown("---")
@@ -895,7 +817,7 @@ def create_manual_cosmology_calculator(t: dict) -> None:
                 st.markdown(t("comoving_distance_title"))
                 st.text(f"  {comoving_mpc_res_man:,.4f} {t('unit_Mpc')}")
                 st.text(f"  {comoving_gly_res_man:,.4f} {t('unit_Gly')}")
-                comoving_example_key_man = get_comoving_comparison(comoving_mpc_res_man)
+                comoving_example_key_man = get_comoving_comparison(comoving_mpc_res_man) # Use local helper
                 st.caption(f"*{t(comoving_example_key_man)}*")
                 # Detailliertere Einheiten
                 st.text(f"  {comoving_km_res_man:,.3e} {t('unit_km_sci')}")
