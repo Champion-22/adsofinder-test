@@ -230,7 +230,7 @@ def main():
                     else: results_placeholder.error(trans.get('error_cannot_search_no_window',"...")); st.session_state.last_results = []
                 # --- Correction: Removed extra parenthesis ---
                 except Exception as e:
-                    error_msg = trans.get('error_search_unexpected',"...") # Removed extra ')' here
+                    error_msg = trans.get('error_search_unexpected',"...") # Corrected: Removed extra ')'
                     results_placeholder.error(f"{error_msg}\n```\n{traceback.format_exc()}\n```")
                     print(f"Search Error: {e}")
                     traceback.print_exc()
