@@ -137,16 +137,16 @@ def main():
         """Cached function to load ONGC data."""
         print(f"Cache miss: Loading ONGC data from {path}")
         try: return data_handling.load_ongc_data(path)
-        except ModuleNotFoundError: st.error(f"{trans.get('error_module_missing', 'Error: Module missing:')} data_handling.py"); return None # Use trans.get
-        except FileNotFoundError: st.error(f"{trans.get('error_catalog_not_found', 'Error: Catalog file not found at path:')} {path}"); return None # Use trans.get
-        except Exception as load_err: st.error(f"{trans.get('error_catalog_load_failed', 'Failed to load catalog')}: {load_err}"); return None # Use trans.get
+        except ModuleNotFoundError: st.error(f"{trans.get('error_module_missing', 'Error: Module missing:')} data_handling.py"); return None
+        except FileNotFoundError: st.error(f"{trans.get('error_catalog_not_found', 'Error: Catalog file not found at path:')} {path}"); return None
+        except Exception as load_err: st.error(f"{trans.get('error_catalog_load_failed', 'Failed to load catalog')}: {load_err}"); return None
 
     df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH)
 
     # 3. Display Title and Glossary
-    st.title(trans.get('app_title', "Advanced DSO Finder")) # Use trans.get
-    with st.expander(trans.get('object_type_glossary_title', "Object Type Glossary")): # Use trans.get
-        glossary_items = trans.get('object_type_glossary', {}) # Use trans.get
+    st.title(trans.get('app_title', "Advanced DSO Finder"))
+    with st.expander(trans.get('object_type_glossary_title', "Object Type Glossary")):
+        glossary_items = trans.get('object_type_glossary', {})
         if glossary_items:
             col1, col2 = st.columns(2); col_index = 0
             sorted_items = sorted(glossary_items.items())
@@ -154,7 +154,7 @@ def main():
                 target_col = col1 if col_index % 2 == 0 else col2
                 target_col.markdown(f"**{abbr}:** {full_name}")
                 col_index += 1
-        else: st.info(trans.get('glossary_unavailable', "Glossary not available for the selected language.")) # Use trans.get
+        else: st.info(trans.get('glossary_unavailable', "Glossary not available for the selected language."))
 
     st.markdown("---")
 
@@ -166,7 +166,7 @@ def main():
     if st.session_state.location_is_valid_for_run:
         lat = st.session_state.manual_lat_val; lon = st.session_state.manual_lon_val; hgt = st.session_state.manual_height_val; tz_str = st.session_state.selected_timezone
         try: observer_run = Observer(latitude=lat*u.deg, longitude=lon*u.deg, elevation=hgt*u.m, timezone=tz_str)
-        except Exception as obs_err: st.error(trans.get('error_observer_creation', "Error creating observer location: {}").format(obs_err)); st.session_state.location_is_valid_for_run = False; observer_run = None # Use trans.get
+        except Exception as obs_err: st.error(trans.get('error_observer_creation', "Error creating observer location: {}").format(obs_err)); st.session_state.location_is_valid_for_run = False; observer_run = None
 
     # 6. Determine Reference Time
     ref_time = None
@@ -175,7 +175,7 @@ def main():
     else:
         selected_date_main = st.session_state.selected_date_widget
         try: ref_time = Time(datetime.combine(selected_date_main, time(12, 0)), scale='utc'); print(f"Calculating 'Specific Night' window based on UTC noon: {ref_time.iso}")
-        except Exception as time_err: st.error(trans.get('error_ref_time_creation', "Error setting reference time: {}").format(time_err)); ref_time = None # Use trans.get
+        except Exception as time_err: st.error(trans.get('error_ref_time_creation', "Error setting reference time: {}").format(time_err)); ref_time = None
 
     # 7. Display Search Parameters Summary (Pass 'trans' instead of 't')
     min_mag_filt_calc, max_mag_filt_calc = ui_components.display_search_parameters(
@@ -188,34 +188,34 @@ def main():
     results_placeholder = st.container()
     find_button_disabled = (df_catalog_data is None or not st.session_state.location_is_valid_for_run or ref_time is None)
     find_button_clicked = st.button(
-        trans.get('find_button_label', "🔭 Find Observable Objects"), # Use trans.get
+        trans.get('find_button_label', "🔭 Find Observable Objects"),
         key="find_button", disabled=find_button_disabled
     )
 
-    if not st.session_state.location_is_valid_for_run and df_catalog_data is not None: st.warning(trans.get('info_initial_prompt', "...")) # Use trans.get
-    elif ref_time is None and not is_now_mode_main: st.warning(trans.get('info_set_ref_time', "...")) # Use trans.get
-    elif df_catalog_data is None: st.warning(trans.get('info_catalog_missing', "...")) # Use trans.get
+    if not st.session_state.location_is_valid_for_run and df_catalog_data is not None: st.warning(trans.get('info_initial_prompt', "..."))
+    elif ref_time is None and not is_now_mode_main: st.warning(trans.get('info_set_ref_time', "..."))
+    elif df_catalog_data is None: st.warning(trans.get('info_catalog_missing', "..."))
 
     if find_button_clicked:
         st.session_state.find_button_pressed = True; st.session_state.show_plot = False; st.session_state.show_custom_plot = False; st.session_state.active_result_plot_data = None; st.session_state.custom_target_plot_data = None; st.session_state.last_results = []; st.session_state.window_start_time = None; st.session_state.window_end_time = None; st.session_state.expanded_object_name = None
 
         if observer_run and df_catalog_data is not None and ref_time is not None:
-            with st.spinner(trans.get('spinner_searching',"Searching for observable objects...")): # Use trans.get
+            with st.spinner(trans.get('spinner_searching',"Searching for observable objects...")):
                 try:
-                    start_time_calc, end_time_calc, window_status_msg = astro_calculations.get_observable_window(observer_run, ref_time, is_now_mode_main, trans) # Pass trans
+                    start_time_calc, end_time_calc, window_status_msg = astro_calculations.get_observable_window(observer_run, ref_time, is_now_mode_main, trans)
                     results_placeholder.info(window_status_msg); st.session_state.window_start_time = start_time_calc; st.session_state.window_end_time = end_time_calc
                     if start_time_calc and end_time_calc and start_time_calc < end_time_calc:
                         time_resolution_calc = 5 * u.minute; observation_times_calc = Time(np.arange(start_time_calc.jd, end_time_calc.jd, time_resolution_calc.to(u.day).value), format='jd', scale='utc')
-                        if len(observation_times_calc) < 2: results_placeholder.warning(trans.get('warning_window_too_short_calc', "...")) # Use trans.get
+                        if len(observation_times_calc) < 2: results_placeholder.warning(trans.get('warning_window_too_short_calc', "..."))
                         filtered_df = df_catalog_data.copy(); filtered_df = filtered_df[(filtered_df['Mag'] >= min_mag_filt_calc) & (filtered_df['Mag'] <= max_mag_filt_calc)]
                         selected_types_calc = st.session_state.object_type_filter_exp
                         if selected_types_calc: filtered_df = filtered_df[filtered_df['Type'].isin(selected_types_calc)]
                         size_data_ok_calc = 'MajAx' in filtered_df.columns and filtered_df['MajAx'].notna().any()
                         if size_data_ok_calc: size_min_calc, size_max_calc = st.session_state.size_arcmin_range; filtered_df = filtered_df.dropna(subset=['MajAx']); filtered_df = filtered_df[(filtered_df['MajAx'] >= size_min_calc) & (filtered_df['MajAx'] <= size_max_calc)]
-                        if filtered_df.empty: results_placeholder.warning(trans.get('warning_no_objects_after_filters',"...")); st.session_state.last_results = [] # Use trans.get
+                        if filtered_df.empty: results_placeholder.warning(trans.get('warning_no_objects_after_filters',"...")); st.session_state.last_results = []
                         else:
                             min_alt_search_calc = st.session_state.min_alt_slider * u.deg
-                            found_objects = astro_calculations.find_observable_objects(observer_run.location, observation_times_calc, min_alt_search_calc, filtered_df, trans) # Pass trans
+                            found_objects = astro_calculations.find_observable_objects(observer_run.location, observation_times_calc, min_alt_search_calc, filtered_df, trans)
                             final_results = []; selected_direction_calc = st.session_state.selected_peak_direction; max_alt_filter_calc = st.session_state.max_alt_slider
                             for obj_result in found_objects:
                                 if obj_result.get('Max Altitude (°)', -999) > max_alt_filter_calc: continue
@@ -225,14 +225,21 @@ def main():
                             if sort_key == 'Brightness': final_results.sort(key=lambda x: x.get('Magnitude', float('inf')) if x.get('Magnitude') is not None else float('inf'))
                             else: final_results.sort(key=lambda x: (x.get('Max Cont. Duration (h)', 0), x.get('Max Altitude (°)', 0)), reverse=True)
                             num_to_show = st.session_state.num_objects_slider; st.session_state.last_results = final_results[:num_to_show]
-                            if not final_results: results_placeholder.warning(trans.get('warning_no_objects_found_final',"...")) # Use trans.get
-                            else: results_placeholder.success(trans.get('success_objects_found',"{} objects found matching criteria.").format(len(final_results))); sort_info_key = 'info_showing_list_duration' if sort_key != 'Brightness' else 'info_showing_list_magnitude'; results_placeholder.info(trans.get(sort_info_key, "...").format(len(st.session_state.last_results), sort_key)) # Use trans.get
-                    else: results_placeholder.error(trans.get('error_cannot_search_no_window',"...")); st.session_state.last_results = [] # Use trans.get
-                except Exception as e: error_msg = trans.get('error_search_unexpected',"...")); results_placeholder.error(f"{error_msg}\n```\n{traceback.format_exc()}\n```"); print(f"Search Error: {e}"); traceback.print_exc(); st.session_state.last_results = [] # Use trans.get
+                            if not final_results: results_placeholder.warning(trans.get('warning_no_objects_found_final',"..."))
+                            else: results_placeholder.success(trans.get('success_objects_found',"{} objects found matching criteria.").format(len(final_results))); sort_info_key = 'info_showing_list_duration' if sort_key != 'Brightness' else 'info_showing_list_magnitude'; results_placeholder.info(trans.get(sort_info_key, "...").format(len(st.session_state.last_results), sort_key))
+                    else: results_placeholder.error(trans.get('error_cannot_search_no_window',"...")); st.session_state.last_results = []
+                # --- Correction: Removed extra parenthesis ---
+                except Exception as e:
+                    error_msg = trans.get('error_search_unexpected',"...") # Removed extra ')' here
+                    results_placeholder.error(f"{error_msg}\n```\n{traceback.format_exc()}\n```")
+                    print(f"Search Error: {e}")
+                    traceback.print_exc()
+                    st.session_state.last_results = []
+                # --- End Correction ---
         else:
-            if df_catalog_data is None: results_placeholder.error(trans.get('error_prereq_catalog',"...")) # Use trans.get
-            if not observer_run: results_placeholder.error(trans.get('error_prereq_location',"...")) # Use trans.get
-            if ref_time is None: results_placeholder.error(trans.get('error_prereq_time',"...")) # Use trans.get
+            if df_catalog_data is None: results_placeholder.error(trans.get('error_prereq_catalog',"..."))
+            if not observer_run: results_placeholder.error(trans.get('error_prereq_location',"..."))
+            if ref_time is None: results_placeholder.error(trans.get('error_prereq_time',"..."))
             st.session_state.last_results = []
 
     # 9. Display Results (Pass 'trans' instead of 't')
