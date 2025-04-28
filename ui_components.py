@@ -9,7 +9,7 @@ import urllib.parse
 import pandas as pd
 import math
 import numpy as np # Import numpy
-from typing import Optional # Import Optional for type hints
+from typing import Optional # Keep Optional import in case it's needed elsewhere
 
 # --- Library Imports ---
 try:
@@ -157,8 +157,8 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
 
 # --- Main UI Component Functions ---
 
-# --- Add trans_dict parameter back, use Optional[TimezoneFinder] type hint ---
-def create_sidebar(trans_dict: dict, df_catalog_data: pd.DataFrame | None, tf: Optional[TimezoneFinder]) -> None:
+# --- Use TimezoneFinder | None type hint ---
+def create_sidebar(trans_dict: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFinder | None) -> None:
     """Erstellt die Sidebar UI Elemente."""
     with st.sidebar:
         # Use trans_dict.get() for all translatable strings
@@ -373,8 +373,8 @@ def create_sidebar(trans_dict: dict, df_catalog_data: pd.DataFrame | None, tf: O
         mailto_link = f"mailto:{bug_email_address}?subject={bug_email_subject}&body={bug_email_body}"
         st.sidebar.link_button(trans_dict.get('bug_report_button', '🐞 Problem melden / Vorschlag machen'), mailto_link)
 
-# --- Modify function signature: Add trans_dict, Use Optional[Observer] type hint ---
-def display_search_parameters(trans_dict: dict, observer_run: Optional[Observer], ref_time: Time) -> tuple[float, float]:
+# --- Modify function signature: Add trans_dict, Use Observer | None type hint ---
+def display_search_parameters(trans_dict: dict, observer_run: Observer | None, ref_time: Time) -> tuple[float, float]:
     """Zeigt die Zusammenfassung der Suchparameter im Hauptbereich an."""
     # --- Remove internal get_translation() call ---
     # trans_dict = get_translation() # REMOVED
@@ -407,8 +407,8 @@ def display_search_parameters(trans_dict: dict, observer_run: Optional[Observer]
     direction_key = st.session_state.selected_peak_direction; direction_display_text = trans_dict.get('search_params_direction_all',"Alle") if direction_key == ALL_DIRECTIONS_KEY else direction_key; p2.markdown(f"🧭 **{trans_dict.get('search_params_filter_direction_label','Kulm. Richtung:')}** {direction_display_text}")
     return min_mag_filter, max_mag_filter
 
-# --- Modify function signature: Add trans_dict, Use Optional[Observer] type hint ---
-def display_results(trans_dict: dict, results_ph: st.container, observer_run: Optional[Observer]) -> None:
+# --- Use Observer | None type hint ---
+def display_results(trans_dict: dict, results_ph: st.container, observer_run: Observer | None) -> None:
     """Zeigt die Ergebnisliste, Plots, Download-Button und Kosmologie-Daten an."""
     # --- Remove internal get_translation() call ---
     # trans_dict = get_translation() # REMOVED
@@ -486,8 +486,8 @@ def display_results(trans_dict: dict, results_ph: st.container, observer_run: Op
         except Exception as e: csv_placeholder.error(trans_dict.get('results_csv_export_error',"Fehler beim Erstellen der CSV-Datei: {}").format(e)); print(f"CSV Export Fehler: {e}")
 
 
-# --- Modify function signature: Add trans_dict, Use Optional[Observer] type hint ---
-def create_custom_target_section(trans_dict: dict, results_ph: st.container, observer_run: Optional[Observer]) -> None:
+# --- Use Observer | None type hint ---
+def create_custom_target_section(trans_dict: dict, results_ph: st.container, observer_run: Observer | None) -> None:
     """Erstellt den UI-Bereich zum Plotten eines benutzerdefinierten Ziels."""
     # --- Remove internal get_translation() call ---
     # trans_dict = get_translation() # REMOVED
@@ -560,3 +560,4 @@ def display_donation_link(trans_dict: dict) -> None:
     kofi_url = "https://ko-fi.com/advanceddsofinder"
     kofi_text = trans_dict.get('donation_button_text', "Entwicklung unterstützen via Ko-fi ☕")
     st.link_button(kofi_text, kofi_url)
+
