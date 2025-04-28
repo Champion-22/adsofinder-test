@@ -14,7 +14,7 @@ from timezonefinder import TimezoneFinder
 
 # --- Import Custom Modules ---
 try:
-    # Import the main translations dictionary directly
+    # Import the main translations dictionary directly for checking keys
     from localization import translations
     import astro_calculations
     import data_handling
@@ -79,29 +79,21 @@ def initialize_session_state():
     if 'language' in st.session_state:
         st.session_state.language = str(st.session_state.language).upper()
 
-# --- Helper Function for Translations ---
-def get_current_translation() -> dict:
-    """Gets the correct translation dictionary based on session state."""
-    lang = st.session_state.language # Assumed to be uppercase by initialize_session_state
-    if lang not in translations:
-        print(f"Warning: Language '{lang}' not found in translations. Falling back to 'EN'.")
-        lang = 'EN'
-        st.session_state.language = lang # Correct the state
-    # Return the dictionary for the selected language, default to EN or empty dict
-    return translations.get(lang, translations.get('EN', {}))
+# --- Removed Helper Function for Translations ---
+# def get_current_translation() -> dict: ...
 
 # --- Main App Logic ---
 def main():
     # 1. Initialize state
     initialize_session_state()
-    # Get the current translation dictionary using the helper function
-    trans_dict = get_current_translation()
+    # Language is now handled directly within UI components or where needed
 
-    # Ensure trans_dict is actually a dictionary before proceeding
+    # Get the current translation dict once for potential use in main logic if needed
+    current_lang = st.session_state.language
+    trans_dict = translations.get(current_lang, translations.get('EN', {}))
     if not isinstance(trans_dict, dict):
-        st.error(f"Fatal Error: Could not load translation dictionary for language '{st.session_state.language}'.")
-        # Optionally provide a default empty dict to prevent crashes in UI components
-        trans_dict = {}
+        st.error(f"Fatal Error: Could not load translation dictionary for language '{current_lang}'.")
+        trans_dict = {} # Fallback
 
     # 2. Load Catalog Data (Cached)
     @st.cache_data
@@ -109,7 +101,7 @@ def main():
         """Cached function to load ONGC data."""
         print(f"Cache miss: Loading ONGC data from {path}")
         # Use trans_dict safely now
-        t_err = trans_dict if isinstance(trans_dict, dict) else {}
+        t_err = trans_dict # Use the dict loaded above
         try: return data_handling.load_ongc_data(path)
         except ModuleNotFoundError: st.error(f"{t_err.get('error_module_missing', 'Error: Module missing:')} data_handling.py"); return None
         except FileNotFoundError: st.error(f"{t_err.get('error_catalog_not_found', 'Error: Catalog file not found at path:')} {path}"); return None
@@ -132,8 +124,9 @@ def main():
 
     st.markdown("---")
 
-    # 4. Create Sidebar UI (Pass the dictionary)
-    ui_components.create_sidebar(trans_dict, df_catalog_data, tf)
+    # 4. Create Sidebar UI (Pass catalog data and timezone finder only)
+    # The UI component will get the translation dict itself
+    ui_components.create_sidebar(df_catalog_data, tf)
 
     # 5. Prepare Observer Object
     observer_run = None
@@ -151,9 +144,10 @@ def main():
         try: ref_time = Time(datetime.combine(selected_date_main, time(12, 0)), scale='utc'); print(f"Calculating 'Specific Night' window based on UTC noon: {ref_time.iso}")
         except Exception as time_err: st.error(trans_dict.get('error_ref_time_creation', "Error setting reference time: {}").format(time_err)); ref_time = None
 
-    # 7. Display Search Parameters Summary (Pass the dictionary)
+    # 7. Display Search Parameters Summary (Pass observer and ref_time only)
+    # The UI component will get the translation dict itself
     min_mag_filt_calc, max_mag_filt_calc = ui_components.display_search_parameters(
-        trans_dict, observer_run, ref_time if ref_time else Time.now()
+        observer_run, ref_time if ref_time else Time.now()
     )
 
     st.markdown("---")
@@ -162,7 +156,7 @@ def main():
     results_placeholder = st.container()
     find_button_disabled = (df_catalog_data is None or not st.session_state.location_is_valid_for_run or ref_time is None)
     find_button_clicked = st.button(
-        trans_dict.get('find_button_label', "🔭 Find Observable Objects"),
+        trans_dict.get('find_button_label', "🔭 Find Observable Objects"), # Okay to use trans_dict here for button label
         key="find_button", disabled=find_button_disabled
     )
 
@@ -176,7 +170,7 @@ def main():
         if observer_run and df_catalog_data is not None and ref_time is not None:
             with st.spinner(trans_dict.get('spinner_searching',"Searching for observable objects...")):
                 try:
-                    # Pass the dictionary to calculation functions as well
+                    # Pass the dictionary to calculation functions as they might need it for errors/logs
                     start_time_calc, end_time_calc, window_status_msg = astro_calculations.get_observable_window(observer_run, ref_time, is_now_mode_main, trans_dict)
                     results_placeholder.info(window_status_msg); st.session_state.window_start_time = start_time_calc; st.session_state.window_end_time = end_time_calc
                     if start_time_calc and end_time_calc and start_time_calc < end_time_calc:
@@ -216,19 +210,19 @@ def main():
             if ref_time is None: results_placeholder.error(trans_dict.get('error_prereq_time',"..."))
             st.session_state.last_results = []
 
-    # 9. Display Results (Pass 'trans_dict')
+    # 9. Display Results (No dictionary passed)
     if st.session_state.last_results:
-        ui_components.display_results(trans_dict, results_placeholder, observer_run)
+        ui_components.display_results(results_placeholder, observer_run)
     elif st.session_state.find_button_pressed: pass
 
-    # 10. Display Custom Target Section (Pass 'trans_dict')
-    ui_components.create_custom_target_section(trans_dict, results_placeholder, observer_run)
+    # 10. Display Custom Target Section (No dictionary passed)
+    ui_components.create_custom_target_section(results_placeholder, observer_run)
 
-    # 11. Display Manual Cosmology Calculator (Pass 'trans_dict')
-    ui_components.create_manual_cosmology_calculator(trans_dict)
+    # 11. Display Manual Cosmology Calculator (No dictionary passed)
+    ui_components.create_manual_cosmology_calculator()
 
-    # 12. Display Donation Link (Pass 'trans_dict')
-    ui_components.display_donation_link(trans_dict)
+    # 12. Display Donation Link (No dictionary passed)
+    ui_components.display_donation_link()
 
 # --- Run the App ---
 if __name__ == "__main__":
