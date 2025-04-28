@@ -15,12 +15,12 @@ try:
     from astropy.time import Time
     import astropy.units as u
     from astropy.coordinates import SkyCoord, AltAz
-    from astroplan import Observer
+    from astroplan import Observer # Keep import for runtime use
     from astroplan.moon import moon_illumination
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
     import pytz
-    from timezonefinder import TimezoneFinder
+    from timezonefinder import TimezoneFinder # Keep import for runtime use
     from geopy.geocoders import Nominatim, ArcGIS, Photon
     from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 except ImportError as e:
@@ -29,39 +29,46 @@ except ImportError as e:
 
 # --- Import Custom Modules ---
 try:
+    # Import the main translations dictionary directly
+    from localization import translations
     # Import only necessary functions/constants from astro_calculations
     from astro_calculations import (
         CARDINAL_DIRECTIONS, calculate_lcdm_distances,
         convert_mpc_to_gly, convert_mpc_to_km, convert_km_to_ly,
-        # Optional: Import more unit conversions if needed for display
-        # convert_km_to_au, convert_km_to_ls,
-        H0_DEFAULT, OMEGA_M_DEFAULT, OMEGA_LAMBDA_DEFAULT # Import constants
+        H0_DEFAULT, OMEGA_M_DEFAULT, OMEGA_LAMBDA_DEFAULT
     )
-    # Note: translations dict will be passed as 'trans_dict' argument
 except ModuleNotFoundError as e:
-    st.error(f"Module Not Found Error in UI module: {e}. Ensure astro_calculations.py is present.")
+    st.error(f"Module Not Found Error in UI module: {e}. Ensure localization.py and astro_calculations.py are present.")
     st.stop()
 except ImportError as e:
-    st.error(f"Import Error from astro_calculations in UI module: {e}. Check function names.")
+    st.error(f"Import Error from custom modules in UI module: {e}. Check function/variable names.")
     st.stop()
 
 
 # --- Constants ---
 ALL_DIRECTIONS_KEY = 'All'
 
+# --- Helper Function for Translations (within this module) ---
+def get_translation() -> dict:
+    """Gets the correct translation dictionary based on session state."""
+    if 'language' not in st.session_state:
+        st.session_state.language = 'DE' # Default if state missing
+    lang = st.session_state.language.upper()
+    if lang not in translations:
+        print(f"Warning: Language '{lang}' not found in translations. Falling back to 'EN'.")
+        lang = 'EN'
+        st.session_state.language = lang # Correct the state
+    return translations.get(lang, translations.get('EN', {}))
+
+
 # --- UI Helper Functions (Plotting, Formatting, SVG, Comparisons) ---
 
-# --- UI Helpers from Redshift_Calculator (Moved here) ---
 def format_large_number(number):
     """Formats large numbers with spaces as thousands separators."""
     if number == 0: return "0"
-    if not np.isfinite(number): return str(number) # Handle NaN/Inf
-    try:
-        # Format with comma, then replace comma with space (or adjust locale if needed)
-        formatted = f"{number:,.0f}".replace(",", " ") # Using space as separator
-        return formatted
-    except (ValueError, TypeError):
-        return str(number) # Fallback for unexpected types
+    if not np.isfinite(number): return str(number)
+    try: formatted = f"{number:,.0f}".replace(",", " "); return formatted
+    except (ValueError, TypeError): return str(number)
 
 def get_lookback_comparison(gyr):
     """Gibt einen Vergleich für die Rückblickzeit zurück (als Übersetzungsschlüssel)."""
@@ -80,8 +87,6 @@ def get_comoving_comparison(mpc):
     if mpc < 1000: return "example_comoving_lss"
     if mpc < 8000: return "example_comoving_quasars"
     return "example_comoving_cmb"
-# --- End of Moved UI Helpers ---
-
 
 def create_moon_phase_svg(illumination: float, size: int = 100) -> str:
     """Erstellt eine SVG-Darstellung der Mondphase."""
@@ -117,9 +122,11 @@ def get_local_time_str(utc_time: Time | None, timezone_str: str) -> tuple[str, s
     except pytz.exceptions.UnknownTimeZoneError: print(f"Err: Unknown TZ '{timezone_str}'."); return utc_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'), "UTC (TZ Err)"
     except Exception as e: print(f"Err converting time: {e}"); traceback.print_exc(); return utc_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'), "UTC (Conv Err)"
 
-# --- Rename parameter t to trans_dict ---
-def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: float, plot_type: str, trans_dict: dict) -> plt.Figure | None:
+# --- Modify function signature: Remove trans_dict parameter ---
+def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: float, plot_type: str) -> plt.Figure | None:
     """Erstellt entweder ein Höhen-Zeit-Diagramm oder ein Himmelspfad-Diagramm (Alt/Az)."""
+    # --- Get translation dict internally ---
+    trans_dict = get_translation()
     fig = None
     try:
         # Use trans_dict.get()
@@ -161,11 +168,12 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
 
 # --- Main UI Component Functions ---
 
-# --- Rename parameter t to trans_dict ---
-def create_sidebar(trans_dict: dict, df_catalog_data: pd.DataFrame | None, tf: TimezoneFinder | None) -> None:
+# --- Modify function signature: Use string for TimezoneFinder type hint ---
+def create_sidebar(df_catalog_data: pd.DataFrame | None, tf: 'TimezoneFinder | None') -> None:
     """Erstellt die Sidebar UI Elemente."""
+    # --- Get translation dict internally ---
+    trans_dict = get_translation()
     with st.sidebar:
-        # Use trans_dict.get() for all translatable strings
         st.header(trans_dict.get('settings_header', "Einstellungen"))
 
         # Katalog Status
@@ -377,17 +385,12 @@ def create_sidebar(trans_dict: dict, df_catalog_data: pd.DataFrame | None, tf: T
         mailto_link = f"mailto:{bug_email_address}?subject={bug_email_subject}&body={bug_email_body}"
         st.sidebar.link_button(trans_dict.get('bug_report_button', '🐞 Problem melden / Vorschlag machen'), mailto_link)
 
-# --- Rename parameter t to trans_dict ---
-def display_search_parameters(trans_dict: dict, observer_run: Observer | None, ref_time: Time) -> tuple[float, float]:
+# --- Modify function signature: Use string for Observer type hint ---
+def display_search_parameters(observer_run: 'Observer | None', ref_time: Time) -> tuple[float, float]:
     """Zeigt die Zusammenfassung der Suchparameter im Hauptbereich an."""
-    # --- Debug Check ---
-    print(f"DEBUG: Type of 'trans_dict' at start of display_search_parameters: {type(trans_dict)}")
-    if not isinstance(trans_dict, dict):
-        st.error(f"Interner Fehler: 'trans_dict' ist kein Dictionary in display_search_parameters! Typ: {type(trans_dict)}")
-        trans_dict = {} # Dummy dict
-    # --- End Debug Check ---
-
-    st.subheader(trans_dict.get('search_params_header', "Zusammenfassung Suchparameter")) # Line 381 (approx)
+    # --- Get translation dict internally ---
+    trans_dict = get_translation()
+    st.subheader(trans_dict.get('search_params_header', "Zusammenfassung Suchparameter")) # Line 425 (approx)
     p1, p2 = st.columns(2)
     location_display_text = trans_dict.get('location_not_set', "Standort nicht gesetzt oder ungültig.")
     if st.session_state.location_is_valid_for_run and observer_run:
@@ -416,9 +419,11 @@ def display_search_parameters(trans_dict: dict, observer_run: Observer | None, r
     direction_key = st.session_state.selected_peak_direction; direction_display_text = trans_dict.get('search_params_direction_all',"Alle") if direction_key == ALL_DIRECTIONS_KEY else direction_key; p2.markdown(f"🧭 **{trans_dict.get('search_params_filter_direction_label','Kulm. Richtung:')}** {direction_display_text}")
     return min_mag_filter, max_mag_filter
 
-# --- Rename parameter t to trans_dict ---
-def display_results(trans_dict: dict, results_ph: st.container, observer_run: Observer | None) -> None:
+# --- Modify function signature: Use string for Observer type hint ---
+def display_results(results_ph: st.container, observer_run: 'Observer | None') -> None:
     """Zeigt die Ergebnisliste, Plots, Download-Button und Kosmologie-Daten an."""
+    # --- Get translation dict internally ---
+    trans_dict = get_translation()
     results_data = st.session_state.last_results
     results_ph.subheader(trans_dict.get('results_list_header',"Ergebnisse"))
     window_start = st.session_state.get('window_start_time'); window_end = st.session_state.get('window_end_time'); observer_exists = observer_run is not None
@@ -447,8 +452,11 @@ def display_results(trans_dict: dict, results_ph: st.container, observer_run: Ob
             if st.button(trans_dict.get('results_graph_button',"📈 Plot"), key=plot_button_key): st.session_state.plot_object_name = obj_name; st.session_state.active_result_plot_data = obj_data; st.session_state.show_plot = True; st.session_state.show_custom_plot = False; st.session_state.expanded_object_name = obj_name; st.rerun()
             z_value = obj_data.get('z'); show_cosmo_key = f"show_cosmo_{obj_name}_{i}"
             if z_value is not None and isinstance(z_value, (float, int)) and z_value > 0:
-                if st.button(trans_dict.get('results_cosmology_button', "🌌 Kosmologie"), key=f"btn_cosmo_{obj_name}_{i}"): current_state = st.session_state.get(show_cosmo_key, False); st.session_state[show_cosmo_key] = not current_state;
-                if not current_state: [st.session_state.pop(key, None) for key in list(st.session_state.keys()) if key.startswith("show_cosmo_") and key != show_cosmo_key]; st.rerun()
+                # --- Use hardcoded text for the button ---
+                if st.button("🌌 Cosmology", key=f"btn_cosmo_{obj_name}_{i}"):
+                # --- End hardcoded text ---
+                    current_state = st.session_state.get(show_cosmo_key, False); st.session_state[show_cosmo_key] = not current_state;
+                    if not current_state: [st.session_state.pop(key, None) for key in list(st.session_state.keys()) if key.startswith("show_cosmo_") and key != show_cosmo_key]; st.rerun()
                 if st.session_state.get(show_cosmo_key, False):
                     cosmo_placeholder = st.container();
                     with cosmo_placeholder:
@@ -472,7 +480,7 @@ def display_results(trans_dict: dict, results_ph: st.container, observer_run: Ob
             if st.session_state.show_plot and st.session_state.plot_object_name == obj_name:
                 plot_data_to_use = st.session_state.active_result_plot_data; min_alt_for_plot = st.session_state.min_alt_slider; max_alt_for_plot = st.session_state.max_alt_slider; st.markdown("---")
                 with st.spinner(trans_dict.get('results_spinner_plotting',"Erstelle Plot...")):
-                    try: figure = create_plot(plot_data_to_use, min_alt_for_plot, max_alt_for_plot, st.session_state.plot_type_selection, trans_dict) # Pass trans_dict
+                    try: figure = create_plot(plot_data_to_use, min_alt_for_plot, max_alt_for_plot, st.session_state.plot_type_selection) # Pass trans_dict removed
                     except Exception as e: st.error(f"{trans_dict.get('plot_error_unexpected', '...')}: {e}"); traceback.print_exc(); figure = None
                     if figure: st.pyplot(figure); close_button_key = f"close_{obj_name}_{i}";
                     if st.button(trans_dict.get('results_close_graph_button',"Plot schließen"), key=close_button_key): st.session_state.show_plot = False; st.session_state.active_result_plot_data = None; st.session_state.expanded_object_name = None; st.rerun()
@@ -488,9 +496,11 @@ def display_results(trans_dict: dict, results_ph: st.container, observer_run: Ob
         except Exception as e: csv_placeholder.error(trans_dict.get('results_csv_export_error',"Fehler beim Erstellen der CSV-Datei: {}").format(e)); print(f"CSV Export Fehler: {e}")
 
 
-# --- Rename parameter t to trans_dict ---
-def create_custom_target_section(trans_dict: dict, results_ph: st.container, observer_run: Observer | None) -> None:
+# --- Modify function signature: Use string for Observer type hint ---
+def create_custom_target_section(results_ph: st.container, observer_run: 'Observer | None') -> None:
     """Erstellt den UI-Bereich zum Plotten eines benutzerdefinierten Ziels."""
+    # --- Get translation dict internally ---
+    trans_dict = get_translation()
     st.markdown("---")
     with st.expander(trans_dict.get('custom_target_expander',"Eigenes RA/Dec Ziel plotten")):
         with st.form("custom_target_form"):
@@ -520,7 +530,7 @@ def create_custom_target_section(trans_dict: dict, results_ph: st.container, obs
             with plot_display_area:
                  st.markdown("---")
                  with st.spinner(trans_dict.get('results_spinner_plotting',"Erstelle Plot...")):
-                     try: custom_figure = create_plot(custom_plot_data, min_alt_cust_plot, max_alt_cust_plot, st.session_state.plot_type_selection, trans_dict) # Pass trans_dict
+                     try: custom_figure = create_plot(custom_plot_data, min_alt_cust_plot, max_alt_cust_plot, st.session_state.plot_type_selection) # Pass trans_dict removed
                      except Exception as e: st.error(f"{trans_dict.get('plot_error_unexpected','...')}: {e}"); traceback.print_exc(); custom_figure = None
                      if custom_figure: st.pyplot(custom_figure);
                      if st.button(trans_dict.get('results_close_graph_button',"Plot schließen"), key="close_custom_plot_button"): st.session_state.show_custom_plot = False; st.session_state.custom_target_plot_data = None; st.rerun()
@@ -529,9 +539,11 @@ def create_custom_target_section(trans_dict: dict, results_ph: st.container, obs
 
 
 # --- NEUE Funktion für manuellen Kosmologie-Rechner ---
-# --- Rename parameter t to trans_dict ---
-def create_manual_cosmology_calculator(trans_dict: dict) -> None:
+# --- Modify function signature: Remove trans_dict parameter ---
+def create_manual_cosmology_calculator() -> None:
     """Erstellt den UI-Bereich für den manuellen Rotverschiebungsrechner."""
+    # --- Get translation dict internally ---
+    trans_dict = get_translation()
     st.markdown("---")
     with st.expander(trans_dict.get('manual_cosmology_expander', "🌌 Manueller Kosmologie-Rechner")):
         st.subheader(trans_dict.get('input_params', "Eingabeparameter"))
@@ -590,10 +602,13 @@ def create_manual_cosmology_calculator(trans_dict: dict) -> None:
             st.caption(trans_dict.get("calculation_note", "..."))
 
 
-# --- Rename parameter t to trans_dict ---
-def display_donation_link(trans_dict: dict) -> None:
+# --- Modify function signature: Remove trans_dict parameter ---
+def display_donation_link() -> None:
     """Zeigt den Ko-fi Spendenlink Button an."""
+    # --- Get translation dict internally ---
+    trans_dict = get_translation()
     st.markdown("---")
     kofi_url = "https://ko-fi.com/advanceddsofinder"
     kofi_text = trans_dict.get('donation_button_text', "Entwicklung unterstützen via Ko-fi ☕")
     st.link_button(kofi_text, kofi_url)
+
