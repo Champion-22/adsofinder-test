@@ -9,6 +9,7 @@ import urllib.parse
 import pandas as pd
 import math
 import numpy as np # Import numpy
+from typing import Optional # Import Optional for type hints
 
 # --- Library Imports ---
 try:
@@ -29,16 +30,15 @@ except ImportError as e:
 
 # --- Import Custom Modules ---
 try:
-    # Import the main translations dictionary directly
-    from localization import translations
     # Import only necessary functions/constants from astro_calculations
     from astro_calculations import (
         CARDINAL_DIRECTIONS, calculate_lcdm_distances,
         convert_mpc_to_gly, convert_mpc_to_km, convert_km_to_ly,
         H0_DEFAULT, OMEGA_M_DEFAULT, OMEGA_LAMBDA_DEFAULT
     )
+    # Removed import of localization.translations as dict is passed now
 except ModuleNotFoundError as e:
-    st.error(f"Module Not Found Error in UI module: {e}. Ensure localization.py and astro_calculations.py are present.")
+    st.error(f"Module Not Found Error in UI module: {e}. Ensure astro_calculations.py is present.")
     st.stop()
 except ImportError as e:
     st.error(f"Import Error from custom modules in UI module: {e}. Check function/variable names.")
@@ -48,17 +48,8 @@ except ImportError as e:
 # --- Constants ---
 ALL_DIRECTIONS_KEY = 'All'
 
-# --- Helper Function for Translations (within this module) ---
-def get_translation() -> dict:
-    """Gets the correct translation dictionary based on session state."""
-    if 'language' not in st.session_state:
-        st.session_state.language = 'DE' # Default if state missing
-    lang = st.session_state.language.upper()
-    if lang not in translations:
-        print(f"Warning: Language '{lang}' not found in translations. Falling back to 'EN'.")
-        lang = 'EN'
-        st.session_state.language = lang # Correct the state
-    return translations.get(lang, translations.get('EN', {}))
+# --- Removed Helper Function for Translations ---
+# def get_translation() -> dict: ...
 
 
 # --- UI Helper Functions (Plotting, Formatting, SVG, Comparisons) ---
@@ -122,11 +113,9 @@ def get_local_time_str(utc_time: Time | None, timezone_str: str) -> tuple[str, s
     except pytz.exceptions.UnknownTimeZoneError: print(f"Err: Unknown TZ '{timezone_str}'."); return utc_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'), "UTC (TZ Err)"
     except Exception as e: print(f"Err converting time: {e}"); traceback.print_exc(); return utc_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'), "UTC (Conv Err)"
 
-# --- Modify function signature: Remove trans_dict parameter ---
-def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: float, plot_type: str) -> plt.Figure | None:
+# --- Add trans_dict parameter back ---
+def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: float, plot_type: str, trans_dict: dict) -> plt.Figure | None:
     """Erstellt entweder ein Höhen-Zeit-Diagramm oder ein Himmelspfad-Diagramm (Alt/Az)."""
-    # --- Get translation dict internally ---
-    trans_dict = get_translation()
     fig = None
     try:
         # Use trans_dict.get()
@@ -168,12 +157,11 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
 
 # --- Main UI Component Functions ---
 
-# --- Modify function signature: Use string for TimezoneFinder type hint ---
-def create_sidebar(df_catalog_data: pd.DataFrame | None, tf: 'TimezoneFinder | None') -> None:
+# --- Add trans_dict parameter back, use Optional[TimezoneFinder] type hint ---
+def create_sidebar(trans_dict: dict, df_catalog_data: pd.DataFrame | None, tf: Optional[TimezoneFinder]) -> None:
     """Erstellt die Sidebar UI Elemente."""
-    # --- Get translation dict internally ---
-    trans_dict = get_translation()
     with st.sidebar:
+        # Use trans_dict.get() for all translatable strings
         st.header(trans_dict.get('settings_header', "Einstellungen"))
 
         # Katalog Status
@@ -385,12 +373,12 @@ def create_sidebar(df_catalog_data: pd.DataFrame | None, tf: 'TimezoneFinder | N
         mailto_link = f"mailto:{bug_email_address}?subject={bug_email_subject}&body={bug_email_body}"
         st.sidebar.link_button(trans_dict.get('bug_report_button', '🐞 Problem melden / Vorschlag machen'), mailto_link)
 
-# --- Modify function signature: Use string for Observer type hint ---
-def display_search_parameters(observer_run: 'Observer | None', ref_time: Time) -> tuple[float, float]:
+# --- Modify function signature: Add trans_dict, Use Optional[Observer] type hint ---
+def display_search_parameters(trans_dict: dict, observer_run: Optional[Observer], ref_time: Time) -> tuple[float, float]:
     """Zeigt die Zusammenfassung der Suchparameter im Hauptbereich an."""
-    # --- Get translation dict internally ---
-    trans_dict = get_translation()
-    st.subheader(trans_dict.get('search_params_header', "Zusammenfassung Suchparameter")) # Line 425 (approx)
+    # --- Remove internal get_translation() call ---
+    # trans_dict = get_translation() # REMOVED
+    st.subheader(trans_dict.get('search_params_header', "Zusammenfassung Suchparameter"))
     p1, p2 = st.columns(2)
     location_display_text = trans_dict.get('location_not_set', "Standort nicht gesetzt oder ungültig.")
     if st.session_state.location_is_valid_for_run and observer_run:
@@ -419,11 +407,11 @@ def display_search_parameters(observer_run: 'Observer | None', ref_time: Time) -
     direction_key = st.session_state.selected_peak_direction; direction_display_text = trans_dict.get('search_params_direction_all',"Alle") if direction_key == ALL_DIRECTIONS_KEY else direction_key; p2.markdown(f"🧭 **{trans_dict.get('search_params_filter_direction_label','Kulm. Richtung:')}** {direction_display_text}")
     return min_mag_filter, max_mag_filter
 
-# --- Modify function signature: Use string for Observer type hint ---
-def display_results(results_ph: st.container, observer_run: 'Observer | None') -> None:
+# --- Modify function signature: Add trans_dict, Use Optional[Observer] type hint ---
+def display_results(trans_dict: dict, results_ph: st.container, observer_run: Optional[Observer]) -> None:
     """Zeigt die Ergebnisliste, Plots, Download-Button und Kosmologie-Daten an."""
-    # --- Get translation dict internally ---
-    trans_dict = get_translation()
+    # --- Remove internal get_translation() call ---
+    # trans_dict = get_translation() # REMOVED
     results_data = st.session_state.last_results
     results_ph.subheader(trans_dict.get('results_list_header',"Ergebnisse"))
     window_start = st.session_state.get('window_start_time'); window_end = st.session_state.get('window_end_time'); observer_exists = observer_run is not None
@@ -480,7 +468,9 @@ def display_results(results_ph: st.container, observer_run: 'Observer | None') -
             if st.session_state.show_plot and st.session_state.plot_object_name == obj_name:
                 plot_data_to_use = st.session_state.active_result_plot_data; min_alt_for_plot = st.session_state.min_alt_slider; max_alt_for_plot = st.session_state.max_alt_slider; st.markdown("---")
                 with st.spinner(trans_dict.get('results_spinner_plotting',"Erstelle Plot...")):
-                    try: figure = create_plot(plot_data_to_use, min_alt_for_plot, max_alt_for_plot, st.session_state.plot_type_selection) # Pass trans_dict removed
+                    try:
+                        # Pass trans_dict to create_plot
+                        figure = create_plot(plot_data_to_use, min_alt_for_plot, max_alt_for_plot, st.session_state.plot_type_selection, trans_dict)
                     except Exception as e: st.error(f"{trans_dict.get('plot_error_unexpected', '...')}: {e}"); traceback.print_exc(); figure = None
                     if figure: st.pyplot(figure); close_button_key = f"close_{obj_name}_{i}";
                     if st.button(trans_dict.get('results_close_graph_button',"Plot schließen"), key=close_button_key): st.session_state.show_plot = False; st.session_state.active_result_plot_data = None; st.session_state.expanded_object_name = None; st.rerun()
@@ -496,56 +486,15 @@ def display_results(results_ph: st.container, observer_run: 'Observer | None') -
         except Exception as e: csv_placeholder.error(trans_dict.get('results_csv_export_error',"Fehler beim Erstellen der CSV-Datei: {}").format(e)); print(f"CSV Export Fehler: {e}")
 
 
-# --- Modify function signature: Use string for Observer type hint ---
-def create_custom_target_section(results_ph: st.container, observer_run: 'Observer | None') -> None:
+# --- Modify function signature: Add trans_dict, Use Optional[Observer] type hint ---
+def create_custom_target_section(trans_dict: dict, results_ph: st.container, observer_run: Optional[Observer]) -> None:
     """Erstellt den UI-Bereich zum Plotten eines benutzerdefinierten Ziels."""
-    # --- Get translation dict internally ---
-    trans_dict = get_translation()
+    # --- Remove internal get_translation() call ---
+    # trans_dict = get_translation() # REMOVED
     st.markdown("---")
-    with st.expander(trans_dict.get('custom_target_expander',"Eigenes RA/Dec Ziel plotten")):
-        with st.form("custom_target_form"):
-             st.text_input(trans_dict.get('custom_target_ra_label',"Rektaszension (RA):"), key="custom_target_ra", placeholder=trans_dict.get('custom_target_ra_placeholder',"..."))
-             st.text_input(trans_dict.get('custom_target_dec_label',"Deklination (Dec):"), key="custom_target_dec", placeholder=trans_dict.get('custom_target_dec_placeholder',"..."))
-             st.text_input(trans_dict.get('custom_target_name_label',"Zielname (Optional):"), key="custom_target_name", placeholder=trans_dict.get('custom_target_name_default_placeholder',"Eigenes Ziel"))
-             custom_plot_submitted = st.form_submit_button(trans_dict.get('custom_target_button',"Eigenes Ziel plotten"))
-        error_placeholder = st.empty(); plot_display_area = st.container()
-        if custom_plot_submitted:
-             st.session_state.show_plot = False; st.session_state.show_custom_plot = False; st.session_state.custom_target_plot_data = None; st.session_state.custom_target_error = ""
-             custom_ra_input = st.session_state.custom_target_ra; custom_dec_input = st.session_state.custom_target_dec; custom_name_input = st.session_state.custom_target_name or trans_dict.get('custom_target_name_default',"Eigenes Ziel")
-             window_start_time = st.session_state.get('window_start_time'); window_end_time = st.session_state.get('window_end_time'); observer_exists = observer_run is not None
-             if not custom_ra_input or not custom_dec_input: st.session_state.custom_target_error = trans_dict.get('custom_target_error_coords_missing',"RA und Dec Koordinaten benötigt."); error_placeholder.error(st.session_state.custom_target_error)
-             elif not observer_exists or not isinstance(window_start_time, Time) or not isinstance(window_end_time, Time): st.session_state.custom_target_error = trans_dict.get('custom_target_error_window_invalid',"Gültiger Standort und Beobachtungsfenster benötigt (erst Suche durchführen)."); error_placeholder.error(st.session_state.custom_target_error)
-             else:
-                 try:
-                     custom_skycoord = SkyCoord(ra=custom_ra_input, dec=custom_dec_input, unit=(u.hourangle, u.deg), frame='icrs')
-                     if window_start_time >= window_end_time: raise ValueError(trans_dict.get('custom_target_error_window_order', "..."))
-                     time_resolution = 5 * u.minute; observation_times_custom = Time(np.arange(window_start_time.jd, window_end_time.jd, time_resolution.to(u.day).value), format='jd', scale='utc')
-                     if len(observation_times_custom) < 2: raise ValueError(trans_dict.get('custom_target_error_window_short', "..."))
-                     altaz_frame = AltAz(obstime=observation_times_custom, location=observer_run.location); custom_altazs = custom_skycoord.transform_to(altaz_frame); custom_altitudes = custom_altazs.alt.to(u.deg).value; custom_azimuths = custom_altazs.az.to(u.deg).value
-                     st.session_state.custom_target_plot_data = {'Name': custom_name_input, 'altitudes': custom_altitudes, 'azimuths': custom_azimuths, 'times': observation_times_custom}; st.session_state.show_custom_plot = True; st.session_state.custom_target_error = ""; st.rerun()
-                 except ValueError as e: st.session_state.custom_target_error = f"{trans_dict.get('custom_target_error_parsing','...')}: {e}"; error_placeholder.error(st.session_state.custom_target_error)
-                 except Exception as e: st.session_state.custom_target_error = f"{trans_dict.get('custom_target_error_unexpected','...')}: {e}"; error_placeholder.error(st.session_state.custom_target_error); traceback.print_exc()
-        if st.session_state.show_custom_plot and st.session_state.custom_target_plot_data:
-            custom_plot_data = st.session_state.custom_target_plot_data; min_alt_cust_plot = st.session_state.min_alt_slider; max_alt_cust_plot = st.session_state.max_alt_slider
-            with plot_display_area:
-                 st.markdown("---")
-                 with st.spinner(trans_dict.get('results_spinner_plotting',"Erstelle Plot...")):
-                     try: custom_figure = create_plot(custom_plot_data, min_alt_cust_plot, max_alt_cust_plot, st.session_state.plot_type_selection) # Pass trans_dict removed
-                     except Exception as e: st.error(f"{trans_dict.get('plot_error_unexpected','...')}: {e}"); traceback.print_exc(); custom_figure = None
-                     if custom_figure: st.pyplot(custom_figure);
-                     if st.button(trans_dict.get('results_close_graph_button',"Plot schließen"), key="close_custom_plot_button"): st.session_state.show_custom_plot = False; st.session_state.custom_target_plot_data = None; st.rerun()
-                     elif custom_plot_submitted: st.error(trans_dict.get('results_graph_not_created',"Plot konnte nicht erstellt werden."))
-        elif st.session_state.custom_target_error: error_placeholder.error(st.session_state.custom_target_error)
-
-
-# --- NEUE Funktion für manuellen Kosmologie-Rechner ---
-# --- Modify function signature: Remove trans_dict parameter ---
-def create_manual_cosmology_calculator() -> None:
-    """Erstellt den UI-Bereich für den manuellen Rotverschiebungsrechner."""
-    # --- Get translation dict internally ---
-    trans_dict = get_translation()
-    st.markdown("---")
-    with st.expander(trans_dict.get('manual_cosmology_expander', "🌌 Manueller Kosmologie-Rechner")):
+    # --- Use hardcoded title for the expander ---
+    with st.expander("🌌 Redshift Calculator"):
+    # --- End hardcoded title ---
         st.subheader(trans_dict.get('input_params', "Eingabeparameter"))
 
         col1, col2 = st.columns(2)
@@ -602,13 +551,12 @@ def create_manual_cosmology_calculator() -> None:
             st.caption(trans_dict.get("calculation_note", "..."))
 
 
-# --- Modify function signature: Remove trans_dict parameter ---
-def display_donation_link() -> None:
+# --- Modify function signature: Add trans_dict parameter ---
+def display_donation_link(trans_dict: dict) -> None:
     """Zeigt den Ko-fi Spendenlink Button an."""
-    # --- Get translation dict internally ---
-    trans_dict = get_translation()
+    # --- Remove internal get_translation() call ---
+    # trans_dict = get_translation() # REMOVED
     st.markdown("---")
     kofi_url = "https://ko-fi.com/advanceddsofinder"
     kofi_text = trans_dict.get('donation_button_text', "Entwicklung unterstützen via Ko-fi ☕")
     st.link_button(kofi_text, kofi_url)
-
