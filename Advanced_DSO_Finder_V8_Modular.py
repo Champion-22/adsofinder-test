@@ -75,39 +75,45 @@ def initialize_session_state():
     }
     for key, default_value in defaults.items():
         if key not in st.session_state: st.session_state[key] = default_value
-    if 'language' in st.session_state: st.session_state.language = st.session_state.language.upper()
+    # Ensure language key is uppercase after initialization or on subsequent runs
+    if 'language' in st.session_state:
+        st.session_state.language = str(st.session_state.language).upper()
 
+# --- Helper Function for Translations ---
+def get_current_translation() -> dict:
+    """Gets the correct translation dictionary based on session state."""
+    lang = st.session_state.language # Assumed to be uppercase by initialize_session_state
+    if lang not in translations:
+        print(f"Warning: Language '{lang}' not found in translations. Falling back to 'EN'.")
+        lang = 'EN'
+        st.session_state.language = lang # Correct the state
+    # Return the dictionary for the selected language, default to EN or empty dict
+    return translations.get(lang, translations.get('EN', {}))
 
 # --- Main App Logic ---
 def main():
-    # 1. Initialize state and load language translations
+    # 1. Initialize state
     initialize_session_state()
-    lang = st.session_state.language # Should be uppercase ('DE', 'EN', 'FR')
-
-    # --- Explicitly select the translation dictionary ---
-    if lang in translations:
-        trans_dict = translations[lang] # Direct access since key exists
-    else:
-        print(f"Warning: Language '{lang}' not found in translations dictionary. Falling back to 'EN'.")
-        lang = 'EN'
-        st.session_state.language = lang # Update state if fallback occurred
-        trans_dict = translations.get('EN', {}) # Use .get() for safe fallback to EN or empty dict
+    # Get the current translation dictionary using the helper function
+    trans_dict = get_current_translation()
 
     # Ensure trans_dict is actually a dictionary before proceeding
     if not isinstance(trans_dict, dict):
-        st.error(f"Fatal Error: Could not load translation dictionary for language '{lang}'.")
-        trans_dict = {} # Use empty dict to prevent further crashes
-    # --- End explicit selection ---
+        st.error(f"Fatal Error: Could not load translation dictionary for language '{st.session_state.language}'.")
+        # Optionally provide a default empty dict to prevent crashes in UI components
+        trans_dict = {}
 
     # 2. Load Catalog Data (Cached)
     @st.cache_data
     def cached_load_ongc_data(path: str) -> pd.DataFrame | None:
         """Cached function to load ONGC data."""
         print(f"Cache miss: Loading ONGC data from {path}")
+        # Use trans_dict safely now
+        t_err = trans_dict if isinstance(trans_dict, dict) else {}
         try: return data_handling.load_ongc_data(path)
-        except ModuleNotFoundError: st.error(f"{trans_dict.get('error_module_missing', 'Error: Module missing:')} data_handling.py"); return None
-        except FileNotFoundError: st.error(f"{trans_dict.get('error_catalog_not_found', 'Error: Catalog file not found at path:')} {path}"); return None
-        except Exception as load_err: st.error(f"{trans_dict.get('error_catalog_load_failed', 'Failed to load catalog')}: {load_err}"); return None
+        except ModuleNotFoundError: st.error(f"{t_err.get('error_module_missing', 'Error: Module missing:')} data_handling.py"); return None
+        except FileNotFoundError: st.error(f"{t_err.get('error_catalog_not_found', 'Error: Catalog file not found at path:')} {path}"); return None
+        except Exception as load_err: st.error(f"{t_err.get('error_catalog_load_failed', 'Failed to load catalog')}: {load_err}"); return None
 
     df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH)
 
@@ -126,7 +132,7 @@ def main():
 
     st.markdown("---")
 
-    # 4. Create Sidebar UI (Pass 'trans_dict')
+    # 4. Create Sidebar UI (Pass the dictionary)
     ui_components.create_sidebar(trans_dict, df_catalog_data, tf)
 
     # 5. Prepare Observer Object
@@ -145,7 +151,7 @@ def main():
         try: ref_time = Time(datetime.combine(selected_date_main, time(12, 0)), scale='utc'); print(f"Calculating 'Specific Night' window based on UTC noon: {ref_time.iso}")
         except Exception as time_err: st.error(trans_dict.get('error_ref_time_creation', "Error setting reference time: {}").format(time_err)); ref_time = None
 
-    # 7. Display Search Parameters Summary (Pass 'trans_dict')
+    # 7. Display Search Parameters Summary (Pass the dictionary)
     min_mag_filt_calc, max_mag_filt_calc = ui_components.display_search_parameters(
         trans_dict, observer_run, ref_time if ref_time else Time.now()
     )
@@ -170,7 +176,8 @@ def main():
         if observer_run and df_catalog_data is not None and ref_time is not None:
             with st.spinner(trans_dict.get('spinner_searching',"Searching for observable objects...")):
                 try:
-                    start_time_calc, end_time_calc, window_status_msg = astro_calculations.get_observable_window(observer_run, ref_time, is_now_mode_main, trans_dict) # Pass trans_dict
+                    # Pass the dictionary to calculation functions as well
+                    start_time_calc, end_time_calc, window_status_msg = astro_calculations.get_observable_window(observer_run, ref_time, is_now_mode_main, trans_dict)
                     results_placeholder.info(window_status_msg); st.session_state.window_start_time = start_time_calc; st.session_state.window_end_time = end_time_calc
                     if start_time_calc and end_time_calc and start_time_calc < end_time_calc:
                         time_resolution_calc = 5 * u.minute; observation_times_calc = Time(np.arange(start_time_calc.jd, end_time_calc.jd, time_resolution_calc.to(u.day).value), format='jd', scale='utc')
@@ -183,7 +190,8 @@ def main():
                         if filtered_df.empty: results_placeholder.warning(trans_dict.get('warning_no_objects_after_filters',"...")); st.session_state.last_results = []
                         else:
                             min_alt_search_calc = st.session_state.min_alt_slider * u.deg
-                            found_objects = astro_calculations.find_observable_objects(observer_run.location, observation_times_calc, min_alt_search_calc, filtered_df, trans_dict) # Pass trans_dict
+                            # Pass the dictionary here too
+                            found_objects = astro_calculations.find_observable_objects(observer_run.location, observation_times_calc, min_alt_search_calc, filtered_df, trans_dict)
                             final_results = []; selected_direction_calc = st.session_state.selected_peak_direction; max_alt_filter_calc = st.session_state.max_alt_slider
                             for obj_result in found_objects:
                                 if obj_result.get('Max Altitude (°)', -999) > max_alt_filter_calc: continue
@@ -196,14 +204,12 @@ def main():
                             if not final_results: results_placeholder.warning(trans_dict.get('warning_no_objects_found_final',"..."))
                             else: results_placeholder.success(trans_dict.get('success_objects_found',"{} objects found matching criteria.").format(len(final_results))); sort_info_key = 'info_showing_list_duration' if sort_key != 'Brightness' else 'info_showing_list_magnitude'; results_placeholder.info(trans_dict.get(sort_info_key, "...").format(len(st.session_state.last_results), sort_key))
                     else: results_placeholder.error(trans_dict.get('error_cannot_search_no_window',"...")); st.session_state.last_results = []
-                # --- Correction: Removed extra parenthesis ---
                 except Exception as e:
-                    error_msg = trans_dict.get('error_search_unexpected',"...") # Corrected: Removed extra ')'
+                    error_msg = trans_dict.get('error_search_unexpected',"...")
                     results_placeholder.error(f"{error_msg}\n```\n{traceback.format_exc()}\n```")
                     print(f"Search Error: {e}")
                     traceback.print_exc()
                     st.session_state.last_results = []
-                # --- End Correction ---
         else:
             if df_catalog_data is None: results_placeholder.error(trans_dict.get('error_prereq_catalog',"..."))
             if not observer_run: results_placeholder.error(trans_dict.get('error_prereq_location',"..."))
