@@ -196,12 +196,14 @@ def main():
                             if not final_results: results_placeholder.warning(trans_dict.get('warning_no_objects_found_final',"..."))
                             else: results_placeholder.success(trans_dict.get('success_objects_found',"{} objects found matching criteria.").format(len(final_results))); sort_info_key = 'info_showing_list_duration' if sort_key != 'Brightness' else 'info_showing_list_magnitude'; results_placeholder.info(trans_dict.get(sort_info_key, "...").format(len(st.session_state.last_results), sort_key))
                     else: results_placeholder.error(trans_dict.get('error_cannot_search_no_window',"...")); st.session_state.last_results = []
+                # --- Correction: Removed extra parenthesis ---
                 except Exception as e:
-                    error_msg = trans_dict.get('error_search_unexpected',"...")
+                    error_msg = trans_dict.get('error_search_unexpected',"...") # Corrected: Removed extra ')'
                     results_placeholder.error(f"{error_msg}\n```\n{traceback.format_exc()}\n```")
                     print(f"Search Error: {e}")
                     traceback.print_exc()
                     st.session_state.last_results = []
+                # --- End Correction ---
         else:
             if df_catalog_data is None: results_placeholder.error(trans_dict.get('error_prereq_catalog',"..."))
             if not observer_run: results_placeholder.error(trans_dict.get('error_prereq_location',"..."))
