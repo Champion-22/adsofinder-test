@@ -72,6 +72,11 @@ def initialize_session_state():
         'expanded_object_name': None, 'time_choice_exp': 'Now',
         'window_start_time': None, 'window_end_time': None,
         'selected_date_widget': date.today(),
+        # Added keys for manual cosmology calculator
+        "manual_z_input_value": 1.0,
+        "manual_h0_value": astro_calculations.H0_DEFAULT,
+        "manual_omega_m_value": astro_calculations.OMEGA_M_DEFAULT,
+        "manual_omega_lambda_value": astro_calculations.OMEGA_LAMBDA_DEFAULT,
     }
     for key, default_value in defaults.items():
         if key not in st.session_state: st.session_state[key] = default_value
@@ -90,10 +95,37 @@ def main():
 
     # Get the current translation dict once for potential use in main logic if needed
     current_lang = st.session_state.language
+    # Use .get with a fallback to English, and then to an empty dict if English also fails
     trans_dict = translations.get(current_lang, translations.get('EN', {}))
-    if not isinstance(trans_dict, dict):
-        st.error(f"Fatal Error: Could not load translation dictionary for language '{current_lang}'.")
-        trans_dict = {} # Fallback
+    if not isinstance(trans_dict, dict) or not trans_dict: # Check if it's a non-empty dict
+        st.error(f"Fatal Error: Could not load a valid translation dictionary for language '{current_lang}'. Falling back to minimal defaults.")
+        # Provide a minimal fallback dictionary to prevent crashes
+        trans_dict = {
+            'app_title': "Advanced DSO Finder (Fallback)",
+            'error_module_missing': "Error: Module missing:",
+            'error_catalog_not_found': "Error: Catalog file not found at path:",
+            'error_catalog_load_failed': "Failed to load catalog",
+            'object_type_glossary_title': "Object Type Glossary (Fallback)",
+            'glossary_unavailable': "Glossary not available.",
+            'error_observer_creation': "Error creating observer location: {}",
+            'error_ref_time_creation': "Error setting reference time: {}",
+            'find_button_label': "Find Observable Objects",
+            'info_initial_prompt': "Please set a valid location in the sidebar to enable search.",
+            'info_set_ref_time': "Please select a valid date for the specific night search.",
+            'info_catalog_missing': "Catalog data is missing, cannot perform search.",
+            'spinner_searching': "Searching for observable objects...",
+            'warning_window_too_short_calc': "Warning: Observation window is very short, results may be limited.",
+            'warning_no_objects_after_filters': "Warning: No objects match the initial magnitude/type/size filters.",
+            'warning_no_objects_found_final': "No observable objects found matching all criteria (including altitude/direction).",
+            'success_objects_found': "{} objects found matching criteria.",
+            'info_showing_list_duration': "Showing top {} objects, sorted by {} (Duration & Altitude).",
+            'info_showing_list_magnitude': "Showing top {} objects, sorted by {} (Brightness).",
+            'error_cannot_search_no_window': "Error: Cannot search for objects as no valid observation window could be determined.",
+            'error_search_unexpected': "An unexpected error occurred during the search.",
+            'error_prereq_catalog': "Error: Catalog data not loaded.",
+            'error_prereq_location': "Error: Observer location not set or invalid.",
+            'error_prereq_time': "Error: Reference time not set.",
+        }
 
     # 2. Load Catalog Data (Cached)
     @st.cache_data
@@ -113,7 +145,7 @@ def main():
     st.title(trans_dict.get('app_title', "Advanced DSO Finder"))
     with st.expander(trans_dict.get('object_type_glossary_title', "Object Type Glossary")):
         glossary_items = trans_dict.get('object_type_glossary', {})
-        if glossary_items:
+        if glossary_items and isinstance(glossary_items, dict): # Check if it's a dict
             col1, col2 = st.columns(2); col_index = 0
             sorted_items = sorted(glossary_items.items())
             for abbr, full_name in sorted_items:
@@ -124,9 +156,9 @@ def main():
 
     st.markdown("---")
 
-    # 4. Create Sidebar UI (Pass catalog data and timezone finder only)
-    # The UI component will get the translation dict itself
-    ui_components.create_sidebar(df_catalog_data, tf)
+    # 4. Create Sidebar UI (Pass translation dict, catalog data, and timezone finder)
+    # *** CORRECTED FUNCTION CALL ***
+    ui_components.create_sidebar(trans_dict, df_catalog_data, tf)
 
     # 5. Prepare Observer Object
     observer_run = None
@@ -144,10 +176,10 @@ def main():
         try: ref_time = Time(datetime.combine(selected_date_main, time(12, 0)), scale='utc'); print(f"Calculating 'Specific Night' window based on UTC noon: {ref_time.iso}")
         except Exception as time_err: st.error(trans_dict.get('error_ref_time_creation', "Error setting reference time: {}").format(time_err)); ref_time = None
 
-    # 7. Display Search Parameters Summary (Pass observer and ref_time only)
-    # The UI component will get the translation dict itself
+    # 7. Display Search Parameters Summary (Pass translation dict, observer, and ref_time)
+    # *** CORRECTED FUNCTION CALL ***
     min_mag_filt_calc, max_mag_filt_calc = ui_components.display_search_parameters(
-        observer_run, ref_time if ref_time else Time.now()
+        trans_dict, observer_run, ref_time if ref_time else Time.now()
     )
 
     st.markdown("---")
@@ -210,19 +242,19 @@ def main():
             if ref_time is None: results_placeholder.error(trans_dict.get('error_prereq_time',"..."))
             st.session_state.last_results = []
 
-    # 9. Display Results (No dictionary passed)
+    # 9. Display Results (Pass translation dict)
+    # *** CORRECTED FUNCTION CALL ***
     if st.session_state.last_results:
-        ui_components.display_results(results_placeholder, observer_run)
-    elif st.session_state.find_button_pressed: pass
+        ui_components.display_results(trans_dict, results_placeholder, observer_run)
+    elif st.session_state.find_button_pressed: pass # Avoid showing "no results" before first search
 
-    # 10. Display Custom Target Section (No dictionary passed)
-    ui_components.create_custom_target_section(results_placeholder, observer_run)
+    # 10. Display Custom Target Section (Pass translation dict)
+    # *** CORRECTED FUNCTION CALL ***
+    ui_components.create_custom_target_section(trans_dict, results_placeholder, observer_run)
 
-    # 11. Display Manual Cosmology Calculator (No dictionary passed)
-    ui_components.create_manual_cosmology_calculator()
-
-    # 12. Display Donation Link (No dictionary passed)
-    ui_components.display_donation_link()
+    # 11. Display Donation Link (Pass translation dict)
+    # *** CORRECTED FUNCTION CALL ***
+    ui_components.display_donation_link(trans_dict)
 
 # --- Run the App ---
 if __name__ == "__main__":
