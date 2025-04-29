@@ -3,6 +3,7 @@
 # --- Translations ---
 translations = {
     'de': {
+        # ... (Deutscher Block - unverändert) ...
         'settings_header': "Einstellungen",
         'language_select_label': "Sprache",
         'location_expander': "📍 Standort",
@@ -170,12 +171,12 @@ translations = {
         'info_catalog_loaded': "Katalog geladen: {} Objekte.",
         'warning_catalog_empty': "Katalogdatei geladen, aber keine passenden Objekte nach Filterung gefunden.",
         'donation_text': "Gefällt dir die App? [Unterstütze die Entwicklung auf Ko-fi ☕](https://ko-fi.com/advanceddsofinder)",
-        'bug_report_button': "🐞 Fehler melden", # Added
-        'bug_report_body': "\n\n(Bitte beschreiben Sie den Fehler und die Schritte zur Reproduktion)" # Added
+        'bug_report_button': "🐞 Fehler melden",
+        'bug_report_body': "\n\n(Bitte beschreiben Sie den Fehler und die Schritte zur Reproduktion)"
         },
-    'en': { # Start Zeile 234
+    'en': { # Start Zeile 234 <-- ACHTE HIER AUF SYNTAX!
         # --- Englische Übersetzungen ---
-        'settings_header': "Settings", # Bereits vorhanden
+        'settings_header': "Settings",
         'language_select_label': "Language",
         'location_expander': "📍 Location",
         'location_select_label': "Select Location Method",
@@ -183,7 +184,7 @@ translations = {
         'location_option_search': "Search by Name",
         'location_search_label': "Enter location name:",
         'location_search_submit_button': "Find Coordinates",
-        'location_search_placeholder': "e.g., London, UK", # Beispiel angepasst
+        'location_search_placeholder': "e.g., London, UK",
         'location_search_found': "Found (Nominatim): {}",
         'location_search_found_fallback': "Found via Fallback (ArcGIS): {}",
         'location_search_found_fallback2': "Found via 2nd Fallback (Photon): {}",
@@ -238,7 +239,7 @@ translations = {
         'direction_filter_header': "**Filter by Cardinal Direction**",
         'direction_filter_label': "Show objects culminating towards:",
         'direction_option_all': "All",
-        'object_type_glossary_title': "Object Type Glossary", # Bereits vorhanden
+        'object_type_glossary_title': "Object Type Glossary",
         'object_type_glossary': {
             "OCl": "Open Cluster", "GCl": "Globular Cluster", "Cl+N": "Cluster + Nebula",
             "Gal": "Galaxy", "PN": "Planetary Nebula", "SNR": "Supernova Remnant",
@@ -340,13 +341,13 @@ translations = {
         'window_fallback_info': "\nUsing fallback window: {} to {} UTC",
         'error_loading_catalog': "Error loading catalog file: {}",
         'warning_catalog_empty': "Catalog file loaded, but no matching objects found after filtering.",
-        'donation_text': "Like the app? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)", # Bereits vorhanden
-        'bug_report_button': "🐞 Report Bug", # Bereits vorhanden
-        'bug_report_body': "\n\n(Please describe the bug and the steps to reproduce it)", # Bereits vorhanden
+        'donation_text': "Like the app? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)",
+        'bug_report_button': "🐞 Report Bug",
+        'bug_report_body': "\n\n(Please describe the bug and the steps to reproduce it)"
     },
     'fr': {
-        # --- Französische Übersetzungen ---
-        'settings_header': "Paramètres", # Bereits vorhanden
+        # ... (Französischer Block - unverändert) ...
+        'settings_header': "Paramètres",
         'language_select_label': "Langue",
         'location_expander': "📍 Emplacement",
         'location_select_label': "Choisir la méthode d'emplacement",
@@ -354,7 +355,7 @@ translations = {
         'location_option_search': "Rechercher par nom",
         'location_search_label': "Entrer le nom du lieu :",
         'location_search_submit_button': "Trouver les coordonnées",
-        'location_search_placeholder': "p.ex. Paris, France", # Beispiel angepasst
+        'location_search_placeholder': "p.ex. Paris, France",
         'location_search_found': "Trouvé (Nominatim) : {}",
         'location_search_found_fallback': "Trouvé via fallback (ArcGIS) : {}",
         'location_search_found_fallback2': "Trouvé via 2e fallback (Photon) : {}",
@@ -409,7 +410,7 @@ translations = {
         'direction_filter_header': "**Filtre par Direction Cardinale**",
         'direction_filter_label': "Afficher les objets culminant vers :",
         'direction_option_all': "Toutes",
-        'object_type_glossary_title': "Glossaire des types d'objets", # Bereits vorhanden
+        'object_type_glossary_title': "Glossaire des types d'objets",
         'object_type_glossary': {
             "OCl": "Amas Ouvert", "GCl": "Amas Globulaire", "Cl+N": "Amas + Nébuleuse",
             "Gal": "Galaxie", "PN": "Nébuleuse Planétaire", "SNR": "Rémanent de Supernova",
@@ -456,8 +457,8 @@ translations = {
         'results_export_constellation': "Constellation",
         'results_export_mag': "Magnitude",
         'results_export_size': "Taille (arcmin)",
-        'results_export_ra': "AD", # Ascension Droite
-        'results_export_dec': "Dec", # Déclinaison
+        'results_export_ra': "AD",
+        'results_export_dec': "Dec",
         'results_export_max_alt': "Altitude Max (°)",
         'results_export_az_at_max': "Azimut à l'apogée (°)",
         'results_export_direction_at_max': "Direction à l'apogée",
@@ -511,9 +512,9 @@ translations = {
         'window_fallback_info': "\nFenêtre de secours utilisée : {} à {} UTC",
         'error_loading_catalog': "Erreur lors du chargement du fichier catalogue : {}",
         'warning_catalog_empty': "Fichier catalogue chargé, mais aucun objet correspondant trouvé après filtrage.",
-        'donation_text': "Vous aimez l'application ? [Soutenez le développement sur Ko-fi ☕](https://ko-fi.com/advanceddsofinder)", # Bereits vorhanden
-        'bug_report_button': "🐞 Signaler un bug", # Bereits vorhanden
-        'bug_report_body': "\n\n(Veuillez décrire le bug et les étapes pour le reproduire)", # Bereits vorhanden
+        'donation_text': "Vous aimez l'application ? [Soutenez le développement sur Ko-fi ☕](https://ko-fi.com/advanceddsofinder)",
+        'bug_report_button': "🐞 Signaler un bug",
+        'bug_report_body': "\n\n(Veuillez décrire le bug et les étapes pour le reproduire)"
     },
 }
 
@@ -530,4 +531,6 @@ def get_translation(lang: str) -> dict:
     Returns:
         dict: Das Dictionary mit den Übersetzungen für die gewählte Sprache.
     """
+    # Stelle sicher, dass der Schlüssel existiert, bevor darauf zugegriffen wird.
+    # Gib das Dictionary für die angeforderte Sprache zurück oder das für die Standardsprache.
     return translations.get(lang, translations[DEFAULT_LANG])
