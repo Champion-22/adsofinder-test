@@ -114,7 +114,9 @@ translations = {
         'results_export_dec': "Dec", 'results_export_max_alt': "Max Höhe (°)", 'results_export_az_at_max': "Azimut bei Max (°)",
         'results_export_direction_at_max': "Richtung bei Max", 'results_export_time_max_utc': "Zeit bei Max (UTC)",
         'results_export_time_max_local': "Zeit bei Max (Lokale TZ)", 'results_export_cont_duration': "Max Kont Dauer (h)",
-        'results_expander_title': "{} ({}) - Mag: {:.1f}",
+        # === KORREKTUR HIER ===
+        'results_expander_title': '{} ({}) - Mag: {}', # Erwartet jetzt String für Mag
+        # =======================
         'google_link_text': "Google", 'simbad_link_text': "SIMBAD",
         'results_coords_header': "**Details:**", 'results_constellation_label': "Sternbild:", 'results_size_label': "Größe (Hauptachse):",
         'results_size_value': "{:.1f} arcmin", 'results_max_alt_header': "**Max. Höhe:**", 'results_azimuth_label': "(Azimut: {:.1f}°{})",
@@ -142,7 +144,7 @@ translations = {
         # === Redshift Calculator Keys ===
         'redshift_calculator_title': "Rotverschiebungs-Rechner", # Hinzugefügt
         'redshift_z_tooltip': "Geben Sie die kosmologische Rotverschiebung ein (negativ für Blauverschiebung).", # Hinzugefügt
-        "lang_select": "Sprache wählen", # Schlüssel bereits vorhanden, Wert aus RC übernommen (identisch)
+        "lang_select": "Sprache wählen", # Already exists
         "input_params": "Eingabeparameter", # RC Key
         "redshift_z": "Rotverschiebung (z)", # RC Key
         "cosmo_params": "Kosmologische Parameter", # RC Key
@@ -175,9 +177,9 @@ translations = {
         "calculation_note": "Berechnung basiert auf dem flachen ΛCDM-Modell unter Vernachlässigung der Strahlungsdichte.", # RC Key
         "rc_donate_text": "Gefällt Ihnen dieser Rechner? Unterstützen Sie die Entwicklung mit einer kleinen Spende!", # Hinzugefügt (RC Key)
         "rc_donate_button": "Spenden via Ko-fi", # Hinzugefügt (RC Key)
-        "bug_report": "Fehler gefunden?", # RC Key (alternativ zu DSO Finder?) - Behalte DSO Finder Button
-        #"bug_report_button": "Problem melden", # RC Key - Verwende DSO Finder Button
-        "glossary": "Glossar", # RC Key (Optional, falls separates Glossar gewünscht)
+        "bug_report": "Fehler gefunden?", # RC Key
+        #"bug_report_button": "Problem melden", # Using DSO Finder version
+        "glossary": "Glossar", # RC Key
         "example_lookback_recent": "Vor Kurzem (kosmologisch gesehen).", # RC Key
         "example_lookback_humans": "Entwicklung des modernen Menschen.", # RC Key
         "example_lookback_dinos": "Zeitalter der Dinosaurier.", # RC Key
@@ -233,7 +235,10 @@ translations = {
         'results_export_name': "Name", 'results_export_type': "Type", 'results_export_constellation': "Constellation", 'results_export_mag': "Magnitude", 'results_export_size': "Size (arcmin)",
         'results_export_ra': "RA", 'results_export_dec': "Dec", 'results_export_max_alt': "Max Altitude (°)", 'results_export_az_at_max': "Azimuth at Max (°)", 'results_export_direction_at_max': "Direction at Max",
         'results_export_time_max_utc': "Time at Max (UTC)", 'results_export_time_max_local': "Time at Max (Local TZ)", 'results_export_cont_duration': "Max Cont Duration (h)",
-        'results_expander_title': "{} ({}) - Mag: {:.1f}", 'google_link_text': "Google", 'simbad_link_text': "SIMBAD", 'results_coords_header': "**Details:**", 'results_constellation_label': "Constellation:",
+        # === KORREKTUR HIER ===
+        'results_expander_title': '{} ({}) - Mag: {}', # Expects string for Mag now
+        # =======================
+        'google_link_text': "Google", 'simbad_link_text': "SIMBAD", 'results_coords_header': "**Details:**", 'results_constellation_label': "Constellation:",
         'results_size_label': "Size (Major Axis):", 'results_size_value': "{:.1f} arcmin", 'results_max_alt_header': "**Max. Altitude:**", 'results_azimuth_label': "(Azimuth: {:.1f}°{})",
         'results_direction_label': ", Direction: {}", 'results_best_time_header': "**Best Time (Local TZ):**", 'results_cont_duration_header': "**Max. Cont. Duration:**", 'results_duration_value': "{:.1f} hours",
         'graph_type_label': "Graph Type (for all plots):", 'graph_type_sky_path': "Sky Path (Az/Alt)", 'graph_type_alt_time': "Altitude Plot (Alt/Time)", 'results_graph_button': "📈 Show Plot",
@@ -287,7 +292,7 @@ translations = {
         "rc_donate_text": "Like this calculator? Support its development with a small donation!", # Added (RC Key)
         "rc_donate_button": "Donate via Ko-fi", # Added (RC Key)
         "bug_report": "Found a bug?", # RC Key
-        #"bug_report_button": "Report Issue", # RC Key - Use DSO Finder button
+        #"bug_report_button": "Report Issue", # Using DSO Finder version
         "glossary": "Glossary", # RC Key
         "example_lookback_recent": "Recently (cosmologically speaking).", # RC Key
         "example_lookback_humans": "Evolution of modern humans.", # RC Key
@@ -344,7 +349,10 @@ translations = {
         'results_export_name': "Nom", 'results_export_type': "Type", 'results_export_constellation': "Constellation", 'results_export_mag': "Magnitude", 'results_export_size': "Taille (arcmin)",
         'results_export_ra': "AD", 'results_export_dec': "Dec", 'results_export_max_alt': "Altitude Max (°)", 'results_export_az_at_max': "Azimut à l'apogée (°)", 'results_export_direction_at_max': "Direction à l'apogée",
         'results_export_time_max_utc': "Heure à l'apogée (UTC)", 'results_export_time_max_local': "Heure à l'apogée (Fuseau local)", 'results_export_cont_duration': "Durée cont. max (h)",
-        'results_expander_title': "{} ({}) - Mag : {:.1f}", 'google_link_text': "Google", 'simbad_link_text': "SIMBAD", 'results_coords_header': "**Détails :**", 'results_constellation_label': "Constellation :",
+        # === KORREKTUR HIER ===
+        'results_expander_title': '{} ({}) - Mag : {}', # Attend maintenant une chaîne pour Mag
+        # =======================
+        'google_link_text': "Google", 'simbad_link_text': "SIMBAD", 'results_coords_header': "**Détails :**", 'results_constellation_label': "Constellation :",
         'results_size_label': "Taille (axe majeur) :", 'results_size_value': "{:.1f} arcmin", 'results_max_alt_header': "**Altitude Max. :**", 'results_azimuth_label': "(Azimut : {:.1f}°{})",
         'results_direction_label': ", Direction : {}", 'results_best_time_header': "**Meilleure heure (Fuseau local) :**", 'results_cont_duration_header': "**Durée cont. max :**", 'results_duration_value': "{:.1f} heures",
         'graph_type_label': "Type de graphique (pour tous) :", 'graph_type_sky_path': "Trajectoire céleste (Az/Alt)", 'graph_type_alt_time': "Courbe d'altitude (Alt/Temps)", 'results_graph_button': "📈 Afficher le graphique",
@@ -398,7 +406,7 @@ translations = {
         "rc_donate_text": "Vous aimez ce calculateur ? Soutenez son développement avec un petit don !", # Added (RC Key)
         "rc_donate_button": "Faire un don via Ko-fi", # Added (RC Key)
         "bug_report": "Trouvé un bug ?", # RC Key
-        #"bug_report_button": "Signaler un problème", # RC Key - Use DSO Finder button
+        #"bug_report_button": "Signaler un problème", # Using DSO Finder version
         "glossary": "Glossaire", # RC Key
         "example_lookback_recent": "Récemment (en termes cosmologiques).", # RC Key
         "example_lookback_humans": "Évolution des humains modernes.", # RC Key
