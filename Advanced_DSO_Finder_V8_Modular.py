@@ -660,7 +660,7 @@ def main():
              if not observer_for_run: results_placeholder.error("Cannot search: Location invalid.")
              st.session_state.last_results = []
 
-    # Display Results Block (unchanged logic)
+    # Display Results Block
     if st.session_state.last_results:
         results_data = st.session_state.last_results
         results_placeholder.subheader(t.get('results_list_header', "Results"))
@@ -680,11 +680,19 @@ def main():
         # Plot Type Selection (unchanged)
         plot_opts = {'Sky Path': t.get('graph_type_sky_path', "Sky Path"), 'Altitude Plot': t.get('graph_type_alt_time', "Alt Plot")}
         results_placeholder.radio(t.get('graph_type_label', "Graph:"), options=list(plot_opts.keys()), format_func=lambda k: plot_opts[k], key='plot_type_selection', horizontal=True)
-        # Object List Display (unchanged logic)
+        # Object List Display
         for i, obj_data in enumerate(results_data):
-            # ... (Expander creation, column layout, data display, button logic - unchanged) ...
-            name, type = obj_data.get('Name','N/A'), obj_data.get('Type','N/A'); mag = obj_data.get('Magnitude'); mag_s = f"{mag:.1f}" if mag is not None else "N/A"
-            title = t.get('results_expander_title', "{} ({}) - Mag: {}").format(name, type, mag_s); is_exp = (st.session_state.expanded_object_name == name)
+            name, type = obj_data.get('Name','N/A'), obj_data.get('Type','N/A')
+            obj_mag = obj_data.get('Magnitude')
+            # === KORREKTUR HIER ===
+            # mag_s ist entweder die formatierte Zahl als String oder "N/A"
+            mag_s = f"{obj_mag:.1f}" if obj_mag is not None else "N/A"
+            # Hole den Formatstring (dieser muss in localization.py angepasst sein zu "{} ({}) - Mag: {}")
+            title_format_string = t.get('results_expander_title', "{} ({}) - Mag: {}") # Standard-Fallback
+            # Formatiere den Titel mit dem String mag_s
+            title = title_format_string.format(name, type, mag_s)
+            # =======================
+            is_exp = (st.session_state.expanded_object_name == name)
             obj_cont = results_placeholder.container()
             with obj_cont.expander(title, expanded=is_exp):
                 c1, c2, c3 = st.columns([2,2,1])
@@ -777,130 +785,56 @@ def main():
                      except Exception as plt_e_c: st.error(t.get('results_graph_error', "Plot Err: {}").format(plt_e_c)); traceback.print_exc()
         elif st.session_state.custom_target_error: custom_err_ph.error(st.session_state.custom_target_error)
 
-
-    # +++ NEU: Redshift Calculator Integration +++
+    # +++ Redshift Calculator Integration (unchanged) +++
     st.markdown("---")
-    with st.expander(t.get("redshift_calculator_title", "Redshift Calculator"), expanded=False): # Neuer Key für localization.py benötigt
-
+    with st.expander(t.get("redshift_calculator_title", "Redshift Calculator"), expanded=False):
         # Input Parameters for Redshift
         st.subheader(t.get("input_params", "Input Parameters")) # Key aus Redshift Calc
-        rc_z = st.number_input(
-            label=t.get("redshift_z", "Redshift (z)"), # Key aus Redshift Calc
-            min_value=-0.99, # Allow blueshift slightly
-            value=st.session_state.redshift_z_input, # Use session state
-            step=0.1,
-            format="%.5f",
-            key="redshift_z_input", # Session state key
-            help=t.get("redshift_z_tooltip", "Enter cosmological redshift (negative for blueshift)") # Neuer Key für localization.py benötigt
-        )
+        rc_z = st.number_input(label=t.get("redshift_z", "Redshift (z)"), min_value=-0.99, value=st.session_state.redshift_z_input, step=0.1, format="%.5f", key="redshift_z_input", help=t.get("redshift_z_tooltip", "Enter cosmological redshift"))
         st.markdown("---")
         st.subheader(t.get("cosmo_params", "Cosmological Parameters")) # Key aus Redshift Calc
-        rc_h0 = st.number_input(
-            label=t.get("hubble_h0", "H₀ [km/s/Mpc]"), # Key aus Redshift Calc
-            min_value=1.0,
-            value=st.session_state.redshift_h0_input, # Use session state
-            step=0.1,
-            format="%.1f",
-            key="redshift_h0_input" # Session state key
-        )
-        rc_om = st.number_input(
-            label=t.get("omega_m", "Ωm"), # Key aus Redshift Calc
-            min_value=0.0, max_value=2.0,
-            value=st.session_state.redshift_omega_m_input, # Use session state
-            step=0.01,
-            format="%.3f",
-            key="redshift_omega_m_input" # Session state key
-        )
-        rc_ol = st.number_input(
-            label=t.get("omega_lambda", "ΩΛ"), # Key aus Redshift Calc
-            min_value=0.0, max_value=2.0,
-            value=st.session_state.redshift_omega_lambda_input, # Use session state
-            step=0.01,
-            format="%.3f",
-            key="redshift_omega_lambda_input" # Session state key
-        )
-
-        # Flat universe warning (using Redshift Calc key)
-        if not math.isclose(rc_om + rc_ol, 1.0, abs_tol=1e-3):
-            st.warning(t.get("flat_universe_warning", "Ωm + ΩΛ ≉ 1. Assuming flat universe."))
-
+        rc_h0 = st.number_input(label=t.get("hubble_h0", "H₀ [km/s/Mpc]"), min_value=1.0, value=st.session_state.redshift_h0_input, step=0.1, format="%.1f", key="redshift_h0_input")
+        rc_om = st.number_input(label=t.get("omega_m", "Ωm"), min_value=0.0, max_value=2.0, value=st.session_state.redshift_omega_m_input, step=0.01, format="%.3f", key="redshift_omega_m_input")
+        rc_ol = st.number_input(label=t.get("omega_lambda", "ΩΛ"), min_value=0.0, max_value=2.0, value=st.session_state.redshift_omega_lambda_input, step=0.01, format="%.3f", key="redshift_omega_lambda_input")
+        if not math.isclose(rc_om + rc_ol, 1.0, abs_tol=1e-3): st.warning(t.get("flat_universe_warning", "Ωm + ΩΛ ≉ 1. Assuming flat."))
         st.markdown("---")
         st.subheader(t.get("results_for", "Results for z = {z:.5f}").format(z=rc_z)) # Key aus Redshift Calc
-
         # Calculate Redshift Results
         rc_results = calculate_lcdm_distances(rc_z, rc_h0, rc_om, rc_ol)
-
-        rc_error_key = rc_results.get('error_key') # Changed from 'error_msg'
-        if rc_error_key:
-            rc_error_args = rc_results.get('error_args', {})
-            rc_error_text = t.get(rc_error_key, rc_error_key).format(**rc_error_args) # Use t.get
+        rc_error_key = rc_results.get('error_key')
+        if rc_error_key: # Display errors/warnings
+            rc_error_args = rc_results.get('error_args', {}); rc_error_text = t.get(rc_error_key, rc_error_key).format(**rc_error_args)
             if rc_error_key == "warn_blueshift": st.warning(rc_error_text)
             else: st.error(rc_error_text)
-        else: # Only display results if no error occurred (excluding blueshift warning)
-            rc_warning_key = rc_results.get('warning_key')
-            if rc_warning_key:
-                rc_warning_args = rc_results.get('warning_args', {})
-                st.info(t.get(rc_warning_key, rc_warning_key).format(**rc_warning_args)) # Use t.get
-
+        else: # Display results only if no major error
+            rc_warning_key = rc_results.get('warning_key');
+            if rc_warning_key: rc_warning_args = rc_results.get('warning_args', {}); st.info(t.get(rc_warning_key, rc_warning_key).format(**rc_warning_args))
             # Extract results
-            rc_comov_mpc = rc_results['comoving_mpc']
-            rc_lum_mpc = rc_results['luminosity_mpc']
-            rc_angd_mpc = rc_results['ang_diam_mpc']
-            rc_lookback_gyr = rc_results['lookback_gyr']
-
+            rc_comov_mpc, rc_lum_mpc, rc_angd_mpc, rc_lookback_gyr = rc_results['comoving_mpc'], rc_results['luminosity_mpc'], rc_results['ang_diam_mpc'], rc_results['lookback_gyr']
             # Conversions
-            rc_comov_gly = convert_mpc_to_gly(rc_comov_mpc)
-            rc_lum_gly = convert_mpc_to_gly(rc_lum_mpc)
-            rc_angd_gly = convert_mpc_to_gly(rc_angd_mpc)
-            rc_comov_km = convert_mpc_to_km(rc_comov_mpc)
-            rc_comov_ly = convert_km_to_ly(rc_comov_km)
-            rc_comov_au = convert_km_to_au(rc_comov_km)
-            rc_comov_ls = convert_km_to_ls(rc_comov_km)
-            rc_comov_km_fmt = format_large_number(rc_comov_km)
-
+            rc_comov_gly = convert_mpc_to_gly(rc_comov_mpc); rc_lum_gly = convert_mpc_to_gly(rc_lum_mpc); rc_angd_gly = convert_mpc_to_gly(rc_angd_mpc)
+            rc_comov_km = convert_mpc_to_km(rc_comov_mpc); rc_comov_ly = convert_km_to_ly(rc_comov_km); rc_comov_au = convert_km_to_au(rc_comov_km); rc_comov_ls = convert_km_to_ls(rc_comov_km); rc_comov_km_fmt = format_large_number(rc_comov_km)
             # Display Results
             st.metric(label=t.get("lookback_time", "Lookback Time"), value=f"{rc_lookback_gyr:.4f}", delta=t.get("unit_Gyr", "Gyr"))
-            lb_ex_key = get_lookback_comparison_key(rc_lookback_gyr)
-            st.caption(f"*{t.get(lb_ex_key, '...')}*")
-
-            st.markdown("---")
-            st.subheader(t.get("cosmo_distances", "Cosmological Distances"))
+            lb_ex_key = get_lookback_comparison_key(rc_lookback_gyr); st.caption(f"*{t.get(lb_ex_key, '...')}*")
+            st.markdown("---"); st.subheader(t.get("cosmo_distances", "Cosmological Distances"))
             rc_col1, rc_col2 = st.columns(2)
             with rc_col1:
-                st.markdown(t.get("comoving_distance_title", "**Comoving:**"))
-                st.text(f"  {rc_comov_mpc:,.4f} {t.get('unit_Mpc', 'Mpc')}")
-                st.text(f"  {rc_comov_gly:,.4f} {t.get('unit_Gly', 'Gly')}")
-                cv_ex_key = get_comoving_comparison_key(rc_comov_mpc)
-                st.caption(f"*{t.get(cv_ex_key, '...')}*")
-                st.text(f"  {rc_comov_km:,.3e} {t.get('unit_km_sci', 'km')}")
-                st.text(f"  {rc_comov_km_fmt} {t.get('unit_km_full', 'km')}")
-                st.text(f"  {rc_comov_ly:,.3e} {t.get('unit_LJ', 'ly')}")
-                st.text(f"  {rc_comov_au:,.3e} {t.get('unit_AE', 'AU')}")
-                st.text(f"  {rc_comov_ls:,.3e} {t.get('unit_Ls', 'Ls')}")
+                st.markdown(t.get("comoving_distance_title", "**Comoving:**")); st.text(f"  {rc_comov_mpc:,.4f} {t.get('unit_Mpc', 'Mpc')}"); st.text(f"  {rc_comov_gly:,.4f} {t.get('unit_Gly', 'Gly')}")
+                cv_ex_key = get_comoving_comparison_key(rc_comov_mpc); st.caption(f"*{t.get(cv_ex_key, '...')}*")
+                st.text(f"  {rc_comov_km:,.3e} {t.get('unit_km_sci', 'km')}"); st.text(f"  {rc_comov_km_fmt} {t.get('unit_km_full', 'km')}"); st.text(f"  {rc_comov_ly:,.3e} {t.get('unit_LJ', 'ly')}"); st.text(f"  {rc_comov_au:,.3e} {t.get('unit_AE', 'AU')}"); st.text(f"  {rc_comov_ls:,.3e} {t.get('unit_Ls', 'Ls')}")
             with rc_col2:
-                st.markdown(t.get("luminosity_distance_title", "**Luminosity:**"))
-                st.text(f"  {rc_lum_mpc:,.4f} {t.get('unit_Mpc', 'Mpc')}")
-                st.text(f"  {rc_lum_gly:,.4f} {t.get('unit_Gly', 'Gly')}")
-                st.caption(f"*{t.get('explanation_luminosity', 'Relevant for brightness...')}*")
-
-                st.markdown(t.get("angular_diameter_distance_title", "**Angular Diameter:**"))
-                st.text(f"  {rc_angd_mpc:,.4f} {t.get('unit_Mpc', 'Mpc')}")
-                st.text(f"  {rc_angd_gly:,.4f} {t.get('unit_Gly', 'Gly')}")
-                st.caption(f"*{t.get('explanation_angular', 'Relevant for size...')}*")
-
-            # Glossary moved outside calculator expander if needed elsewhere, or keep it here? User asked for integration. Keeping it simple for now.
-            # with st.expander(t.get("glossary", "Glossary")): ... (Could add Redshift Glossary here)
-
+                st.markdown(t.get("luminosity_distance_title", "**Luminosity:**")); st.text(f"  {rc_lum_mpc:,.4f} {t.get('unit_Mpc', 'Mpc')}"); st.text(f"  {rc_lum_gly:,.4f} {t.get('unit_Gly', 'Gly')}"); st.caption(f"*{t.get('explanation_luminosity', 'Relevant for brightness...')}*")
+                st.markdown(t.get("angular_diameter_distance_title", "**Angular Diameter:**")); st.text(f"  {rc_angd_mpc:,.4f} {t.get('unit_Mpc', 'Mpc')}"); st.text(f"  {rc_angd_gly:,.4f} {t.get('unit_Gly', 'Gly')}"); st.caption(f"*{t.get('explanation_angular', 'Relevant for size...')}*")
             st.caption(t.get("calculation_note", "Note: Flat ΛCDM assumed."))
-
 
     # --- Footer Links ---
     st.markdown("---")
     # Existing DSO Finder Donation Link
     st.caption(t.get('donation_text', "Like the DSO Finder? [Support...](...)"), unsafe_allow_html=True)
-    # Add Redshift Calculator Donation Link (Using keys assumed to be added to localization.py)
-    st.markdown(t.get('rc_donate_text', "Like the Redshift Calculator? [Support...](...)")) # Needs new key 'rc_donate_text'
-    st.link_button(t.get('rc_donate_button', "Donate via Ko-fi"), "https://ko-fi.com/advanceddsofinder") # Needs new key 'rc_donate_button', link is same for now
+    # Add Redshift Calculator Donation Link
+    st.markdown(t.get('rc_donate_text', "Like the Redshift Calculator? [Support...](...)"))
+    st.link_button(t.get('rc_donate_button', "Donate via Ko-fi"), "https://ko-fi.com/advanceddsofinder")
 
 
 # --- Run the App ---
