@@ -489,15 +489,21 @@ def main():
     """Main function to run the Streamlit application."""
     initialize_session_state()
 
-    # --- Get Current Language and Translations ---
+# --- Get Current Language and Translations ---
     lang = st.session_state.language
-    t = get_translation(lang) # <--- GEÄNDERT
-    # Validate language state against available languages in the loaded dictionary
-    if lang not in t: # This check might be redundant if get_translation always returns a valid dict
-        print(f"Warning: Language '{lang}' not found in translations, falling back.")
-        lang = 'de' # Fallback to default language defined in localization.py
-        st.session_state.language = lang
-        t = get_translation(lang) # Reload translations for the fallback language
+    # Hole das Übersetzungs-Dictionary über die Funktion aus localization.py
+    # get_translation kümmert sich intern um den Fallback zur Standardsprache.
+    t = get_translation(lang)
+
+    # Optional: Stelle sicher, dass der 'language' state korrekt ist, falls
+    # ein ungültiger Wert darin gespeichert war und get_translation zurückgefallen ist.
+    # Dies ist nicht zwingend nötig für die Funktion, aber hält den State konsistent.
+    actual_lang_keys = ['de', 'en', 'fr'] # Definiere die tatsächlich verfügbaren Sprachen hier
+    if lang not in actual_lang_keys:
+        print(f"Info: Invalid language '{lang}' in session state, resetting to default 'de'.")
+        st.session_state.language = 'de' # Setze auf den Default zurück
+        lang = 'de'
+        t = get_translation(lang) # Lade Default neu, falls nötig
 
     # --- Load Catalog Data (Cached) ---
     @st.cache_data
