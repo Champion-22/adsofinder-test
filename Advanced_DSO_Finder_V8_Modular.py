@@ -14,7 +14,6 @@ import numpy as np # Needed for Redshift Calc
 # --- Library Imports ---
 try:
     from astropy.time import Time
-    # numpy is already imported above
     import astropy.units as u
     from astropy.coordinates import EarthLocation, SkyCoord, get_sun, AltAz, get_constellation
     from astroplan import Observer
@@ -59,23 +58,21 @@ KM_PER_AU = 1.495978707e+8
 KM_PER_LY = 9.4607304725808e+12
 KM_PER_LS = C_KM_PER_S
 GYR_PER_YR = 1e9
-H0_DEFAULT = 67.4 # Default Cosmo Params for Redshift Calc
+H0_DEFAULT = 67.4
 OMEGA_M_DEFAULT = 0.315
 OMEGA_LAMBDA_DEFAULT = 0.685
 
 # --- Initialize TimezoneFinder ---
 @st.cache_resource
 def get_timezone_finder():
-    """Initializes and returns a TimezoneFinder instance."""
     if TimezoneFinder:
         try: return TimezoneFinder(in_memory=True)
-        except Exception as e: print(f"Error initializing TimezoneFinder: {e}"); st.warning(f"TF init failed: {e}. Auto TZ disabled."); return None
+        except Exception as e: print(f"Error initializing TF: {e}"); st.warning(f"TF init failed: {e}. Auto TZ disabled."); return None
     return None
 tf = get_timezone_finder()
 
 # --- Initialize Session State ---
 def initialize_session_state():
-    """Initializes all required session state keys if they don't exist."""
     defaults = {
         # DSO Finder State
         'language': 'de', 'plot_object_name': None, 'show_plot': False, 'active_result_plot_data': None,
@@ -90,10 +87,8 @@ def initialize_session_state():
         'custom_target_dec': "", 'custom_target_name': "", 'custom_target_error': "", 'custom_target_plot_data': None,
         'show_custom_plot': False, 'expanded_object_name': None, 'location_is_valid_for_run': False,
         'time_choice_exp': 'Now', 'window_start_time': None, 'window_end_time': None, 'selected_date_widget': date.today(),
-        # Redshift Calculator State (Add keys for inputs)
-        'redshift_z_input': 0.1, # Example default
-        'redshift_h0_input': H0_DEFAULT,
-        'redshift_omega_m_input': OMEGA_M_DEFAULT,
+        # Redshift Calculator State
+        'redshift_z_input': 0.1, 'redshift_h0_input': H0_DEFAULT, 'redshift_omega_m_input': OMEGA_M_DEFAULT,
         'redshift_omega_lambda_input': OMEGA_LAMBDA_DEFAULT,
     }
     for key, default_value in defaults.items():
@@ -111,7 +106,7 @@ def azimuth_to_direction(azimuth_deg: float) -> str:
     return CARDINAL_DIRECTIONS[max(0, min(index, len(CARDINAL_DIRECTIONS) - 1))]
 
 def create_moon_phase_svg(illumination: float, size: int = 100) -> str:
-    # (Code unchanged)
+    # (Unchanged)
     if not 0 <= illumination <= 1: print(f"Warn: Invalid moon illum ({illumination})."); illumination = max(0.0, min(1.0, illumination))
     radius = size / 2; cx = cy = radius
     light_color = "var(--text-color, #e0e0e0)"; dark_color = "var(--secondary-background-color, #333333)"
@@ -127,7 +122,7 @@ def create_moon_phase_svg(illumination: float, size: int = 100) -> str:
     return svg + '</svg>'
 
 def load_ongc_data(catalog_path: str, lang: str) -> pd.DataFrame | None:
-    # (Code unchanged)
+    # (Unchanged)
     t_load = get_translation(lang); required_cols = ['Name', 'RA', 'Dec', 'Type']; mag_cols = ['V-Mag', 'B-Mag', 'Mag']; size_col = 'MajAx'
     try:
         if not os.path.exists(catalog_path): st.error(f"{t_load.get('error_loading_catalog', 'Error:').split(':')[0]}: File not found"); return None
@@ -159,13 +154,13 @@ def load_ongc_data(catalog_path: str, lang: str) -> pd.DataFrame | None:
     except Exception as e: st.error(f"{t_load.get('error_loading_catalog', 'Catalog Error:')} {e}"); traceback.print_exc(); return None
 
 def _get_fallback_window(reference_time: Time) -> tuple[Time, Time]:
-    # (Code unchanged)
+    # (Unchanged)
     ref_dt = reference_time.to_datetime(timezone.utc); ref_date = ref_dt.date()
     start_dt = datetime.combine(ref_date, time(18, 0), tzinfo=timezone.utc); end_dt = datetime.combine(ref_date + timedelta(days=1), time(6, 0), tzinfo=timezone.utc)
     start_t = Time(start_dt, scale='utc'); end_t = Time(end_dt, scale='utc'); print(f"Using fallback window: {start_t.iso} to {end_t.iso}"); return start_t, end_t
 
 def get_observable_window(observer: Observer, reference_time: Time, is_now: bool, lang: str) -> tuple[Time | None, Time | None, str]:
-    # (Code unchanged)
+    # (Unchanged)
     t = get_translation(lang); status = ""; start_time, end_time = None, None; current_utc = Time.now()
     calc_base = reference_time
     if is_now:
@@ -208,7 +203,7 @@ def get_observable_window(observer: Observer, reference_time: Time, is_now: bool
     return start_time, end_time, status
 
 def find_observable_objects(observer_location: EarthLocation, observing_times: Time, min_altitude_limit: u.Quantity, catalog_df: pd.DataFrame, lang: str) -> list[dict]:
-    # (Code unchanged)
+    # (Unchanged)
     t = get_translation(lang); observable_objects = []
     if not isinstance(observer_location, EarthLocation): st.error("Internal Error: observer_location type"); return []
     if not isinstance(observing_times, Time) or not observing_times.shape: st.error("Internal Error: observing_times type"); return []
@@ -247,7 +242,7 @@ def find_observable_objects(observer_location: EarthLocation, observing_times: T
     return observable_objects
 
 def get_local_time_str(utc_time: Time | None, timezone_str: str) -> tuple[str, str]:
-    # (Code unchanged)
+    # (Unchanged)
     if utc_time is None: return "N/A", "N/A"
     if not isinstance(utc_time, Time): print(f"Err: utc_time type {type(utc_time)}"); return "N/A", "N/A"
     if not isinstance(timezone_str, str) or not timezone_str: print(f"Err: tz_str type {timezone_str}"); return "N/A", "N/A"
@@ -260,10 +255,12 @@ def get_local_time_str(utc_time: Time | None, timezone_str: str) -> tuple[str, s
 
 # --- Redshift Calculation Functions ---
 def hubble_parameter_inv_integrand(z, omega_m, omega_lambda):
+  # (Unchanged)
   epsilon = 1e-15; denom = np.sqrt(omega_m * (1 + z)**3 + omega_lambda + epsilon)
   return 1.0 / denom if denom >= epsilon else 0.0
 
 def lookback_time_integrand(z, omega_m, omega_lambda):
+  # (Unchanged)
   epsilon = 1e-15; term = omega_m * (1 + z)**3 + omega_lambda; term = max(term, 0)
   denom = (1 + z) * np.sqrt(term + epsilon)
   if math.isclose(z, 0): denom_zero = np.sqrt(omega_m + omega_lambda + epsilon); return 1.0/denom_zero if denom_zero >= epsilon else 0.0
@@ -271,8 +268,7 @@ def lookback_time_integrand(z, omega_m, omega_lambda):
 
 @st.cache_data
 def calculate_lcdm_distances(redshift, h0, omega_m, omega_lambda):
-  """Calculates distances & time for Redshift Calc, returns Dict."""
-  # (Code unchanged)
+  # (Unchanged)
   if not all(isinstance(v, (int, float)) for v in [redshift, h0, omega_m, omega_lambda]): return {'error_key': "error_invalid_input"}
   if h0 <= 0: return {'error_key': "error_h0_positive"}
   if omega_m < 0 or omega_lambda < 0: return {'error_key': "error_omega_negative"}
@@ -297,20 +293,20 @@ def convert_km_to_au(d): return 0.0 if d == 0 else d / KM_PER_AU
 def convert_km_to_ly(d): return 0.0 if d == 0 else d / KM_PER_LY
 def convert_km_to_ls(d): return 0.0 if d == 0 else d / KM_PER_LS
 
-# === KORREKTUR HIER ===
+# === KORRIGIERTE FUNKTION ===
 def convert_mpc_to_gly(d):
     """Converts Megaparsecs to Gigalightyears."""
     if d == 0:
         return 0.0
-    # Diese Zuweisungen müssen außerhalb des if-Blocks sein
+    # Diese Zuweisungen müssen außerhalb des if d == 0 Blocks sein
     km_per_gly = KM_PER_LY * 1e9
     dist_km = convert_mpc_to_km(d)
-    # Die Prüfung km_per_gly == 0 ist technisch unnötig, da KM_PER_LY > 0, schadet aber nicht.
-    return 0.0 if km_per_gly == 0 else dist_km / km_per_gly
-# =======================
+    # Die Prüfung km_per_gly == 0 ist technisch unnötig, da KM_PER_LY > 0
+    return dist_km / km_per_gly
+# ===========================
 
 def format_large_number(number):
-    # (Code unchanged)
+    # (Unchanged)
     if number == 0: return "0";
     if not np.isfinite(number): return str(number)
     try: return f"{number:,.0f}".replace(",", " ")
@@ -318,7 +314,7 @@ def format_large_number(number):
 
 # --- Redshift Example Helpers ---
 def get_lookback_comparison_key(gyr):
-    # (Code unchanged)
+    # (Unchanged)
     if gyr < 0.001: return "example_lookback_recent"
     if gyr < 0.05: return "example_lookback_humans"
     if gyr < 0.3: return "example_lookback_dinos"
@@ -327,7 +323,7 @@ def get_lookback_comparison_key(gyr):
     return "example_lookback_early_univ"
 
 def get_comoving_comparison_key(mpc):
-    # (Code unchanged)
+    # (Unchanged)
     if mpc < 5: return "example_comoving_local"
     if mpc < 50: return "example_comoving_virgo"
     if mpc < 200: return "example_comoving_coma"
@@ -337,7 +333,7 @@ def get_comoving_comparison_key(mpc):
 
 # --- Plotting Function ---
 def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: float, plot_type: str, lang: str) -> plt.Figure | None:
-    # (Code unchanged)
+    # (Unchanged)
     t = get_translation(lang); fig = None
     try:
         if not isinstance(plot_data, dict): st.error("Plot Err: Invalid data."); return None
@@ -394,7 +390,7 @@ def main():
     # Get Language and Translations
     lang = st.session_state.language
     t = get_translation(lang)
-    actual_lang_keys = ['de', 'en', 'fr'] # TODO: Get keys from localization module if possible
+    actual_lang_keys = ['de', 'en', 'fr']
     if lang not in actual_lang_keys:
         print(f"Info: Invalid lang '{lang}' in state, reset to 'de'.")
         st.session_state.language = 'de'; lang = 'de'; t = get_translation(lang)
@@ -418,19 +414,19 @@ def main():
     # --- Sidebar ---
     with st.sidebar:
         st.header(t.get('settings_header', "Settings"))
-        # Catalog Status (unchanged)
+        # Catalog Status
         if 'catalog_status_msg' not in st.session_state: st.session_state.catalog_status_msg = ""
         if df_catalog_data is not None: msg = t.get('info_catalog_loaded', "Cat: {} obj.").format(len(df_catalog_data)); msg_func = st.success
         else: msg = "Catalog failed."; msg_func = st.error
         if st.session_state.catalog_status_msg != msg: msg_func(msg); st.session_state.catalog_status_msg = msg
 
-        # Language Selector (unchanged)
+        # Language Selector
         lang_opts = {'de': 'Deutsch', 'en': 'English', 'fr': 'Français'}; lang_keys = list(lang_opts.keys())
         curr_idx = lang_keys.index(lang) if lang in lang_keys else 0
         sel_key = st.radio(t.get('language_select_label', "Language"), options=lang_keys, format_func=lang_opts.get, key='language_radio', index=curr_idx, horizontal=True)
         if sel_key != st.session_state.language: st.session_state.language = sel_key; st.session_state.location_search_status_msg = ""; st.rerun()
 
-        # Location Settings (unchanged)
+        # Location Settings
         with st.expander(t.get('location_expander', "📍 Location"), expanded=True):
             loc_opts_map = {'Search': t.get('location_option_search', "Search"), 'Manual': t.get('location_option_manual', "Manual")}
             st.radio(t.get('location_select_label', "Method"), options=list(loc_opts_map.keys()), format_func=lambda k: loc_opts_map[k], key="location_choice_key", horizontal=True)
@@ -453,16 +449,19 @@ def main():
                 if st.session_state.location_search_status_msg: (status_ph.success if st.session_state.location_search_success else status_ph.error)(st.session_state.location_search_status_msg)
                 if submitted and st.session_state.location_search_query:
                     loc, svc, err = None, None, None; query = st.session_state.location_search_query; agent = f"AdvDSO/{random.randint(1000,9999)}"
+                    # Hinweis: Die Geocoding-Suche kann langsam sein wegen externer Dienste & Timeouts.
                     with st.spinner(t.get('spinner_geocoding', "Searching...")):
-                        try: print("Try Nomi..."); geo = Nominatim(user_agent=agent); loc = geo.geocode(query, timeout=10); svc = "Nominatim" if loc else None; print(f"Nomi: {svc}")
+                        # Geocoding try/except chain (timeouts: N:10s, A:15s, P:15s)
+                        try: print("Try Nomi..."); geo = Nominatim(user_agent=agent, timeout=10); loc = geo.geocode(query); svc = "Nominatim" if loc else None; print(f"Nomi: {svc}")
                         except (GeocoderTimedOut, GeocoderServiceError, Exception) as e_n: print(f"Nomi fail: {e_n}"); status_ph.info(t.get('location_search_info_fallback', "...")); err = e_n
                         if not loc:
-                            try: print("Try Arc..."); geo_a = ArcGIS(timeout=15); loc = geo_a.geocode(query, timeout=15); svc = "ArcGIS" if loc else None; print(f"Arc: {svc}")
+                            try: print("Try Arc..."); geo_a = ArcGIS(timeout=15); loc = geo_a.geocode(query); svc = "ArcGIS" if loc else None; print(f"Arc: {svc}")
                             except (GeocoderTimedOut, GeocoderServiceError, Exception) as e_a: print(f"Arc fail: {e_a}"); status_ph.info(t.get('location_search_info_fallback2', "...")); err = e_a if not err else err
                         if not loc:
-                            try: print("Try Phot..."); geo_p = Photon(user_agent=agent, timeout=15); loc = geo_p.geocode(query, timeout=15); svc = "Photon" if loc else None; print(f"Phot: {svc}")
+                            try: print("Try Phot..."); geo_p = Photon(user_agent=agent, timeout=15); loc = geo_p.geocode(query); svc = "Photon" if loc else None; print(f"Phot: {svc}")
                             except (GeocoderTimedOut, GeocoderServiceError, Exception) as e_p: print(f"Phot fail: {e_p}"); err = e_p if not err else err
-                        if loc and svc: # Success
+                        # Process result
+                        if loc and svc:
                             f_lat, f_lon, f_name = loc.latitude, loc.longitude, loc.address
                             st.session_state.update({'searched_location_name': f_name, 'location_search_success': True, 'manual_lat_val': f_lat, 'manual_lon_val': f_lon})
                             coord_str = t.get('location_search_coords', "Lat: {:.4f}, Lon: {:.4f}").format(f_lat, f_lon)
@@ -486,7 +485,7 @@ def main():
                     loc_valid_tz, curr_loc_valid = True, True; st.session_state.location_is_valid_for_run = True
                     status_ph.success(st.session_state.location_search_status_msg)
                 else: curr_loc_valid = False; st.session_state.location_is_valid_for_run = False
-            st.markdown("---") # Timezone display logic (unchanged)
+            st.markdown("---") # Timezone display
             tz_msg = "";
             if loc_valid_tz and lat_val is not None and lon_val is not None:
                 if tf:
@@ -500,16 +499,15 @@ def main():
             else: tz_msg = f"{t.get('timezone_auto_fail_label', 'TZ:')} **{st.session_state.selected_timezone}** (Loc Invalid)"
             st.markdown(tz_msg, unsafe_allow_html=True)
 
-        # Time Settings (unchanged)
+        # Time Settings
         with st.expander(t.get('time_expander', "⏱️ Time"), expanded=False):
             time_opts = {'Now': t.get('time_option_now', "Now"), 'Specific': t.get('time_option_specific', "Specific")}
             st.radio(t.get('time_select_label', "Time"), options=list(time_opts.keys()), format_func=lambda k: time_opts[k], key="time_choice_exp", horizontal=True)
             if st.session_state.time_choice_exp == "Now": st.caption(f"UTC: {Time.now().iso}")
             else: st.date_input(t.get('time_date_select_label', "Date:"), value=st.session_state.selected_date_widget, key='selected_date_widget')
 
-        # Filter Settings (unchanged)
+        # Filter Settings
         with st.expander(t.get('filters_expander', "✨ Filters"), expanded=False):
-            # ... (Magnitude, Altitude, Moon, Type, Size, Direction filters - unchanged) ...
             st.markdown(t.get('mag_filter_header', "**Mag Filter**")); mag_opts = {'Bortle Scale': t.get('mag_filter_option_bortle', "Bortle"), 'Manual': t.get('mag_filter_option_manual', "Manual")}
             st.radio(t.get('mag_filter_method_label', "Method:"), options=list(mag_opts.keys()), format_func=lambda k: mag_opts[k], key="mag_filter_mode_exp", horizontal=True)
             st.slider(t.get('mag_filter_bortle_label', "Bortle:"), 1, 9, key='bortle_slider', help=t.get('mag_filter_bortle_help', "..."))
@@ -518,7 +516,7 @@ def main():
                 st.slider(t.get('mag_filter_max_mag_label', "Max:"), -5.0, 20.0, step=0.5, format="%.1f", help=t.get('mag_filter_max_mag_help', "..."), key='manual_max_mag_slider')
                 if st.session_state.manual_min_mag_slider > st.session_state.manual_max_mag_slider: st.warning(t.get('mag_filter_warning_min_max', "Min > Max!"))
             st.markdown("---"); st.markdown(t.get('min_alt_header', "**Altitude**"))
-            min_alt, max_alt = st.session_state.min_alt_slider, st.session_state.max_alt_slider; # Logic to ensure min <= max
+            min_alt, max_alt = st.session_state.min_alt_slider, st.session_state.max_alt_slider;
             if min_alt > max_alt: st.session_state.min_alt_slider = max_alt; min_alt = max_alt
             st.slider(t.get('min_alt_label', "Min (°):"), 0, 90, key='min_alt_slider', step=1); st.slider(t.get('max_alt_label', "Max (°):"), 0, 90, key='max_alt_slider', step=1)
             if st.session_state.min_alt_slider > st.session_state.max_alt_slider: st.warning("Min Alt > Max Alt!")
@@ -528,13 +526,13 @@ def main():
                 try: all_types = sorted(list(df_catalog_data['Type'].dropna().astype(str).unique()))
                 except Exception as e: st.warning(f"{t.get('object_types_error_extract', 'Type Err')}: {e}")
             if all_types:
-                sel = [s for s in st.session_state.object_type_filter_exp if s in all_types]; # Validate selection
+                sel = [s for s in st.session_state.object_type_filter_exp if s in all_types];
                 if sel != st.session_state.object_type_filter_exp: st.session_state.object_type_filter_exp = sel
                 st.multiselect(t.get('object_types_label', "Filter Types:"), options=all_types, default=sel, key="object_type_filter_exp")
             else: st.info("No types found."); st.session_state.object_type_filter_exp = []
             st.markdown("---"); st.markdown(t.get('size_filter_header', "**Size**")); size_ok = df_catalog_data is not None and 'MajAx' in df_catalog_data.columns and df_catalog_data['MajAx'].notna().any(); size_disabled = not size_ok
             if size_ok:
-                try: # Size slider setup
+                try:
                     valid_sz = df_catalog_data['MajAx'].dropna(); min_p = max(0.1, float(valid_sz.min())) if not valid_sz.empty else 0.1; max_p = float(valid_sz.max()) if not valid_sz.empty else 120.0
                     min_s, max_s = st.session_state.size_arcmin_range; c_min = max(min_p, min(min_s, max_p)); c_max = min(max_p, max(max_s, min_p))
                     if c_min > c_max: c_min = c_max
@@ -545,18 +543,18 @@ def main():
             else: st.info("Size data N/A."); size_disabled = True
             if size_disabled: st.slider(t.get('size_filter_label', "Size (arcmin):"), 0.0, 1.0, (0.0, 1.0), key='size_disabled', disabled=True)
             st.markdown("---"); st.markdown(t.get('direction_filter_header', "**Direction**")); all_str = t.get('direction_option_all', "All"); dir_disp = [all_str] + CARDINAL_DIRECTIONS; dir_int = [ALL_DIRECTIONS_KEY] + CARDINAL_DIRECTIONS
-            curr_int = st.session_state.selected_peak_direction; # Validate selection
+            curr_int = st.session_state.selected_peak_direction;
             if curr_int not in dir_int: curr_int = ALL_DIRECTIONS_KEY; st.session_state.selected_peak_direction = curr_int
             try: curr_idx_dir = dir_int.index(curr_int)
             except ValueError: curr_idx_dir = 0
             sel_disp_dir = st.selectbox(t.get('direction_filter_label', "Direction:"), options=dir_disp, index=curr_idx_dir, key='direction_sel')
-            sel_int_dir = ALL_DIRECTIONS_KEY; # Map back display to internal
+            sel_int_dir = ALL_DIRECTIONS_KEY;
             if sel_disp_dir != all_str:
                 try: sel_idx = dir_disp.index(sel_disp_dir); sel_int_dir = dir_int[sel_idx]
                 except ValueError: sel_int_dir = ALL_DIRECTIONS_KEY
             if sel_int_dir != st.session_state.selected_peak_direction: st.session_state.selected_peak_direction = sel_int_dir
 
-        # Result Options (unchanged)
+        # Result Options
         with st.expander(t.get('results_options_expander', "⚙️ Results Opts"), expanded=False):
             max_sl = len(df_catalog_data) if df_catalog_data is not None else 50; min_sl=5; act_max=max(min_sl, max_sl); sl_dis=act_max<=min_sl
             def_num = st.session_state.get('num_objects_slider', 20); cl_def=max(min_sl, min(def_num, act_max))
@@ -565,14 +563,14 @@ def main():
             sort_opts = {'Duration & Altitude': t.get('results_options_sort_duration', "Duration"), 'Brightness': t.get('results_options_sort_magnitude', "Brightness")}
             st.radio(t.get('results_options_sort_method_label', "Sort By:"), options=list(sort_opts.keys()), format_func=lambda k: sort_opts[k], key='sort_method', horizontal=True)
 
-        # Bug Report Button (unchanged)
+        # Bug Report Button
         st.sidebar.markdown("---"); bug_email="debrun2005@gmail.com"; bug_subj=urllib.parse.quote("Bug Report: Adv DSO Finder")
         bug_body=urllib.parse.quote(t.get('bug_report_body', "\n\n(Describe bug)")); bug_link=f"mailto:{bug_email}?subject={bug_subj}&body={bug_body}"
         st.sidebar.markdown(f"<a href='{bug_link}' target='_blank'>{t.get('bug_report_button', '🐞 Report Bug')}</a>", unsafe_allow_html=True)
 
     # --- Main Area ---
     st.subheader(t.get('search_params_header', "Search Parameters"))
-    # Parameter Display (unchanged)
+    # Parameter Display
     param_col1, param_col2 = st.columns(2)
     loc_disp = t.get('location_error', "Loc Err: {}").format("Not Set"); observer_for_run = None
     if st.session_state.location_is_valid_for_run: # Create observer if valid
@@ -600,13 +598,13 @@ def main():
     size_min_d, size_max_d = st.session_state.size_arcmin_range; param_col2.markdown(t.get('search_params_filter_size', "📐 Size {:.1f}-{:.1f}'").format(size_min_d, size_max_d))
     dir_d = st.session_state.selected_peak_direction; dir_d = t.get('search_params_direction_all', "All") if dir_d == ALL_DIRECTIONS_KEY else dir_d; param_col2.markdown(t.get('search_params_filter_direction', "🧭 Dir @ Max: {}").format(dir_d))
 
-    # Find Objects Button (unchanged)
+    # Find Objects Button
     st.markdown("---")
     find_clicked = st.button(t.get('find_button_label', "🔭 Find Objects"), key="find_button", disabled=(df_catalog_data is None or not st.session_state.location_is_valid_for_run))
     if not st.session_state.location_is_valid_for_run and df_catalog_data is not None: st.warning(t.get('info_initial_prompt', "Enter Coords or Search Loc..."))
     results_placeholder = st.container() # Placeholder for results
 
-    # Processing Logic (unchanged)
+    # Processing Logic
     if find_clicked:
         st.session_state.find_button_pressed = True; st.session_state.update({'show_plot': False, 'show_custom_plot': False, 'active_result_plot_data': None, 'custom_target_plot_data': None, 'last_results': [], 'window_start_time': None, 'window_end_time': None})
         if observer_for_run and df_catalog_data is not None:
@@ -648,7 +646,7 @@ def main():
     if st.session_state.last_results:
         results_data = st.session_state.last_results
         results_placeholder.subheader(t.get('results_list_header', "Results"))
-        # Moon Phase Display (unchanged)
+        # Moon Phase Display
         win_start, win_end = st.session_state.get('window_start_time'), st.session_state.get('window_end_time'); obs_exists = observer_for_run is not None
         if obs_exists and isinstance(win_start, Time) and isinstance(win_end, Time):
             mid_t = win_start + (win_end - win_start) / 2
@@ -661,16 +659,16 @@ def main():
                     moon_thresh = st.session_state.moon_phase_slider
                     if moon_pct > moon_thresh: st.warning(t.get('moon_warning_message', "Warn: Moon > ({:.0f}%)!").format(moon_pct, moon_thresh))
         elif st.session_state.find_button_pressed: results_placeholder.info("Moon phase N/A.")
-        # Plot Type Selection (unchanged)
+        # Plot Type Selection
         plot_opts = {'Sky Path': t.get('graph_type_sky_path', "Sky Path"), 'Altitude Plot': t.get('graph_type_alt_time', "Alt Plot")}
         results_placeholder.radio(t.get('graph_type_label', "Graph:"), options=list(plot_opts.keys()), format_func=lambda k: plot_opts[k], key='plot_type_selection', horizontal=True)
-        # Object List Display (with corrected title line)
+        # Object List Display
         for i, obj_data in enumerate(results_data):
             name, type = obj_data.get('Name','N/A'), obj_data.get('Type','N/A')
             obj_mag = obj_data.get('Magnitude')
-            mag_s = f"{obj_mag:.1f}" if obj_mag is not None else "N/A" # Pre-formatted string or "N/A"
-            title_format_string = t.get('results_expander_title', "{} ({}) - Mag: {}") # Assumes localization.py is updated
-            title = title_format_string.format(name, type, mag_s) # Use pre-formatted mag_s
+            mag_s = f"{obj_mag:.1f}" if obj_mag is not None else "N/A"
+            title_format_string = t.get('results_expander_title', "{} ({}) - Mag: {}")
+            title = title_format_string.format(name, type, mag_s)
             is_exp = (st.session_state.expanded_object_name == name)
             obj_cont = results_placeholder.container()
             with obj_cont.expander(title, expanded=is_exp):
@@ -682,7 +680,16 @@ def main():
                 # Col 2: Visibility
                 c2.markdown(t.get('results_max_alt_header', "**Max Alt:**"))
                 max_a = obj_data.get('Max Altitude (°)', 0); az_m = obj_data.get('Azimuth at Max (°)', 0); dir_m = obj_data.get('Direction at Max', 'N/A')
-                az_fmt = t.get('results_azimuth_label', "(Az: {:.1f}°)").format(az_m); dir_fmt = t.get('results_direction_label', ", Dir: {}").format(dir_m); c2.markdown(f"**{max_a:.1f}°** {az_fmt}{dir_fmt}")
+                # === KORREKTUR HIER ===
+                # Format Azimuth (assume localization.py has 'results_azimuth_label': "(Az: {:.1f}°{})" or similar)
+                az_fmt_str = t.get('results_azimuth_label', "(Az: {:.1f}°{})") # Get format string
+                # Provide dummy second arg "" to avoid IndexError if localization wasn't fixed
+                az_str = az_fmt_str.format(az_m, "") if isinstance(az_m, (int, float)) else "(Az: N/A)"
+                # Format Direction
+                dir_fmt_str = t.get('results_direction_label', ", Dir: {}")
+                dir_str = dir_fmt_str.format(dir_m)
+                c2.markdown(f"**{max_a:.1f}°** {az_str}{dir_str}")
+                # =======================
                 c2.markdown(t.get('results_best_time_header', "**Best Time (Local):**"))
                 peak_t = obj_data.get('Time at Max (UTC)'); loc_t, loc_tz = get_local_time_str(peak_t, st.session_state.selected_timezone); c2.markdown(f"{loc_t} ({loc_tz})")
                 c2.markdown(t.get('results_cont_duration_header', "**Duration:**")); dur = obj_data.get('Max Cont. Duration (h)', 0); c2.markdown(t.get('results_duration_value', "{:.1f} hrs").format(dur))
@@ -703,7 +710,7 @@ def main():
                                 if st.button(t.get('results_close_graph_button', "Close Plot"), key=close_key): st.session_state.update({'show_plot': False, 'active_result_plot_data': None, 'expanded_object_name': None}); st.rerun()
                             else: st.error(t.get('results_graph_not_created', "Plot fail."))
                         except Exception as plt_e: st.error(t.get('results_graph_error', "Plot Err: {}").format(plt_e)); traceback.print_exc()
-        # CSV Export (unchanged)
+        # CSV Export
         if results_data:
             csv_ph = results_placeholder.empty()
             try: # Prepare CSV data
@@ -721,7 +728,7 @@ def main():
             except Exception as csv_e: csv_ph.error(t.get('results_csv_export_error', "CSV Err: {}").format(csv_e))
     elif st.session_state.find_button_pressed: results_placeholder.info(t.get('warning_no_objects_found', "No objects found..."))
 
-    # Custom Target Plotting (unchanged)
+    # Custom Target Plotting
     st.markdown("---")
     with st.expander(t.get('custom_target_expander', "Plot Custom Target")):
         with st.form("custom_form"):
@@ -762,7 +769,7 @@ def main():
                      except Exception as plt_e_c: st.error(t.get('results_graph_error', "Plot Err: {}").format(plt_e_c)); traceback.print_exc()
         elif st.session_state.custom_target_error: custom_err_ph.error(st.session_state.custom_target_error)
 
-    # Redshift Calculator Integration (unchanged)
+    # Redshift Calculator Integration
     st.markdown("---")
     with st.expander(t.get("redshift_calculator_title", "Redshift Calculator"), expanded=False):
         st.subheader(t.get("input_params", "Input Parameters"))
@@ -802,10 +809,9 @@ def main():
 
     # --- Footer Links ---
     st.markdown("---")
+    # Nur der ursprüngliche DSO Finder Spendenlink
     st.caption(t.get('donation_text', "Like the DSO Finder? [Support...](...)"), unsafe_allow_html=True)
-    st.markdown(t.get('rc_donate_text', "Like the Redshift Calculator? [Support...](...)"))
-    st.link_button(t.get('rc_donate_button', "Donate via Ko-fi"), "https://ko-fi.com/advanceddsofinder")
-
+    # Entfernt: Redshift Calculator Donation Link
 
 # --- Run the App ---
 if __name__ == "__main__":
