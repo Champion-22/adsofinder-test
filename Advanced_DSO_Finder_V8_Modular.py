@@ -74,25 +74,51 @@ tf = get_timezone_finder()
 # --- URL Parameter Management Functions ---
 def load_location_from_url():
     """Loads location data from URL query parameters."""
-    lat = INITIAL_LAT
-    lon = INITIAL_LON
-    elev = INITIAL_HEIGHT
-    tz = INITIAL_TIMEZONE
-
+    print("--- Attempting to load location from URL ---") # DEBUG
     query_params = st.query_params
     url_lat_str = query_params.get("lat")
     url_lon_str = query_params.get("lon")
     url_elev_str = query_params.get("elev")
     url_tz_str = query_params.get("tz")
 
+    print(f"Raw URL params: lat='{url_lat_str}', lon='{url_lon_str}', elev='{url_elev_str}', tz='{url_tz_str}'") # DEBUG
+
+    lat = INITIAL_LAT
+    lon = INITIAL_LON
+    elev = INITIAL_HEIGHT
+    tz = INITIAL_TIMEZONE
+    
+    used_defaults = True 
+
     try:
-        if url_lat_str is not None: lat = float(url_lat_str)
-        if url_lon_str is not None: lon = float(url_lon_str)
-        if url_elev_str is not None: elev = int(url_elev_str)
-        if url_tz_str is not None: tz = str(url_tz_str)
-    except ValueError:
-        print("Warning: Could not parse location data from URL parameters. Using defaults.")
+        param_found = False
+        if url_lat_str is not None:
+            lat = float(url_lat_str)
+            param_found = True
+        if url_lon_str is not None:
+            lon = float(url_lon_str)
+            param_found = True
+        if url_elev_str is not None:
+            elev = int(url_elev_str)
+            param_found = True
+        if url_tz_str is not None:
+            tz = str(url_tz_str)
+            param_found = True
+        
+        if param_found: # If any parameter was successfully read (even if it matches default)
+            used_defaults = False
+
+
+    except ValueError as e:
+        print(f"ValueError parsing URL params: {e}. Using defaults.") 
         lat, lon, elev, tz = INITIAL_LAT, INITIAL_LON, INITIAL_HEIGHT, INITIAL_TIMEZONE
+        used_defaults = True 
+    
+    if used_defaults:
+        print("Used INITIAL_DEFAULTS for location because no valid URL parameters were found or an error occurred.") 
+    else:
+        print(f"Loaded from URL (or kept defaults if specific params missing): lat={lat}, lon={lon}, elev={elev}, tz='{tz}'") 
+    print("--- Finished loading location from URL ---") 
     return lat, lon, elev, tz
 
 def save_location_to_url(lat, lon, elev, tz):
@@ -114,6 +140,7 @@ def save_location_to_url(lat, lon, elev, tz):
             changed_params = True
     
     if changed_params:
+        print(f"Saving to URL: {new_query_params}") # DEBUG
         st.query_params.from_dict(new_query_params)
 
 # --- Initialize Session State ---
@@ -152,7 +179,7 @@ def initialize_session_state():
         for key, default_value in defaults.items():
             if key not in st.session_state: st.session_state[key] = default_value
 
-# --- Helper Functions (Unchanged from previous version, keeping for brevity) ---
+# --- Helper Functions (Rest of the code remains the same as in the immersive artifact) ---
 def get_magnitude_limit(bortle_scale: int) -> float:
     limits = {1: 15.5, 2: 15.5, 3: 14.5, 4: 14.5, 5: 13.5, 6: 12.5, 7: 11.5, 8: 10.5, 9: 9.5}
     return limits.get(bortle_scale, 9.5)
@@ -421,7 +448,7 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
 
 # --- Main App ---
 def main():
-    initialize_session_state() # No cookies needed here anymore
+    initialize_session_state() 
 
     lang = st.session_state.language
     t = get_translation(lang)
