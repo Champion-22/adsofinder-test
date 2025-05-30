@@ -74,10 +74,9 @@ tf = get_timezone_finder()
 # --- URL Parameter Management Functions ---
 def load_location_from_url():
     """Loads location data from URL query parameters more robustly."""
-    print("--- Attempting to load location from URL (V2) ---")
+    print("--- Attempting to load location from URL (V3) ---") # DEBUG
     query_params = st.query_params
     
-    # Initialize with defaults
     lat = INITIAL_LAT
     lon = INITIAL_LON
     elev = INITIAL_HEIGHT
@@ -88,53 +87,69 @@ def load_location_from_url():
     url_elev_str = query_params.get("elev")
     url_tz_str = query_params.get("tz")
 
-    print(f"Raw URL params: lat='{url_lat_str}', lon='{url_lon_str}', elev='{url_elev_str}', tz='{url_tz_str}'")
+    print(f"Raw URL params: lat='{url_lat_str}', lon='{url_lon_str}', elev='{url_elev_str}', tz='{url_tz_str}'") # DEBUG
 
-    # Try to parse latitude
+    parsed_successfully = {"lat": False, "lon": False, "elev": False, "tz": False}
+
     if url_lat_str is not None and url_lat_str.strip() != "":
         try:
-            lat = float(url_lat_str)
-            print(f"Successfully parsed lat: {lat}")
+            lat_val = float(url_lat_str)
+            if -90 <= lat_val <= 90:
+                lat = lat_val
+                parsed_successfully["lat"] = True
+                print(f"Successfully parsed lat: {lat}")
+            else:
+                print(f"Parsed lat '{lat_val}' out of range. Using default lat: {INITIAL_LAT}")
         except ValueError:
             print(f"ValueError parsing lat='{url_lat_str}'. Using default lat: {INITIAL_LAT}")
-            lat = INITIAL_LAT # Revert to default if parsing fails for this specific param
     else:
         print(f"Lat param missing or empty. Using default lat: {INITIAL_LAT}")
 
-    # Try to parse longitude
     if url_lon_str is not None and url_lon_str.strip() != "":
         try:
-            lon = float(url_lon_str)
-            print(f"Successfully parsed lon: {lon}")
+            lon_val = float(url_lon_str)
+            if -180 <= lon_val <= 180:
+                lon = lon_val
+                parsed_successfully["lon"] = True
+                print(f"Successfully parsed lon: {lon}")
+            else:
+                print(f"Parsed lon '{lon_val}' out of range. Using default lon: {INITIAL_LON}")
         except ValueError:
             print(f"ValueError parsing lon='{url_lon_str}'. Using default lon: {INITIAL_LON}")
-            lon = INITIAL_LON
     else:
         print(f"Lon param missing or empty. Using default lon: {INITIAL_LON}")
 
-    # Try to parse elevation
     if url_elev_str is not None and url_elev_str.strip() != "":
         try:
-            elev = int(url_elev_str)
+            elev = int(url_elev_str) # No specific range check for elevation, assuming any int is fine
+            parsed_successfully["elev"] = True
             print(f"Successfully parsed elev: {elev}")
         except ValueError:
             print(f"ValueError parsing elev='{url_elev_str}'. Using default elev: {INITIAL_HEIGHT}")
-            elev = INITIAL_HEIGHT
     else:
         print(f"Elev param missing or empty. Using default elev: {INITIAL_HEIGHT}")
 
-    # Get timezone (string, no conversion needed beyond checking presence)
-    if url_tz_str is not None and url_tz_str.strip() != "": # Also check for empty string for tz
-        tz = str(url_tz_str) # Ensure it's a string
-        print(f"Successfully parsed tz: '{tz}'")
+    if url_tz_str is not None and url_tz_str.strip() != "":
+        # Basic validation for timezone string (not exhaustive, but better than nothing)
+        if "/" in url_tz_str and len(url_tz_str) > 3: 
+            tz = str(url_tz_str)
+            parsed_successfully["tz"] = True
+            print(f"Successfully parsed tz: '{tz}'")
+        else:
+            print(f"TZ param '{url_tz_str}' looks invalid. Using default tz: '{INITIAL_TIMEZONE}'")
+            tz = INITIAL_TIMEZONE # Revert to default if tz looks malformed
     else:
         print(f"TZ param missing or empty. Using default tz: '{INITIAL_TIMEZONE}'")
-        tz = INITIAL_TIMEZONE
+    
+    # Determine if the overall location loaded from URL is considered valid
+    # For a location to be valid for run, at least lat and lon must be parsed correctly from URL
+    # or fallback to initial defaults which are considered valid.
+    # The key is that they are valid numbers after this process.
+    location_valid_from_url = parsed_successfully["lat"] and parsed_successfully["lon"] and parsed_successfully["elev"]
 
-
-    print(f"Final loaded location: lat={lat}, lon={lon}, elev={elev}, tz='{tz}'")
-    print("--- Finished loading location from URL (V2) ---")
-    return lat, lon, elev, tz
+    print(f"Final loaded location: lat={lat}, lon={lon}, elev={elev}, tz='{tz}', valid_from_url={location_valid_from_url}")
+    print("--- Finished loading location from URL (V3) ---")
+    return lat, lon, elev, tz, location_valid_from_url
 
 def save_location_to_url(lat, lon, elev, tz):
     """Saves location data to URL query parameters if they differ from current ones."""
@@ -161,12 +176,25 @@ def save_location_to_url(lat, lon, elev, tz):
 # --- Initialize Session State ---
 def initialize_session_state():
     if 'app_initialized' not in st.session_state:
-        init_lat, init_lon, init_elev, init_tz = load_location_from_url()
+        init_lat, init_lon, init_elev, init_tz, initial_location_valid_from_url = load_location_from_url()
 
         st.session_state.current_latitude = init_lat
         st.session_state.current_longitude = init_lon
         st.session_state.current_elevation = init_elev
         st.session_state.selected_timezone = init_tz
+        
+        # Set location_is_valid_for_run based on whether URL params were successfully parsed
+        # OR if we are using initial defaults (which are assumed valid)
+        # The critical part is that current_latitude etc. are valid numbers.
+        if isinstance(st.session_state.current_latitude, (int, float)) and \
+           isinstance(st.session_state.current_longitude, (int, float)) and \
+           isinstance(st.session_state.current_elevation, int):
+            st.session_state.location_is_valid_for_run = True
+            print(f"Initialize: Location IS valid. Lat: {st.session_state.current_latitude}, Lon: {st.session_state.current_longitude}")
+        else:
+            st.session_state.location_is_valid_for_run = False
+            print(f"Initialize: Location IS NOT valid. Lat: {st.session_state.current_latitude}, Lon: {st.session_state.current_longitude}")
+
 
         st.session_state.manual_input_lat_val = init_lat
         st.session_state.manual_input_lon_val = init_lon
@@ -184,7 +212,8 @@ def initialize_session_state():
             'size_arcmin_range': (1.0, 120.0), 'sort_method': 'Duration & Altitude',
             'selected_peak_direction': ALL_DIRECTIONS_KEY, 'plot_type_selection': 'Sky Path', 'custom_target_ra': "",
             'custom_target_dec': "", 'custom_target_name': "", 'custom_target_error': "", 'custom_target_plot_data': None,
-            'show_custom_plot': False, 'expanded_object_name': None, 'location_is_valid_for_run': False,
+            'show_custom_plot': False, 'expanded_object_name': None, 
+            # 'location_is_valid_for_run' is set above based on URL load
             'time_choice_exp': 'Now', 'window_start_time': None, 'window_end_time': None, 'selected_date_widget': date.today(),
             'redshift_z_input': 0.1, 'redshift_h0_input': H0_DEFAULT, 'redshift_omega_m_input': OMEGA_M_DEFAULT,
             'redshift_omega_lambda_input': OMEGA_LAMBDA_DEFAULT,
@@ -192,7 +221,20 @@ def initialize_session_state():
             'app_initialized': True
         }
         for key, default_value in defaults.items():
-            if key not in st.session_state: st.session_state[key] = default_value
+            if key not in st.session_state: 
+                st.session_state[key] = default_value
+        
+        # Ensure location_is_valid_for_run is explicitly in session_state after defaults
+        if 'location_is_valid_for_run' not in st.session_state:
+            # This case should ideally not be hit if logic above is correct
+            if isinstance(st.session_state.current_latitude, (int, float)) and \
+               isinstance(st.session_state.current_longitude, (int, float)) and \
+               isinstance(st.session_state.current_elevation, int):
+                st.session_state.location_is_valid_for_run = True
+            else:
+                st.session_state.location_is_valid_for_run = False
+            print(f"Initialize (fallback): location_is_valid_for_run set to {st.session_state.location_is_valid_for_run}")
+
 
 # --- Helper Functions (Rest of the code remains the same as in the immersive artifact) ---
 def get_magnitude_limit(bortle_scale: int) -> float:
@@ -749,8 +791,8 @@ def main():
                 loc_disp = t.get('location_manual_display', "Manual ({:.4f}, {:.4f})").format(current_lat_for_run, current_lon_for_run)
             elif st.session_state.searched_location_name: 
                 loc_disp = t.get('location_search_display', "Searched: {} ({:.4f}, {:.4f})").format(st.session_state.searched_location_name, current_lat_for_run, current_lon_for_run)
-            else:
-                loc_disp = f"Lat: {current_lat_for_run:.4f}, Lon: {current_lon_for_run:.4f}"
+            else: # This case is hit if loaded from URL and no user interaction yet
+                loc_disp = f"Lat: {current_lat_for_run:.4f}, Lon: {current_lon_for_run:.4f}, Elev: {current_elev_for_run}m, TZ: {current_tz_for_run}"
         except Exception as obs_e: 
             loc_disp = t.get('location_error', "Loc Err: {}").format(f"Observer fail: {obs_e}")
             st.session_state.location_is_valid_for_run = False
@@ -999,4 +1041,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
