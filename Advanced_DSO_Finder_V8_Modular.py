@@ -26,7 +26,13 @@ try:
     from geopy.exc import GeocoderTimedOut, GeocoderServiceError
     from scipy.integrate import quad # Needed for Redshift Calc
 except ImportError as e:
-    st.error(f"Error: Missing libraries. Please install required packages (check astroplan, astropy, scipy, etc.). ({e})")
+    st.error(f"Error: Missing astro-libraries. Please install required packages (check astroplan, astropy, scipy, etc.). ({e})")
+    st.stop()
+
+try:
+    from streamlit_cookies_manager import CookieManager
+except ImportError:
+    st.error("Fehler: Das Paket 'streamlit-cookies-manager' wird benötigt. Bitte installiere es: pip install streamlit-cookies-manager")
     st.stop()
 
 # --- Localization Import ---
@@ -71,67 +77,58 @@ def get_timezone_finder():
     return None
 tf = get_timezone_finder()
 
-# --- URL Parameter Management Functions ---
-def load_location_from_url():
-    """Loads location data from URL query parameters."""
-    lat = INITIAL_LAT
-    lon = INITIAL_LON
-    elev = INITIAL_HEIGHT
-    tz = INITIAL_TIMEZONE
-
-    query_params = st.query_params
-    url_lat_str = query_params.get("lat")
-    url_lon_str = query_params.get("lon")
-    url_elev_str = query_params.get("elev")
-    url_tz_str = query_params.get("tz")
+# --- Cookie Management Functions ---
+def load_location_from_cookies(cookies: CookieManager) -> tuple[float, float, int, str]:
+    """Loads location data from cookies."""
+    lat_str = cookies.get('user_latitude')
+    lon_str = cookies.get('user_longitude')
+    elev_str = cookies.get('user_elevation')
+    tz_str = cookies.get('user_timezone')
 
     try:
-        if url_lat_str is not None: lat = float(url_lat_str)
-        if url_lon_str is not None: lon = float(url_lon_str)
-        if url_elev_str is not None: elev = int(url_elev_str)
-        if url_tz_str is not None: tz = str(url_tz_str) # Ensure tz is a string
+        loaded_lat = float(lat_str) if lat_str is not None else INITIAL_LAT
     except ValueError:
-        print("Warning: Could not parse location data from URL parameters. Using defaults.")
-        lat, lon, elev, tz = INITIAL_LAT, INITIAL_LON, INITIAL_HEIGHT, INITIAL_TIMEZONE
-    return lat, lon, elev, tz
-
-def save_location_to_url(lat, lon, elev, tz):
-    """Saves location data to URL query parameters if they differ from current ones."""
-    params_to_set = {}
-    if lat is not None: params_to_set["lat"] = f"{lat:.4f}" # Format to avoid overly long URLs
-    if lon is not None: params_to_set["lon"] = f"{lon:.4f}"
-    if elev is not None: params_to_set["elev"] = str(int(elev))
-    if tz is not None: params_to_set["tz"] = str(tz)
-
-    current_query_params = {k: v[0] if isinstance(v, list) else v for k, v in st.query_params.to_dict().items()}
+        loaded_lat = INITIAL_LAT
+    try:
+        loaded_lon = float(lon_str) if lon_str is not None else INITIAL_LON
+    except ValueError:
+        loaded_lon = INITIAL_LON
+    try:
+        loaded_elev = int(elev_str) if elev_str is not None else INITIAL_HEIGHT
+    except ValueError:
+        loaded_elev = INITIAL_HEIGHT
     
-    changed_params = False
-    new_query_params = current_query_params.copy()
-
-    for key, value in params_to_set.items():
-        if current_query_params.get(key) != value:
-            new_query_params[key] = value
-            changed_params = True
+    loaded_tz = str(tz_str) if tz_str is not None else INITIAL_TIMEZONE
     
-    if changed_params:
-        st.query_params.from_dict(new_query_params)
-        # No explicit rerun needed here, st.query_params modification handles it.
+    return loaded_lat, loaded_lon, loaded_elev, loaded_tz
+
+def save_location_to_cookies(cookies: CookieManager, lat: float, lon: float, elev: int, tz: str):
+    """Saves location data to cookies."""
+    expires = datetime.now() + timedelta(days=365)
+    # Using unique keys for set operations for clarity, though not strictly needed if values are just being overwritten.
+    if lat is not None:
+        cookies.set('user_latitude', f"{lat:.4f}", expires_at=expires, key='cookie_set_lat')
+    if lon is not None:
+        cookies.set('user_longitude', f"{lon:.4f}", expires_at=expires, key='cookie_set_lon')
+    if elev is not None:
+        cookies.set('user_elevation', str(int(elev)), expires_at=expires, key='cookie_set_elev')
+    if tz is not None:
+        cookies.set('user_timezone', str(tz), expires_at=expires, key='cookie_set_tz')
 
 # --- Initialize Session State ---
-def initialize_session_state():
+def initialize_session_state(cookies: CookieManager):
     if 'app_initialized' not in st.session_state:
-        init_lat, init_lon, init_elev, init_tz = load_location_from_url()
+        init_lat, init_lon, init_elev, init_tz = load_location_from_cookies(cookies)
 
         st.session_state.current_latitude = init_lat
         st.session_state.current_longitude = init_lon
-        st.session_state.current_elevation = init_elev # Central elevation
+        st.session_state.current_elevation = init_elev
         st.session_state.selected_timezone = init_tz
 
-        # Initialize widget-specific values based on central/loaded values
         st.session_state.manual_input_lat_val = init_lat
         st.session_state.manual_input_lon_val = init_lon
-        st.session_state.manual_input_height_val = init_elev # For manual input field
-        st.session_state.search_form_height_val = init_elev   # For search form height field
+        st.session_state.manual_input_height_val = init_elev
+        st.session_state.search_form_height_val = init_elev
 
         defaults = {
             'language': 'de', 'plot_object_name': None, 'show_plot': False, 'active_result_plot_data': None,
@@ -141,25 +138,20 @@ def initialize_session_state():
             'manual_min_mag_slider': 0.0,
             'manual_max_mag_slider': 16.0, 'object_type_filter_exp': [], 'mag_filter_mode_exp': 'Bortle Scale',
             'bortle_slider': 5, 'min_alt_slider': 20, 'max_alt_slider': 90, 'moon_phase_slider': 35,
-            'size_arcmin_range': [1.0, 120.0], 'sort_method': 'Duration & Altitude',
+            'size_arcmin_range': (1.0, 120.0), 'sort_method': 'Duration & Altitude', # Ensure tuple for range slider
             'selected_peak_direction': ALL_DIRECTIONS_KEY, 'plot_type_selection': 'Sky Path', 'custom_target_ra': "",
             'custom_target_dec': "", 'custom_target_name': "", 'custom_target_error': "", 'custom_target_plot_data': None,
             'show_custom_plot': False, 'expanded_object_name': None, 'location_is_valid_for_run': False,
             'time_choice_exp': 'Now', 'window_start_time': None, 'window_end_time': None, 'selected_date_widget': date.today(),
             'redshift_z_input': 0.1, 'redshift_h0_input': H0_DEFAULT, 'redshift_omega_m_input': OMEGA_M_DEFAULT,
             'redshift_omega_lambda_input': OMEGA_LAMBDA_DEFAULT,
+            'num_objects_slider': 20, # Initialize the slider value
             'app_initialized': True
         }
         for key, default_value in defaults.items():
             if key not in st.session_state: st.session_state[key] = default_value
-    else:
-        # On subsequent reruns, ensure widget-bound states reflect the central state if necessary,
-        # or ensure central state is updated if a widget changed it.
-        # This is mostly handled by on_change callbacks or direct updates after widget interaction.
-        pass
 
-
-# --- Helper Functions ---
+# --- Helper Functions (Unchanged from previous version, keeping for brevity) ---
 def get_magnitude_limit(bortle_scale: int) -> float:
     limits = {1: 15.5, 2: 15.5, 3: 14.5, 4: 14.5, 5: 13.5, 6: 12.5, 7: 11.5, 8: 10.5, 9: 9.5}
     return limits.get(bortle_scale, 9.5)
@@ -171,7 +163,6 @@ def azimuth_to_direction(azimuth_deg: float) -> str:
     return CARDINAL_DIRECTIONS[max(0, min(index, len(CARDINAL_DIRECTIONS) - 1))]
 
 def create_moon_phase_svg(illumination: float, size: int = 100) -> str:
-    # (Unchanged)
     if not 0 <= illumination <= 1: print(f"Warn: Invalid moon illum ({illumination})."); illumination = max(0.0, min(1.0, illumination))
     radius = size / 2; cx = cy = radius
     light_color = "var(--text-color, #e0e0e0)"; dark_color = "var(--secondary-background-color, #333333)"
@@ -188,7 +179,6 @@ def create_moon_phase_svg(illumination: float, size: int = 100) -> str:
 
 @st.cache_data
 def load_ongc_data(catalog_path: str, lang: str) -> pd.DataFrame | None:
-    # (Unchanged)
     t_load = get_translation(lang); required_cols = ['Name', 'RA', 'Dec', 'Type']; mag_cols = ['V-Mag', 'B-Mag', 'Mag']; size_col = 'MajAx'
     try:
         if not os.path.exists(catalog_path): st.error(f"{t_load.get('error_loading_catalog', 'Error:').split(':')[0]}: File not found"); return None
@@ -220,13 +210,11 @@ def load_ongc_data(catalog_path: str, lang: str) -> pd.DataFrame | None:
     except Exception as e: st.error(f"{t_load.get('error_loading_catalog', 'Catalog Error:')} {e}"); traceback.print_exc(); return None
 
 def _get_fallback_window(reference_time: Time) -> tuple[Time, Time]:
-    # (Unchanged)
     ref_dt = reference_time.to_datetime(timezone.utc); ref_date = ref_dt.date()
     start_dt = datetime.combine(ref_date, time(18, 0), tzinfo=timezone.utc); end_dt = datetime.combine(ref_date + timedelta(days=1), time(6, 0), tzinfo=timezone.utc)
     start_t = Time(start_dt, scale='utc'); end_t = Time(end_dt, scale='utc'); print(f"Using fallback window: {start_t.iso} to {end_t.iso}"); return start_t, end_t
 
 def get_observable_window(observer: Observer, reference_time: Time, is_now: bool, lang: str) -> tuple[Time | None, Time | None, str]:
-    # (Unchanged)
     t = get_translation(lang); status = ""; start_time, end_time = None, None; current_utc = Time.now()
     calc_base = reference_time
     if is_now:
@@ -238,7 +226,7 @@ def get_observable_window(observer: Observer, reference_time: Time, is_now: bool
         set_t = observer.twilight_evening_astronomical(calc_base, which='next'); rise_t = observer.twilight_morning_astronomical(set_t if set_t else calc_base, which='next')
         if set_t is None or rise_t is None: raise ValueError("Cannot calc twilight")
         if rise_t <= set_t:
-            try: # Polar check
+            try: 
                 sun_ref = observer.sun_altaz(calc_base).alt; sun_12h = observer.sun_altaz(calc_base + 12*u.hour).alt
                 if sun_ref < -18*u.deg and sun_12h < -18*u.deg: status = t.get('error_polar_night', "Polar night?"); start_time, end_time = _get_fallback_window(calc_base)
                 elif sun_ref > -18*u.deg:
@@ -246,7 +234,7 @@ def get_observable_window(observer: Observer, reference_time: Time, is_now: bool
                     if np.min(sun_alts_chk) > -18*u.deg: status = t.get('error_polar_day', "Polar day?"); start_time, end_time = _get_fallback_window(calc_base)
                 if start_time: status += t.get('window_fallback_info', "\nFallback: {} to {} UTC").format(start_time.iso, end_time.iso); return start_time, end_time, status
             except Exception as check_e: print(f"Polar check err: {check_e}")
-            raise ValueError("Rise <= Set twilight") # Raise if not polar & failed
+            raise ValueError("Rise <= Set twilight") 
         start_time, end_time = set_t, rise_t
         if is_now:
             if end_time < current_utc:
@@ -261,7 +249,7 @@ def get_observable_window(observer: Observer, reference_time: Time, is_now: bool
         status = t.get('window_calc_error', "Win Err: {}\n{}").format(e, traceback.format_exc()); print(f"Win err: {e}")
         start_time, end_time = _get_fallback_window(calc_base)
         status += t.get('window_fallback_info', "\nFallback: {} to {} UTC").format(start_time.iso, end_time.iso)
-    if start_time is None or end_time is None or end_time <= start_time: # Final fallback check
+    if start_time is None or end_time is None or end_time <= start_time: 
         if not status or "Error" not in status and "Fallback" not in status: status += ("\n" if status else "") + t.get('error_no_window', "No valid window.")
         start_fb, end_fb = _get_fallback_window(calc_base)
         if t.get('window_fallback_info', "\nFallback: {} to {} UTC").format(start_fb.iso, end_fb.iso) not in status: status += t.get('window_fallback_info', "\nFallback: {} to {} UTC").format(start_fb.iso, end_fb.iso)
@@ -269,7 +257,6 @@ def get_observable_window(observer: Observer, reference_time: Time, is_now: bool
     return start_time, end_time, status
 
 def find_observable_objects(observer_location: EarthLocation, observing_times: Time, min_altitude_limit: u.Quantity, catalog_df: pd.DataFrame, lang: str) -> list[dict]:
-    # (Unchanged)
     t = get_translation(lang); observable_objects = []
     if not isinstance(observer_location, EarthLocation): st.error("Internal Error: observer_location type"); return []
     if not isinstance(observing_times, Time) or not observing_times.shape: st.error("Internal Error: observing_times type"); return []
@@ -295,8 +282,8 @@ def find_observable_objects(observer_location: EarthLocation, observing_times: T
                 above_min = alts >= min_alt_deg; cont_dur_h = 0
                 if time_step_h > 0 and np.any(above_min):
                     runs = np.split(np.arange(len(above_min)), np.where(np.diff(above_min))[0]+1); max_len = 0
-                    for run in runs:
-                        if run.size > 0 and above_min[run[0]]: max_len = max(max_len, len(run))
+                    for run_seg in runs: # Renamed run to run_seg to avoid conflict
+                        if run_seg.size > 0 and above_min[run_seg[0]]: max_len = max(max_len, len(run_seg))
                     cont_dur_h = max_len * time_step_h
                 result = {
                     'Name': name, 'Type': type, 'Constellation': const, 'Magnitude': mag if not np.isnan(mag) else None,
@@ -308,7 +295,6 @@ def find_observable_objects(observer_location: EarthLocation, observing_times: T
     return observable_objects
 
 def get_local_time_str(utc_time: Time | None, timezone_str: str) -> tuple[str, str]:
-    # (Unchanged)
     if utc_time is None: return "N/A", "N/A"
     if not isinstance(utc_time, Time): print(f"Err: utc_time type {type(utc_time)}"); return "N/A", "N/A"
     if not isinstance(timezone_str, str) or not timezone_str: print(f"Err: tz_str type {timezone_str}"); return "N/A", "N/A"
@@ -319,14 +305,11 @@ def get_local_time_str(utc_time: Time | None, timezone_str: str) -> tuple[str, s
     except pytz.exceptions.UnknownTimeZoneError: print(f"Err: Unknown TZ '{timezone_str}'."); return utc_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'), "UTC (TZ Err)"
     except Exception as e: print(f"Err converting time: {e}"); traceback.print_exc(); return utc_time.to_datetime(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'), "UTC (Conv Err)"
 
-# --- Redshift Calculation Functions ---
 def hubble_parameter_inv_integrand(z, omega_m, omega_lambda):
-  # (Unchanged)
   epsilon = 1e-15; denom = np.sqrt(omega_m * (1 + z)**3 + omega_lambda + epsilon)
   return 1.0 / denom if denom >= epsilon else 0.0
 
 def lookback_time_integrand(z, omega_m, omega_lambda):
-  # (Unchanged)
   epsilon = 1e-15; term = omega_m * (1 + z)**3 + omega_lambda; term = max(term, 0)
   denom = (1 + z) * np.sqrt(term + epsilon)
   if math.isclose(z, 0): denom_zero = np.sqrt(omega_m + omega_lambda + epsilon); return 1.0/denom_zero if denom_zero >= epsilon else 0.0
@@ -334,7 +317,6 @@ def lookback_time_integrand(z, omega_m, omega_lambda):
 
 @st.cache_data
 def calculate_lcdm_distances(redshift, h0, omega_m, omega_lambda):
-  # (Unchanged)
   if not all(isinstance(v, (int, float)) for v in [redshift, h0, omega_m, omega_lambda]): return {'error_key': "error_invalid_input"}
   if h0 <= 0: return {'error_key': "error_h0_positive"}
   if omega_m < 0 or omega_lambda < 0: return {'error_key': "error_omega_negative"}
@@ -353,29 +335,24 @@ def calculate_lcdm_distances(redshift, h0, omega_m, omega_lambda):
   except ImportError: return {'error_key': "error_dep_scipy"}
   except Exception as e: st.exception(e); return {'error_key': "error_calc_failed", 'error_args': {'e': str(e)}}
 
-# --- Redshift Unit Conversion & Formatting ---
 def convert_mpc_to_km(d): return d * KM_PER_MPC
 def convert_km_to_au(d): return 0.0 if d == 0 else d / KM_PER_AU
 def convert_km_to_ly(d): return 0.0 if d == 0 else d / KM_PER_LY
 def convert_km_to_ls(d): return 0.0 if d == 0 else d / KM_PER_LS
 
 def convert_mpc_to_gly(d):
-    """Converts Megaparsecs to Gigalightyears."""
     if d == 0: return 0.0
     km_per_gly = KM_PER_LY * 1e9
     dist_km = convert_mpc_to_km(d)
     return dist_km / km_per_gly
 
 def format_large_number(number):
-    # (Unchanged)
     if number == 0: return "0";
     if not np.isfinite(number): return str(number)
     try: return f"{number:,.0f}".replace(",", " ")
     except (ValueError, TypeError): return str(number)
 
-# --- Redshift Example Helpers ---
 def get_lookback_comparison_key(gyr):
-    # (Unchanged)
     if gyr < 0.001: return "example_lookback_recent"
     if gyr < 0.05: return "example_lookback_humans"
     if gyr < 0.3: return "example_lookback_dinos"
@@ -384,7 +361,6 @@ def get_lookback_comparison_key(gyr):
     return "example_lookback_early_univ"
 
 def get_comoving_comparison_key(mpc):
-    # (Unchanged)
     if mpc < 5: return "example_comoving_local"
     if mpc < 50: return "example_comoving_virgo"
     if mpc < 200: return "example_comoving_coma"
@@ -392,9 +368,7 @@ def get_comoving_comparison_key(mpc):
     if mpc < 8000: return "example_comoving_quasars"
     return "example_comoving_cmb"
 
-# --- Plotting Function ---
 def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: float, plot_type: str, lang: str) -> plt.Figure | None:
-    # (Unchanged)
     t = get_translation(lang); fig = None
     try:
         if not isinstance(plot_data, dict): st.error("Plot Err: Invalid data."); return None
@@ -446,9 +420,12 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
 
 # --- Main App ---
 def main():
-    initialize_session_state()
+    cookies = CookieManager(key="dso_finder_cookie_manager_instance")
+    if not cookies.ready():
+        st.stop()
 
-    # Get Language and Translations
+    initialize_session_state(cookies)
+
     lang = st.session_state.language
     t = get_translation(lang)
     actual_lang_keys = ['de', 'en', 'fr']
@@ -456,14 +433,12 @@ def main():
         print(f"Info: Invalid lang '{lang}' in state, reset to 'de'.")
         st.session_state.language = 'de'; lang = 'de'; t = get_translation(lang)
 
-    # Load Catalog Data
     @st.cache_data
     def cached_load_ongc_data(path, current_lang): return load_ongc_data(path, current_lang)
     df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH, lang)
 
     st.title("Advanced DSO Finder")
 
-    # Object Type Glossary
     with st.expander(t.get('object_type_glossary_title', "Object Type Glossary")):
         glossary_items = t.get('object_type_glossary', {})
         if glossary_items:
@@ -472,34 +447,29 @@ def main():
         else: st.info("Glossary N/A.")
     st.markdown("---")
 
-    # --- Sidebar ---
     with st.sidebar:
         st.header(t.get('settings_header', "Settings"))
-        # Catalog Status
         if 'catalog_status_msg' not in st.session_state: st.session_state.catalog_status_msg = ""
         if df_catalog_data is not None: msg = t.get('info_catalog_loaded', "Cat: {} obj.").format(len(df_catalog_data)); msg_func = st.success
         else: msg = "Catalog failed."; msg_func = st.error
         if st.session_state.catalog_status_msg != msg: msg_func(msg); st.session_state.catalog_status_msg = msg
 
-        # Language Selector
         lang_opts = {'de': 'Deutsch', 'en': 'English', 'fr': 'Français'}; lang_keys = list(lang_opts.keys())
         curr_idx = lang_keys.index(lang) if lang in lang_keys else 0
         sel_key = st.radio(t.get('language_select_label', "Language"), options=lang_keys, format_func=lang_opts.get, key='language_radio', index=curr_idx, horizontal=True)
         if sel_key != st.session_state.language: st.session_state.language = sel_key; st.session_state.location_search_status_msg = ""; st.rerun()
 
-        # Location Settings
         with st.expander(t.get('location_expander', "📍 Location"), expanded=True):
             loc_opts_map = {'Search': t.get('location_option_search', "Search"), 'Manual': t.get('location_option_manual', "Manual")}
             st.radio(t.get('location_select_label', "Method"), options=list(loc_opts_map.keys()), format_func=lambda k: loc_opts_map[k], key="location_choice_key", horizontal=True)
             
-            loc_valid_tz_determination = False # Flag to check if we can determine TZ
+            loc_valid_tz_determination = False
 
             if st.session_state.location_choice_key == "Manual":
                 st.session_state.manual_input_lat_val = st.number_input(t.get('location_lat_label', "Lat (°N)"), -90.0, 90.0, value=st.session_state.current_latitude, step=0.01, format="%.4f", key="manual_lat_widget")
                 st.session_state.manual_input_lon_val = st.number_input(t.get('location_lon_label', "Lon (°E)"), -180.0, 180.0, value=st.session_state.current_longitude, step=0.01, format="%.4f", key="manual_lon_widget")
                 st.session_state.manual_input_height_val = st.number_input(t.get('location_elev_label', "Elev (m)"), -500, value=st.session_state.current_elevation, step=10, format="%d", key="manual_height_widget")
 
-                # Update central state from manual input widgets
                 st.session_state.current_latitude = st.session_state.manual_input_lat_val
                 st.session_state.current_longitude = st.session_state.manual_input_lon_val
                 st.session_state.current_elevation = st.session_state.manual_input_height_val
@@ -509,7 +479,6 @@ def main():
                    isinstance(st.session_state.current_elevation, (int, float)):
                     st.session_state.location_is_valid_for_run = True
                     loc_valid_tz_determination = True
-                    # Auto-determine and set timezone
                     if tf:
                         try:
                             f_tz = tf.timezone_at(lng=st.session_state.current_longitude, lat=st.session_state.current_latitude)
@@ -518,7 +487,7 @@ def main():
                         except Exception: st.session_state.selected_timezone = 'UTC'
                     else: st.session_state.selected_timezone = INITIAL_TIMEZONE
                     
-                    save_location_to_url(st.session_state.current_latitude, st.session_state.current_longitude, st.session_state.current_elevation, st.session_state.selected_timezone)
+                    save_location_to_cookies(cookies, st.session_state.current_latitude, st.session_state.current_longitude, st.session_state.current_elevation, st.session_state.selected_timezone)
                     if st.session_state.location_search_success: st.session_state.update({'location_search_success': False, 'searched_location_name': None, 'location_search_status_msg': ""})
                 else:
                     st.warning(t.get('location_error_manual_none', "Manual fields invalid.")); st.session_state.location_is_valid_for_run = False
@@ -526,7 +495,6 @@ def main():
             elif st.session_state.location_choice_key == "Search":
                 with st.form("loc_search_form"):
                     st.text_input(t.get('location_search_label', "Loc Name:"), key="location_search_query", placeholder=t.get('location_search_placeholder', "..."))
-                    # Use search_form_height_val for this widget
                     st.session_state.search_form_height_val = st.number_input(t.get('location_elev_label', "Elev (m)"), -500, value=st.session_state.search_form_height_val, step=10, format="%d", key="search_height_widget")
                     submitted = st.form_submit_button(t.get('location_search_submit_button', "Find"))
                 
@@ -545,7 +513,6 @@ def main():
                             try: print("Try Phot..."); geo_p = Photon(user_agent=agent, timeout=15); loc = geo_p.geocode(query); svc = "Photon" if loc else None; print(f"Phot: {svc}")
                             except (GeocoderTimedOut, GeocoderServiceError, Exception) as e_p: print(f"Phot fail: {e_p}"); err = e_p if not err else err
                         
-                        # Use the height from the search form's widget state
                         current_search_height = st.session_state.search_form_height_val
                         
                         if loc and svc:
@@ -558,27 +525,22 @@ def main():
                                     else: found_tz = 'UTC'
                                 except Exception: found_tz = 'UTC'
                             
-                            # Update central session state values
                             st.session_state.current_latitude = f_lat
                             st.session_state.current_longitude = f_lon
-                            st.session_state.current_elevation = current_search_height # Update central elevation
+                            st.session_state.current_elevation = current_search_height
                             st.session_state.selected_timezone = found_tz
-
-                            # Update widget-bound states to reflect the new central values for next rerun
                             st.session_state.manual_input_lat_val = f_lat
                             st.session_state.manual_input_lon_val = f_lon
                             st.session_state.manual_input_height_val = current_search_height
-                            # search_form_height_val is already current_search_height
-
                             st.session_state.searched_location_name = f_name
                             st.session_state.location_search_success = True
                             
-                            save_location_to_url(f_lat, f_lon, current_search_height, found_tz)
+                            save_location_to_cookies(cookies, f_lat, f_lon, current_search_height, found_tz)
 
                             coord_str = t.get('location_search_coords', "Lat: {:.4f}, Lon: {:.4f}").format(f_lat, f_lon)
                             f_key = 'location_search_found' if svc=="Nominatim" else ('location_search_found_fallback' if svc=="ArcGIS" else 'location_search_found_fallback2')
                             st.session_state.location_search_status_msg = f"{t.get(f_key, 'Found: {}').format(f_name)}\n({coord_str})"
-                            status_ph.success(st.session_state.location_search_status_msg) # Show immediately
+                            status_ph.success(st.session_state.location_search_status_msg)
                             st.session_state.location_is_valid_for_run = True
                             loc_valid_tz_determination = True
                         else: 
@@ -590,16 +552,13 @@ def main():
                                 else: e_key = 'location_search_error_fallback2_failed'; fmt_arg = err
                                 st.session_state.location_search_status_msg = t.get(e_key, "Geo Err: {}").format(fmt_arg) if fmt_arg else t.get(e_key, "Geo Err")
                             else: st.session_state.location_search_status_msg = t.get('location_search_error_not_found', "Not found.")
-                            status_ph.error(st.session_state.location_search_status_msg) # Show immediately
+                            status_ph.error(st.session_state.location_search_status_msg)
                             st.session_state.location_is_valid_for_run = False
                 
                 elif st.session_state.location_search_success: 
-                    # If search was previously successful, ensure central state reflects this
-                    # This block might be redundant if state is managed well, but can be a safeguard
-                    st.session_state.current_latitude = st.session_state.manual_input_lat_val # Assuming these were set correctly on success
+                    st.session_state.current_latitude = st.session_state.manual_input_lat_val
                     st.session_state.current_longitude = st.session_state.manual_input_lon_val
-                    st.session_state.current_elevation = st.session_state.manual_input_height_val # Or search_form_height_val if it was the source
-                    
+                    st.session_state.current_elevation = st.session_state.manual_input_height_val
                     st.session_state.location_is_valid_for_run = True
                     loc_valid_tz_determination = True
                     status_ph.success(st.session_state.location_search_status_msg)
@@ -608,20 +567,17 @@ def main():
             
             st.markdown("---") 
             tz_msg = ""
-            # Use current central state for lat/lon to determine displayed TZ
             current_disp_lat = st.session_state.current_latitude
             current_disp_lon = st.session_state.current_longitude
-            
             can_determine_tz_from_central = isinstance(current_disp_lat, (int, float)) and isinstance(current_disp_lon, (int, float))
 
-            if loc_valid_tz_determination and can_determine_tz_from_central: # Only if lat/lon are valid
+            if loc_valid_tz_determination and can_determine_tz_from_central:
                 if tf:
                     try: 
                         f_tz = tf.timezone_at(lng=current_disp_lon, lat=current_disp_lat)
                         if f_tz:
                             try: 
                                 pytz.timezone(f_tz)
-                                # selected_timezone should have been updated by manual or search logic already
                                 tz_msg = f"{t.get('timezone_auto_set_label', 'TZ:')} **{st.session_state.selected_timezone}**"
                             except pytz.UnknownTimeZoneError: 
                                 tz_msg = f"{t.get('timezone_auto_fail_label', 'TZ:')} **{st.session_state.selected_timezone}** (Auto Invalid TZ: {f_tz})"
@@ -636,91 +592,125 @@ def main():
                  tz_msg = f"{t.get('timezone_auto_fail_label', 'TZ:')} **{st.session_state.selected_timezone}** (Loc Invalid for Auto TZ)"
             st.markdown(tz_msg, unsafe_allow_html=True)
 
-
-        # Time Settings
         with st.expander(t.get('time_expander', "⏱️ Time"), expanded=False):
             time_opts = {'Now': t.get('time_option_now', "Now"), 'Specific': t.get('time_option_specific', "Specific")}
             st.radio(t.get('time_select_label', "Time"), options=list(time_opts.keys()), format_func=lambda k: time_opts[k], key="time_choice_exp", horizontal=True)
             if st.session_state.time_choice_exp == "Now": st.caption(f"UTC: {Time.now().iso}")
             else: st.date_input(t.get('time_date_select_label', "Date:"), value=st.session_state.selected_date_widget, key='selected_date_widget')
 
-        # Filter Settings (largely unchanged, ensure keys are unique if similar logic is applied elsewhere)
         with st.expander(t.get('filters_expander', "✨ Filters"), expanded=False):
             st.markdown(t.get('mag_filter_header', "**Mag Filter**")); mag_opts = {'Bortle Scale': t.get('mag_filter_option_bortle', "Bortle"), 'Manual': t.get('mag_filter_option_manual', "Manual")}
             st.radio(t.get('mag_filter_method_label', "Method:"), options=list(mag_opts.keys()), format_func=lambda k: mag_opts[k], key="mag_filter_mode_exp", horizontal=True)
-            st.slider(t.get('mag_filter_bortle_label', "Bortle:"), 1, 9, key='bortle_slider', help=t.get('mag_filter_bortle_help', "..."))
+            st.slider(t.get('mag_filter_bortle_label', "Bortle:"), 1, 9, value=st.session_state.bortle_slider, key='bortle_slider_widget', help=t.get('mag_filter_bortle_help', "...")) # Use widget key
             if st.session_state.mag_filter_mode_exp == "Manual":
-                st.slider(t.get('mag_filter_min_mag_label', "Min:"), -5.0, 20.0, step=0.5, format="%.1f", help=t.get('mag_filter_min_mag_help', "..."), key='manual_min_mag_slider')
-                st.slider(t.get('mag_filter_max_mag_label', "Max:"), -5.0, 20.0, step=0.5, format="%.1f", help=t.get('mag_filter_max_mag_help', "..."), key='manual_max_mag_slider')
-                if st.session_state.manual_min_mag_slider > st.session_state.manual_max_mag_slider: st.warning(t.get('mag_filter_warning_min_max', "Min > Max!"))
+                st.slider(t.get('mag_filter_min_mag_label', "Min:"), -5.0, 20.0, value=st.session_state.manual_min_mag_slider, step=0.5, format="%.1f", help=t.get('mag_filter_min_mag_help', "..."), key='manual_min_mag_slider_widget')
+                st.slider(t.get('mag_filter_max_mag_label', "Max:"), -5.0, 20.0, value=st.session_state.manual_max_mag_slider, step=0.5, format="%.1f", help=t.get('mag_filter_max_mag_help', "..."), key='manual_max_mag_slider_widget')
+                if st.session_state.manual_min_mag_slider_widget > st.session_state.manual_max_mag_slider_widget: st.warning(t.get('mag_filter_warning_min_max', "Min > Max!"))
+            
+            # Sync slider values back to session state if using different keys
+            st.session_state.bortle_slider = st.session_state.bortle_slider_widget
+            if st.session_state.mag_filter_mode_exp == "Manual":
+                st.session_state.manual_min_mag_slider = st.session_state.manual_min_mag_slider_widget
+                st.session_state.manual_max_mag_slider = st.session_state.manual_max_mag_slider_widget
+
+
             st.markdown("---"); st.markdown(t.get('min_alt_header', "**Altitude**"))
-            min_alt_s, max_alt_s = st.session_state.min_alt_slider, st.session_state.max_alt_slider; # Use distinct names if these are sliders
-            if min_alt_s > max_alt_s: st.session_state.min_alt_slider = max_alt_s # Correct the session state value for the slider
-            st.slider(t.get('min_alt_label', "Min (°):"), 0, 90, key='min_alt_slider', step=1); 
-            st.slider(t.get('max_alt_label', "Max (°):"), 0, 90, key='max_alt_slider', step=1)
-            if st.session_state.min_alt_slider > st.session_state.max_alt_slider: st.warning("Min Alt > Max Alt!") # Check again after rendering
-            st.markdown("---"); st.markdown(t.get('moon_warning_header', "**Moon**")); st.slider(t.get('moon_warning_label', "Warn > (%):"), 0, 100, key='moon_phase_slider', step=5)
+            # Ensure min_alt_slider and max_alt_slider are used for value and key
+            current_min_alt = st.session_state.min_alt_slider
+            current_max_alt = st.session_state.max_alt_slider
+            if current_min_alt > current_max_alt: current_min_alt = current_max_alt # Adjust before passing to slider
+            
+            st.session_state.min_alt_slider = st.slider(t.get('min_alt_label', "Min (°):"), 0, 90, value=current_min_alt, key='min_alt_slider_widget', step=1)
+            st.session_state.max_alt_slider = st.slider(t.get('max_alt_label', "Max (°):"), 0, 90, value=current_max_alt, key='max_alt_slider_widget', step=1)
+            
+            if st.session_state.min_alt_slider > st.session_state.max_alt_slider: st.warning("Min Alt > Max Alt!")
+            
+            st.markdown("---"); st.markdown(t.get('moon_warning_header', "**Moon**")); 
+            st.session_state.moon_phase_slider = st.slider(t.get('moon_warning_label', "Warn > (%):"), 0, 100, value=st.session_state.moon_phase_slider, key='moon_phase_slider_widget', step=5) # Add widget key
+            
             st.markdown("---"); st.markdown(t.get('object_types_header', "**Types**")); all_types = []
             if df_catalog_data is not None and 'Type' in df_catalog_data.columns:
                 try: all_types = sorted(list(df_catalog_data['Type'].dropna().astype(str).unique()))
                 except Exception as e: st.warning(f"{t.get('object_types_error_extract', 'Type Err')}: {e}")
             if all_types:
                 sel_obj_types = [s for s in st.session_state.object_type_filter_exp if s in all_types];
-                if sel_obj_types != st.session_state.object_type_filter_exp: st.session_state.object_type_filter_exp = sel_obj_types
-                st.multiselect(t.get('object_types_label', "Filter Types:"), options=all_types, default=sel_obj_types, key="object_type_filter_exp")
+                # This direct update to object_type_filter_exp is fine as multiselect uses it for default
+                st.session_state.object_type_filter_exp = st.multiselect(t.get('object_types_label', "Filter Types:"), options=all_types, default=sel_obj_types, key="object_type_filter_exp_widget")
             else: st.info("No types found."); st.session_state.object_type_filter_exp = []
-            st.markdown("---"); st.markdown(t.get('size_filter_header', "**Size**")); size_ok = df_catalog_data is not None and 'MajAx' in df_catalog_data.columns and df_catalog_data['MajAx'].notna().any(); size_disabled = not size_ok
+            
+            st.markdown("---"); st.markdown(t.get('size_filter_header', "**Size**")); 
+            size_ok = df_catalog_data is not None and 'MajAx' in df_catalog_data.columns and df_catalog_data['MajAx'].notna().any(); 
+            size_disabled = not size_ok
             if size_ok:
                 try:
                     valid_sz = df_catalog_data['MajAx'].dropna(); min_p = max(0.1, float(valid_sz.min())) if not valid_sz.empty else 0.1; max_p = float(valid_sz.max()) if not valid_sz.empty else 120.0
-                    min_s_range, max_s_range = st.session_state.size_arcmin_range; 
+                    # Ensure size_arcmin_range is a tuple
+                    current_size_range = tuple(st.session_state.size_arcmin_range) if isinstance(st.session_state.size_arcmin_range, list) else st.session_state.size_arcmin_range
+
+                    min_s_range, max_s_range = current_size_range
                     c_min = max(min_p, min(min_s_range, max_p)); c_max = min(max_p, max(max_s_range, min_p))
                     if c_min > c_max: c_min = c_max
-                    if (c_min, c_max) != st.session_state.size_arcmin_range: st.session_state.size_arcmin_range = (c_min, c_max)
+                    
                     step_sz = 0.1 if max_p <= 20 else (0.5 if max_p <= 100 else 1.0)
-                    st.slider(t.get('size_filter_label', "Size (arcmin):"), min_p, max_p, value=st.session_state.size_arcmin_range, step=step_sz, format="%.1f'", key='size_arcmin_range_widget', help=t.get('size_filter_help', "..."), disabled=size_disabled)
-                except Exception as sz_e: st.error(f"Size slider err: {sz_e}"); size_disabled = True # Should be size_arcmin_range_widget
+                    st.session_state.size_arcmin_range = st.slider(t.get('size_filter_label', "Size (arcmin):"), min_p, max_p, value=(c_min, c_max), step=step_sz, format="%.1f'", key='size_arcmin_range_widget', help=t.get('size_filter_help', "..."), disabled=size_disabled)
+                except Exception as sz_e: st.error(f"Size slider err: {sz_e}"); size_disabled = True
             else: st.info("Size data N/A."); size_disabled = True
-            if size_disabled: st.slider(t.get('size_filter_label', "Size (arcmin):"), 0.0, 1.0, (0.0, 1.0), key='size_disabled_widget', disabled=True) # Ensure unique key
-            st.markdown("---"); st.markdown(t.get('direction_filter_header', "**Direction**")); all_str = t.get('direction_option_all', "All"); dir_disp = [all_str] + CARDINAL_DIRECTIONS; dir_int = [ALL_DIRECTIONS_KEY] + CARDINAL_DIRECTIONS
+            if size_disabled: st.slider(t.get('size_filter_label', "Size (arcmin):"), 0.0, 1.0, (0.0, 1.0), key='size_disabled_widget', disabled=True)
+            
+            st.markdown("---"); st.markdown(t.get('direction_filter_header', "**Direction**")); 
+            all_str = t.get('direction_option_all', "All"); dir_disp = [all_str] + CARDINAL_DIRECTIONS; dir_int = [ALL_DIRECTIONS_KEY] + CARDINAL_DIRECTIONS
             curr_int_dir = st.session_state.selected_peak_direction;
-            if curr_int_dir not in dir_int: curr_int_dir = ALL_DIRECTIONS_KEY; st.session_state.selected_peak_direction = curr_int_dir
+            if curr_int_dir not in dir_int: curr_int_dir = ALL_DIRECTIONS_KEY; st.session_state.selected_peak_direction = curr_int_dir #Ensure it's valid
             try: curr_idx_dir_sel = dir_int.index(curr_int_dir)
             except ValueError: curr_idx_dir_sel = 0
-            sel_disp_dir_widget = st.selectbox(t.get('direction_filter_label', "Direction:"), options=dir_disp, index=curr_idx_dir_sel, key='direction_sel_widget') # Unique key
+            
+            sel_disp_dir_widget = st.selectbox(t.get('direction_filter_label', "Direction:"), options=dir_disp, index=curr_idx_dir_sel, key='direction_sel_widget')
             sel_int_dir_res = ALL_DIRECTIONS_KEY;
             if sel_disp_dir_widget != all_str:
                 try: sel_idx_dir = dir_disp.index(sel_disp_dir_widget); sel_int_dir_res = dir_int[sel_idx_dir]
                 except ValueError: sel_int_dir_res = ALL_DIRECTIONS_KEY
-            if sel_int_dir_res != st.session_state.selected_peak_direction: st.session_state.selected_peak_direction = sel_int_dir_res
+            st.session_state.selected_peak_direction = sel_int_dir_res # Update central state
 
-        # Result Options
         with st.expander(t.get('results_options_expander', "⚙️ Results Opts"), expanded=False):
-            max_sl_val = len(df_catalog_data) if df_catalog_data is not None else 50; min_sl_val=5; act_max_val=max(min_sl_val, max_sl_val); sl_dis_flag=act_max_val<=min_sl_val
-            def_num_objs = st.session_state.get('num_objects_slider', 20); cl_def_objs=max(min_sl_val, min(def_num_objs, act_max_val))
-            if cl_def_objs != def_num_objs: st.session_state.num_objects_slider = cl_def_objs
-            st.slider(t.get('results_options_max_objects_label', "Max Objs:"), min_sl_val, act_max_val, value=st.session_state.num_objects_slider, step=1, key='num_objects_slider_widget', disabled=sl_dis_flag) # Unique key
+            max_sl_val = len(df_catalog_data) if df_catalog_data is not None else 50
+            min_sl_val = 5
+            act_max_val = max(min_sl_val, max_sl_val)
+            sl_dis_flag = act_max_val <= min_sl_val
+
+            current_num_objects = st.session_state.num_objects_slider
+            clamped_num_objects = max(min_sl_val, min(current_num_objects, act_max_val))
+            
+            st.session_state.num_objects_slider = st.slider(
+                t.get('results_options_max_objects_label', "Max Objs:"), 
+                min_value=min_sl_val, 
+                max_value=act_max_val, 
+                value=clamped_num_objects, 
+                step=1, 
+                key='num_objects_slider_widget', # Use a distinct key for the widget
+                disabled=sl_dis_flag
+            )
+            # After the slider, ensure the main session state reflects the widget's value
+            # st.session_state.num_objects_slider = st.session_state.num_objects_slider_widget # This line is now redundant due to direct assignment above
+
             sort_opts = {'Duration & Altitude': t.get('results_options_sort_duration', "Duration"), 'Brightness': t.get('results_options_sort_magnitude', "Brightness")}
             st.radio(t.get('results_options_sort_method_label', "Sort By:"), options=list(sort_opts.keys()), format_func=lambda k: sort_opts[k], key='sort_method', horizontal=True)
 
-        # Bug Report Button
         st.sidebar.markdown("---"); bug_email="debrun2005@gmail.com"; bug_subj=urllib.parse.quote("Bug Report: Adv DSO Finder")
         bug_body=urllib.parse.quote(t.get('bug_report_body', "\n\n(Describe bug)")); bug_link=f"mailto:{bug_email}?subject={bug_subj}&body={bug_body}"
         st.sidebar.markdown(f"<a href='{bug_link}' target='_blank'>{t.get('bug_report_button', '🐞 Report Bug')}</a>", unsafe_allow_html=True)
 
-    # --- Main Area ---
     st.subheader(t.get('search_params_header', "Search Parameters"))
     param_col1, param_col2 = st.columns(2)
     loc_disp = t.get('location_error', "Loc Err: {}").format("Not Set"); observer_for_run = None
     
-    # Use central state for display and observer creation
     current_lat_for_run = st.session_state.current_latitude
     current_lon_for_run = st.session_state.current_longitude
     current_elev_for_run = st.session_state.current_elevation
     current_tz_for_run = st.session_state.selected_timezone
 
     if st.session_state.location_is_valid_for_run and \
-       all(isinstance(v, (int, float)) for v in [current_lat_for_run, current_lon_for_run, current_elev_for_run]):
+       all(isinstance(v, (int, float)) for v in [current_lat_for_run, current_lon_for_run]) and \
+       isinstance(current_elev_for_run, int): # Ensure elevation is int
         try:
             observer_for_run = Observer(latitude=current_lat_for_run*u.deg, 
                                         longitude=current_lon_for_run*u.deg, 
@@ -730,11 +720,11 @@ def main():
                 loc_disp = t.get('location_manual_display', "Manual ({:.4f}, {:.4f})").format(current_lat_for_run, current_lon_for_run)
             elif st.session_state.searched_location_name: 
                 loc_disp = t.get('location_search_display', "Searched: {} ({:.4f}, {:.4f})").format(st.session_state.searched_location_name, current_lat_for_run, current_lon_for_run)
-            else: # Fallback if search name somehow missing but still valid
+            else:
                 loc_disp = f"Lat: {current_lat_for_run:.4f}, Lon: {current_lon_for_run:.4f}"
         except Exception as obs_e: 
             loc_disp = t.get('location_error', "Loc Err: {}").format(f"Observer fail: {obs_e}")
-            st.session_state.location_is_valid_for_run = False # Invalidate if observer fails
+            st.session_state.location_is_valid_for_run = False
             observer_for_run = None
     param_col1.markdown(t.get('search_params_location', "📍 Loc: {}").format(loc_disp))
     
@@ -754,7 +744,7 @@ def main():
     min_alt_d, max_alt_d = st.session_state.min_alt_slider, st.session_state.max_alt_slider; sel_types_d = st.session_state.object_type_filter_exp; types_s = ', '.join(sel_types_d) if sel_types_d else t.get('search_params_types_all', "All")
     param_col2.markdown(t.get('search_params_filter_alt_types', "🔭 Alt {}-{}°, Types: {}").format(min_alt_d, max_alt_d, types_s))
     
-    size_min_d_disp, size_max_d_disp = st.session_state.size_arcmin_range # This should be the tuple from the slider
+    size_min_d_disp, size_max_d_disp = st.session_state.size_arcmin_range
     param_col2.markdown(t.get('search_params_filter_size', "📐 Size {:.1f}-{:.1f}'").format(size_min_d_disp, size_max_d_disp))
     
     dir_d_disp = st.session_state.selected_peak_direction; dir_d_disp = t.get('search_params_direction_all', "All") if dir_d_disp == ALL_DIRECTIONS_KEY else dir_d_disp; param_col2.markdown(t.get('search_params_filter_direction', "🧭 Dir @ Max: {}").format(dir_d_disp))
@@ -768,10 +758,10 @@ def main():
         st.session_state.find_button_pressed = True
         st.session_state.update({'show_plot': False, 'show_custom_plot': False, 'active_result_plot_data': None, 'custom_target_plot_data': None, 'last_results': [], 'window_start_time': None, 'window_end_time': None})
         if observer_for_run and df_catalog_data is not None:
-            save_location_to_url(st.session_state.current_latitude, 
-                                 st.session_state.current_longitude, 
-                                 st.session_state.current_elevation, 
-                                 st.session_state.selected_timezone)
+            save_location_to_cookies(cookies, st.session_state.current_latitude, 
+                                     st.session_state.current_longitude, 
+                                     st.session_state.current_elevation, 
+                                     st.session_state.selected_timezone)
             with st.spinner(t.get('spinner_searching', "Calculating...")):
                 try: 
                     start_t, end_t, win_stat = get_observable_window(observer_for_run, ref_time_main, is_now_main, lang); results_placeholder.info(win_stat)
@@ -782,7 +772,6 @@ def main():
                         filt_df = df_catalog_data.copy(); filt_df = filt_df[(filt_df['Mag'] >= min_mag_f) & (filt_df['Mag'] <= max_mag_f)]
                         if sel_types_d: filt_df = filt_df[filt_df['Type'].isin(sel_types_d)]
                         size_ok_m = df_catalog_data is not None and 'MajAx' in df_catalog_data.columns and df_catalog_data['MajAx'].notna().any()
-                        # Use the tuple from session state for size filtering
                         current_size_min_filter, current_size_max_filter = st.session_state.size_arcmin_range
                         if size_ok_m: filt_df = filt_df.dropna(subset=['MajAx']); filt_df = filt_df[(filt_df['MajAx'] >= current_size_min_filter) & (filt_df['MajAx'] <= current_size_max_filter)]
                         
@@ -800,8 +789,8 @@ def main():
                             if sort_k_filter == 'Brightness': final_objs.sort(key=lambda x: x.get('Magnitude', float('inf')) if x.get('Magnitude') is not None else float('inf'))
                             else: final_objs.sort(key=lambda x: (x.get('Max Cont. Duration (h)', 0), x.get('Max Altitude (°)', 0)), reverse=True)
                             
-                            num_show_slider_val = st.session_state.num_objects_slider # This is the value from the slider
-                            st.session_state.last_results = final_objs[:num_show_slider_val] 
+                            num_show = st.session_state.num_objects_slider 
+                            st.session_state.last_results = final_objs[:num_show] 
                             
                             if not final_objs: results_placeholder.warning(t.get('warning_no_objects_found', "No objects found..."))
                             else: results_placeholder.success(t.get('success_objects_found', "{} objs found.").format(len(final_objs))); sort_msg = 'info_showing_list_duration' if sort_k_filter != 'Brightness' else 'info_showing_list_magnitude'; results_placeholder.info(t.get(sort_msg, "Showing {}...").format(len(st.session_state.last_results)))
@@ -825,11 +814,18 @@ def main():
                  with m_c2:
                     st.metric(label=t.get('moon_metric_label', "Moon Illum."), value=f"{moon_pct_res:.0f}%")
                     moon_thresh_res = st.session_state.moon_phase_slider
-                    if moon_pct_res > moon_thresh_res: st.warning(t.get('moon_warning_message', "Warn: Moon > ({:.0f}%)!").format(moon_pct_res, moon_thresh_res)) # Corrected format call
+                    if moon_pct_res > moon_thresh_res: st.warning(t.get('moon_warning_message', "Warn: Moon > {}% (Threshold: {}%)!").format(moon_pct_res, moon_thresh_res))
         elif st.session_state.find_button_pressed: results_placeholder.info("Moon phase N/A.")
         
         plot_opts_res = {'Sky Path': t.get('graph_type_sky_path', "Sky Path"), 'Altitude Plot': t.get('graph_type_alt_time', "Alt Plot")}
-        results_placeholder.radio(t.get('graph_type_label', "Graph:"), options=list(plot_opts_res.keys()), format_func=lambda k: plot_opts_res[k], key='plot_type_selection_widget', horizontal=True) # Unique key
+        # Use st.session_state.plot_type_selection for the radio button's value and key
+        st.session_state.plot_type_selection = results_placeholder.radio(
+            t.get('graph_type_label', "Graph:"), 
+            options=list(plot_opts_res.keys()), 
+            format_func=lambda k: plot_opts_res[k], 
+            key='plot_type_selection_radio_widget', # distinct key for widget
+            index=list(plot_opts_res.keys()).index(st.session_state.plot_type_selection) # set index from central state
+        )
         
         for i, obj_data in enumerate(results_data):
             name_res, type_res = obj_data.get('Name','N/A'), obj_data.get('Type','N/A')
@@ -838,7 +834,7 @@ def main():
             title_format_string_res = t.get('results_expander_title', "{} ({}) - Mag: {}")
             title_res = title_format_string_res.format(name_res, type_res, mag_s_res)
             is_exp_res = (st.session_state.expanded_object_name == name_res)
-            obj_cont_res = results_placeholder.container()
+            obj_cont_res = results_placeholder.container() # Create a new container for each object
             with obj_cont_res.expander(title_res, expanded=is_exp_res):
                 c1_res, c2_res, c3_res = st.columns([2,2,1])
                 c1_res.markdown(t.get('results_coords_header', "**Details:**")); c1_res.markdown(f"**{t.get('results_export_constellation', 'Const')}:** {obj_data.get('Constellation', 'N/A')}")
@@ -847,7 +843,7 @@ def main():
                 c2_res.markdown(t.get('results_max_alt_header', "**Max Alt:**"))
                 max_a_res = obj_data.get('Max Altitude (°)', 0); az_m_res = obj_data.get('Azimuth at Max (°)', 0); dir_m_res = obj_data.get('Direction at Max', 'N/A')
                 az_fmt_str_res = t.get('results_azimuth_label', "(Az: {:.1f}°{})") 
-                az_str_res = az_fmt_str_res.format(az_m_res, "") if isinstance(az_m_res, (int, float)) else "(Az: N/A)"
+                az_str_res = az_fmt_str_res.format(az_m_res, "") if isinstance(az_m_res, (int, float)) else "(Az: N/A)" # Added default for second format arg
                 dir_fmt_str_res = t.get('results_direction_label', ", Dir: {}")
                 dir_str_res = dir_fmt_str_res.format(dir_m_res)
                 c2_res.markdown(f"**{max_a_res:.1f}°** {az_str_res}{dir_str_res}")
@@ -857,23 +853,23 @@ def main():
                 g_q_res = urllib.parse.quote_plus(f"{name_res} astronomy"); g_url_res = f"https://www.google.com/search?q={g_q_res}"; c3_res.markdown(f"[{t.get('google_link_text', 'Google')}]({g_url_res})", unsafe_allow_html=True)
                 s_q_res = urllib.parse.quote_plus(name_res); s_url_res = f"http://simbad.u-strasbg.fr/simbad/sim-basic?Ident={s_q_res}"; c3_res.markdown(f"[{t.get('simbad_link_text', 'SIMBAD')}]({s_url_res})", unsafe_allow_html=True)
                 plot_key_res = f"plot_{name_res}_{i}"
-                if st.button(t.get('results_graph_button', "📈 Plot"), key=plot_key_res): # Unique key for button
+                if st.button(t.get('results_graph_button', "📈 Plot"), key=plot_key_res):
                     st.session_state.update({'plot_object_name': name_res, 'active_result_plot_data': obj_data, 'show_plot': True, 'show_custom_plot': False, 'expanded_object_name': name_res}); st.rerun()
                 if st.session_state.show_plot and st.session_state.plot_object_name == name_res:
                     plot_d_res = st.session_state.active_result_plot_data; min_l_res, max_l_res = st.session_state.min_alt_slider, st.session_state.max_alt_slider; st.markdown("---")
                     with st.spinner(t.get('results_spinner_plotting', "Plotting...")):
                         try: 
-                            fig_p_res = create_plot(plot_d_res, min_l_res, max_l_res, st.session_state.plot_type_selection, lang) # Use plot_type_selection directly
+                            fig_p_res = create_plot(plot_d_res, min_l_res, max_l_res, st.session_state.plot_type_selection, lang)
                             if fig_p_res:
                                 st.pyplot(fig_p_res); close_key_res = f"close_{name_res}_{i}"
                                 if st.button(t.get('results_close_graph_button', "Close Plot"), key=close_key_res): st.session_state.update({'show_plot': False, 'active_result_plot_data': None, 'expanded_object_name': None}); st.rerun()
                             else: st.error(t.get('results_graph_not_created', "Plot fail."))
                         except Exception as plt_e: st.error(t.get('results_graph_error', "Plot Err: {}").format(plt_e)); traceback.print_exc()
         if results_data:
-            csv_ph_res = results_placeholder.empty()
+            csv_ph_res = results_placeholder.empty() # Should be results_placeholder.container() if used multiple times or .empty() if only one download button
             try: 
                 export_d_res = []; tz_csv_res = st.session_state.selected_timezone
-                for obj_csv in results_data: # Use different var name
+                for obj_csv in results_data:
                     peak_utc_csv_res = obj_csv.get('Time at Max (UTC)'); loc_t_csv_val, _ = get_local_time_str(peak_utc_csv_res, tz_csv_res)
                     export_d_res.append({ t.get('results_export_name',"Name"): obj_csv.get('Name'), t.get('results_export_type',"Type"): obj_csv.get('Type'), t.get('results_export_constellation',"Const"): obj_csv.get('Constellation'),
                         t.get('results_export_mag',"Mag"): obj_csv.get('Magnitude'), t.get('results_export_size',"Size'"): obj_csv.get('Size (arcmin)'), t.get('results_export_ra',"RA"): obj_csv.get('RA'),
@@ -882,22 +878,22 @@ def main():
                         t.get('results_export_time_max_local',"TimeMaxLoc"): loc_t_csv_val, t.get('results_export_cont_duration',"Dur(h)"): obj_csv.get('Max Cont. Duration (h)',0.0) })
                 df_ex_res = pd.DataFrame(export_d_res); dec_csv_val = ',' if lang == 'de' else '.'; csv_s_res = df_ex_res.to_csv(index=False, sep=';', encoding='utf-8-sig', decimal=dec_csv_val)
                 now_s_res = datetime.now().strftime("%Y%m%d_%H%M"); csv_fn_res = t.get('results_csv_filename', "dso_list_{}.csv").format(now_s_res)
-                csv_ph_res.download_button(label=t.get('results_save_csv_button', "💾 Save CSV"), data=csv_s_res, file_name=csv_fn_res, mime='text/csv', key='csv_dl_widget') # Unique key
-            except Exception as csv_e: csv_ph_res.error(t.get('results_csv_export_error', "CSV Err: {}").format(csv_e))
+                results_placeholder.download_button(label=t.get('results_save_csv_button', "💾 Save CSV"), data=csv_s_res, file_name=csv_fn_res, mime='text/csv', key='csv_dl_widget')
+            except Exception as csv_e: results_placeholder.error(t.get('results_csv_export_error', "CSV Err: {}").format(csv_e)) # Changed csv_ph_res to results_placeholder
     elif st.session_state.find_button_pressed: results_placeholder.info(t.get('warning_no_objects_found', "No objects found..."))
 
     st.markdown("---")
     with st.expander(t.get('custom_target_expander', "Plot Custom Target")):
-        with st.form("custom_form_widget"): # Unique key
-             st.text_input(t.get('custom_target_ra_label', "RA:"), key="custom_target_ra_widget", placeholder=t.get('custom_target_ra_placeholder', "..."))
-             st.text_input(t.get('custom_target_dec_label', "Dec:"), key="custom_target_dec_widget", placeholder=t.get('custom_target_dec_placeholder', "..."))
-             st.text_input(t.get('custom_target_name_label', "Name (Opt):"), key="custom_target_name_widget", placeholder="My Comet")
+        with st.form("custom_form_widget"):
+             st.session_state.custom_target_ra = st.text_input(t.get('custom_target_ra_label', "RA:"), value=st.session_state.custom_target_ra, key="custom_target_ra_input_widget", placeholder=t.get('custom_target_ra_placeholder', "..."))
+             st.session_state.custom_target_dec = st.text_input(t.get('custom_target_dec_label', "Dec:"), value=st.session_state.custom_target_dec, key="custom_target_dec_input_widget", placeholder=t.get('custom_target_dec_placeholder', "..."))
+             st.session_state.custom_target_name = st.text_input(t.get('custom_target_name_label', "Name (Opt):"), value=st.session_state.custom_target_name, key="custom_target_name_input_widget", placeholder="My Comet")
              custom_submitted_res = st.form_submit_button(t.get('custom_target_button', "Create Plot"))
         custom_err_ph_res = st.empty(); custom_plot_ph_res = st.empty()
         if custom_submitted_res: 
              st.session_state.update({'show_plot': False, 'show_custom_plot': False, 'custom_target_plot_data': None, 'custom_target_error': ""})
-             cust_ra_res, cust_dec_res = st.session_state.custom_target_ra_widget, st.session_state.custom_target_dec_widget # Use widget keys
-             cust_name_res = st.session_state.custom_target_name_widget or t.get('custom_target_name_label', "Target").replace(":", "")
+             cust_ra_res, cust_dec_res = st.session_state.custom_target_ra, st.session_state.custom_target_dec
+             cust_name_res = st.session_state.custom_target_name or t.get('custom_target_name_label', "Target").replace(":", "")
              win_s_c_res, win_e_c_res = st.session_state.get('window_start_time'), st.session_state.get('window_end_time'); obs_ex_c_res = observer_for_run is not None
              if not cust_ra_res or not cust_dec_res: st.session_state.custom_target_error = t.get('custom_target_error_coords', "Invalid RA/Dec."); custom_err_ph_res.error(st.session_state.custom_target_error)
              elif not obs_ex_c_res or not isinstance(win_s_c_res, Time) or not isinstance(win_e_c_res, Time): st.session_state.custom_target_error = t.get('custom_target_error_window', "Invalid window/loc."); custom_err_ph_res.error(st.session_state.custom_target_error)
@@ -919,10 +915,10 @@ def main():
                  st.markdown("---");
                  with st.spinner(t.get('results_spinner_plotting', "Plotting...")):
                      try: 
-                         fig_c_res = create_plot(cust_plot_d_res, min_a_c_res, max_a_c_res, st.session_state.plot_type_selection, lang) # Use plot_type_selection
+                         fig_c_res = create_plot(cust_plot_d_res, min_a_c_res, max_a_c_res, st.session_state.plot_type_selection, lang)
                          if fig_c_res:
                              st.pyplot(fig_c_res);
-                             if st.button(t.get('results_close_graph_button', "Close Plot"), key="close_custom_widget"): st.session_state.update({'show_custom_plot': False, 'custom_target_plot_data': None}); st.rerun() # Unique key
+                             if st.button(t.get('results_close_graph_button', "Close Plot"), key="close_custom_widget"): st.session_state.update({'show_custom_plot': False, 'custom_target_plot_data': None}); st.rerun()
                          else: st.error(t.get('results_graph_not_created', "Plot fail."))
                      except Exception as plt_e_c: st.error(t.get('results_graph_error', "Plot Err: {}").format(plt_e_c)); traceback.print_exc()
         elif st.session_state.custom_target_error: custom_err_ph_res.error(st.session_state.custom_target_error)
@@ -930,9 +926,6 @@ def main():
     st.markdown("---")
     with st.expander(t.get("redshift_calculator_title", "Redshift Calculator"), expanded=False):
         st.subheader(t.get("input_params", "Input Parameters"))
-        # Use widget-specific keys for redshift inputs as well, then update central session state if needed
-        # For now, assuming these are not modified elsewhere and direct session state access is fine
-        # as they are not directly re-assigned in the same way the height was.
         rc_z_val = st.number_input(label=t.get("redshift_z", "Redshift (z)"), min_value=-0.99, value=st.session_state.redshift_z_input, step=0.1, format="%.5f", key="redshift_z_input_widget", help=t.get("redshift_z_tooltip", "Enter cosmological redshift"))
         st.markdown("---")
         st.subheader(t.get("cosmo_params", "Cosmological Parameters"))
@@ -940,7 +933,6 @@ def main():
         rc_om_val = st.number_input(label=t.get("omega_m", "Ωm"), min_value=0.0, max_value=2.0, value=st.session_state.redshift_omega_m_input, step=0.01, format="%.3f", key="redshift_omega_m_input_widget")
         rc_ol_val = st.number_input(label=t.get("omega_lambda", "ΩΛ"), min_value=0.0, max_value=2.0, value=st.session_state.redshift_omega_lambda_input, step=0.01, format="%.3f", key="redshift_omega_lambda_input_widget")
         
-        # Update central session state from widget values if they change
         st.session_state.redshift_z_input = rc_z_val
         st.session_state.redshift_h0_input = rc_h0_val
         st.session_state.redshift_omega_m_input = rc_om_val
@@ -948,8 +940,8 @@ def main():
 
         if not math.isclose(rc_om_val + rc_ol_val, 1.0, abs_tol=1e-3): st.warning(t.get("flat_universe_warning", "Ωm + ΩΛ ≉ 1. Assuming flat."))
         st.markdown("---")
-        st.subheader(t.get("results_for", "Results for z = {z:.5f}").format(z=rc_z_val)) # Use widget value for display
-        rc_results_val = calculate_lcdm_distances(rc_z_val, rc_h0_val, rc_om_val, rc_ol_val) # Use widget values for calculation
+        st.subheader(t.get("results_for", "Results for z = {z:.5f}").format(z=rc_z_val))
+        rc_results_val = calculate_lcdm_distances(rc_z_val, rc_h0_val, rc_om_val, rc_ol_val)
         rc_error_key_val = rc_results_val.get('error_key')
         if rc_error_key_val:
             rc_error_args_val = rc_results_val.get('error_args', {}); rc_error_text_val = t.get(rc_error_key_val, rc_error_key_val).format(**rc_error_args_val)
@@ -979,3 +971,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
