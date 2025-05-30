@@ -62,6 +62,7 @@ six==1.17.0
 skyfield==1.53
 smmap==5.0.2
 streamlit==1.44.1
+streamlit-cookies-manager==0.2.0
 tenacity==9.1.2
 timezonefinder==6.5.9
 tkcalendar==1.6.1
