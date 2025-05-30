@@ -73,52 +73,67 @@ tf = get_timezone_finder()
 
 # --- URL Parameter Management Functions ---
 def load_location_from_url():
-    """Loads location data from URL query parameters."""
-    print("--- Attempting to load location from URL ---") # DEBUG
+    """Loads location data from URL query parameters more robustly."""
+    print("--- Attempting to load location from URL (V2) ---")
     query_params = st.query_params
+    
+    # Initialize with defaults
+    lat = INITIAL_LAT
+    lon = INITIAL_LON
+    elev = INITIAL_HEIGHT
+    tz = INITIAL_TIMEZONE
+
     url_lat_str = query_params.get("lat")
     url_lon_str = query_params.get("lon")
     url_elev_str = query_params.get("elev")
     url_tz_str = query_params.get("tz")
 
-    print(f"Raw URL params: lat='{url_lat_str}', lon='{url_lon_str}', elev='{url_elev_str}', tz='{url_tz_str}'") # DEBUG
+    print(f"Raw URL params: lat='{url_lat_str}', lon='{url_lon_str}', elev='{url_elev_str}', tz='{url_tz_str}'")
 
-    lat = INITIAL_LAT
-    lon = INITIAL_LON
-    elev = INITIAL_HEIGHT
-    tz = INITIAL_TIMEZONE
-    
-    used_defaults = True 
-
-    try:
-        param_found = False
-        if url_lat_str is not None:
+    # Try to parse latitude
+    if url_lat_str is not None and url_lat_str.strip() != "":
+        try:
             lat = float(url_lat_str)
-            param_found = True
-        if url_lon_str is not None:
-            lon = float(url_lon_str)
-            param_found = True
-        if url_elev_str is not None:
-            elev = int(url_elev_str)
-            param_found = True
-        if url_tz_str is not None:
-            tz = str(url_tz_str)
-            param_found = True
-        
-        if param_found: # If any parameter was successfully read (even if it matches default)
-            used_defaults = False
-
-
-    except ValueError as e:
-        print(f"ValueError parsing URL params: {e}. Using defaults.") 
-        lat, lon, elev, tz = INITIAL_LAT, INITIAL_LON, INITIAL_HEIGHT, INITIAL_TIMEZONE
-        used_defaults = True 
-    
-    if used_defaults:
-        print("Used INITIAL_DEFAULTS for location because no valid URL parameters were found or an error occurred.") 
+            print(f"Successfully parsed lat: {lat}")
+        except ValueError:
+            print(f"ValueError parsing lat='{url_lat_str}'. Using default lat: {INITIAL_LAT}")
+            lat = INITIAL_LAT # Revert to default if parsing fails for this specific param
     else:
-        print(f"Loaded from URL (or kept defaults if specific params missing): lat={lat}, lon={lon}, elev={elev}, tz='{tz}'") 
-    print("--- Finished loading location from URL ---") 
+        print(f"Lat param missing or empty. Using default lat: {INITIAL_LAT}")
+
+    # Try to parse longitude
+    if url_lon_str is not None and url_lon_str.strip() != "":
+        try:
+            lon = float(url_lon_str)
+            print(f"Successfully parsed lon: {lon}")
+        except ValueError:
+            print(f"ValueError parsing lon='{url_lon_str}'. Using default lon: {INITIAL_LON}")
+            lon = INITIAL_LON
+    else:
+        print(f"Lon param missing or empty. Using default lon: {INITIAL_LON}")
+
+    # Try to parse elevation
+    if url_elev_str is not None and url_elev_str.strip() != "":
+        try:
+            elev = int(url_elev_str)
+            print(f"Successfully parsed elev: {elev}")
+        except ValueError:
+            print(f"ValueError parsing elev='{url_elev_str}'. Using default elev: {INITIAL_HEIGHT}")
+            elev = INITIAL_HEIGHT
+    else:
+        print(f"Elev param missing or empty. Using default elev: {INITIAL_HEIGHT}")
+
+    # Get timezone (string, no conversion needed beyond checking presence)
+    if url_tz_str is not None and url_tz_str.strip() != "": # Also check for empty string for tz
+        tz = str(url_tz_str) # Ensure it's a string
+        print(f"Successfully parsed tz: '{tz}'")
+    else:
+        print(f"TZ param missing or empty. Using default tz: '{INITIAL_TIMEZONE}'")
+        tz = INITIAL_TIMEZONE
+
+
+    print(f"Final loaded location: lat={lat}, lon={lon}, elev={elev}, tz='{tz}'")
+    print("--- Finished loading location from URL (V2) ---")
     return lat, lon, elev, tz
 
 def save_location_to_url(lat, lon, elev, tz):
@@ -140,7 +155,7 @@ def save_location_to_url(lat, lon, elev, tz):
             changed_params = True
     
     if changed_params:
-        print(f"Saving to URL: {new_query_params}") # DEBUG
+        print(f"Saving to URL: {new_query_params}") 
         st.query_params.from_dict(new_query_params)
 
 # --- Initialize Session State ---
@@ -984,3 +999,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
