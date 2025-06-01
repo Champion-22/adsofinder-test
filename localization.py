@@ -4,7 +4,7 @@
 translations = {
     'de': {
         # === DSO Finder Keys ===
-        'app_title': "Advanced DSO Finder", # Hinzugefügt für Konsistenz
+        'app_title': "Advanced DSO Finder", 
         'settings_header': "Einstellungen",
         'language_select_label': "Sprache",
         'location_expander': "📍 Standort",
@@ -99,9 +99,9 @@ translations = {
         'location_not_set': "Nicht festgelegt",
         'observer_creation_failed': "Erstellung des Beobachterobjekts fehlgeschlagen",
         'search_params_time': "⏱️ Zeit: {}",
-        'search_params_timezone': "🌍 Zeitzone: {}", # Bereits vorhanden, aber zur Vollständigkeit
-        'search_params_time_now': "Kommende Nacht (ab {} {})", # Angepasst für lokale TZ Anzeige
-        'search_params_time_now_utc': "Kommende Nacht (ab {} UTC)", # Fallback falls lokale TZ nicht geht
+        'search_params_timezone': "🌍 Zeitzone: {}",
+        'search_params_time_now': "Kommende Nacht (ab {} {})",
+        'search_params_time_now_utc': "Kommende Nacht (ab {} UTC)",
         'search_params_time_specific': "Nacht nach {}",
         'search_params_filter_mag': "✨ Filter: {}",
         'search_params_filter_mag_bortle': "Bortle {} (<= {:.1f} mag)",
@@ -198,9 +198,13 @@ translations = {
         'error_catalog_empty_data': "Fehler: Katalogdatei ist leer.",
         'error_loading_catalog_generic': "Katalog Ladefehler: {}",
         'error_catalog_failed': "Katalogfehler.",
-        'donation_text': "Gefällt dir der DSO Finder? [Unterstütze die Entwicklung auf Ko-fi ☕](https://ko-fi.com/advanceddsofinder)",
+        'donation_text': "Gefällt dir der DSO Finder? [Unterstütze die Entwicklung auf Ko-fi ☕](https://ko-fi.com/advanceddsofinder)", # Beibehalten für Fallback/Kontext
+        'donation_url': "https://ko-fi.com/advanceddsofinder", # Expliziter Schlüssel für URL
+        'donation_button_text': "Unterstütze auf Ko-fi", # Text für den st.link_button
         'bug_report_button': "🐞 Fehler melden",
+        'bug_report_subject': "Fehlerbericht: Advanced DSO Finder", # Für mailto Link
         'bug_report_body': "\n\n(Bitte beschreiben Sie den Fehler und die Schritte zur Reproduktion)",
+        'thousands_separator': " ", # Tausendertrennzeichen für Deutsch
 
         # === Redshift Calculator Keys (Updated & New) ===
         'redshift_calculator_title': "Rotverschiebungs-Rechner",
@@ -257,7 +261,6 @@ translations = {
         'example_comoving_large_scale_structure': "Skala von kosmischen Filamenten und Voids.",
         'example_comoving_distant_quasars': "Typische Entfernung zu sehr weit entfernten Quasaren.",
         'example_comoving_observable_universe_horizon': "Bis zum Horizont des beobachtbaren Universums.",
-        # 'rc_donate_text', 'rc_donate_button', 'bug_report', 'glossary' - diese sind optional oder können generische Versionen verwenden
     },
     'en': {
         # === DSO Finder Keys ===
@@ -340,8 +343,13 @@ translations = {
         'warning_size_column_no_valid_data': "Warning: Size column '{}' no valid data.", 'error_type_column_missing_critical': "Critical Error: 'Type' column missing.",
         'warning_catalog_empty_after_filters': "Warning: Catalog empty after filtering.", 'error_catalog_empty_data': "Error: Catalog file is empty.",
         'error_loading_catalog_generic': "Catalog loading error: {}", 'error_catalog_failed': "Catalog error.",
-        'donation_text': "Like the DSO Finder? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)",
-        'bug_report_button': "🐞 Report Bug", 'bug_report_body': "\n\n(Please describe the bug and the steps to reproduce it)",
+        'donation_text': "Like the DSO Finder? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)", # Fallback/context
+        'donation_url': "https://ko-fi.com/advanceddsofinder", # Explicit key for URL
+        'donation_button_text': "Support on Ko-fi", # Text for st.link_button
+        'bug_report_button': "🐞 Report Bug",
+        'bug_report_subject': "Bug Report: Advanced DSO Finder", # For mailto link
+        'bug_report_body': "\n\n(Please describe the bug and the steps to reproduce it)",
+        'thousands_separator': ",", # Thousands separator for English
 
         # === Redshift Calculator Keys (Updated & New) ===
         'redshift_calculator_title': "Redshift Calculator",
@@ -480,8 +488,13 @@ translations = {
         'warning_size_column_no_valid_data': "Avertissement : Colonne de taille '{}' sans données valides.", 'error_type_column_missing_critical': "Erreur critique : Colonne 'Type' manquante.",
         'warning_catalog_empty_after_filters': "Avertissement : Catalogue vide après filtrage.", 'error_catalog_empty_data': "Erreur : Le fichier catalogue est vide.",
         'error_loading_catalog_generic': "Erreur de chargement du catalogue : {}", 'error_catalog_failed': "Erreur de catalogue.",
-        'donation_text': "Vous aimez l'application DSO Finder ? [Soutenez le développement sur Ko-fi ☕](https://ko-fi.com/advanceddsofinder)",
-        'bug_report_button': "🐞 Signaler un bug", 'bug_report_body': "\n\n(Veuillez décrire le bug et les étapes pour le reproduire)",
+        'donation_text': "Vous aimez l'application DSO Finder ? [Soutenez le développement sur Ko-fi ☕](https://ko-fi.com/advanceddsofinder)", # Fallback/context
+        'donation_url': "https://ko-fi.com/advanceddsofinder", # Explicit key for URL
+        'donation_button_text': "Soutenir sur Ko-fi", # Text for st.link_button
+        'bug_report_button': "🐞 Signaler un bug",
+        'bug_report_subject': "Rapport de bug: Advanced DSO Finder", # For mailto link
+        'bug_report_body': "\n\n(Veuillez décrire le bug et les étapes pour le reproduire)",
+        'thousands_separator': " ", # Thousands separator for French
 
         # === Redshift Calculator Keys (Updated & New) ===
         'redshift_calculator_title': "Calculateur de Décalage vers le Rouge",
