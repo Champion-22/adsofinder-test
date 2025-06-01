@@ -34,12 +34,62 @@ except ImportError as e:
 # by attempting to import from the user-provided 'localization.py' first.
 
 # --- Page Config ---
-st.set_page_config(page_title="Advanced DSO Finder", layout="wide")
+# Try to set an apricot-like theme. PeachPuff is #FFDAB9
+# For a slightly more orange apricot: #FFB366 or #FFBE7D
+APRICOT_PRIMARY_COLOR = "#FFB366" 
+st.set_page_config(
+    page_title="Advanced DSO Finder", 
+    layout="wide",
+    # theme={"primaryColor": APRICOT_PRIMARY_COLOR} # This is deprecated
+)
+# Custom CSS to inject theme colors - more robust way for primary color
+# This will make buttons and other primary elements apricot-themed.
+# Note: Streamlit's default light/dark themes will still influence overall look.
+st.markdown(f"""
+<style>
+    /* Set primary color for buttons, sliders, etc. */
+    div[data-testid="stButton"] > button {{
+        background-color: {APRICOT_PRIMARY_COLOR};
+        color: white; /* Ensure text is readable on apricot */
+        border-color: {APRICOT_PRIMARY_COLOR};
+    }}
+    div[data-testid="stButton"] > button:hover {{
+        background-color: #FFA04D; /* Darker apricot on hover */
+        border-color: #FFA04D;
+        color: white;
+    }}
+    div[data-testid="stLinkButton"] > a {{
+        background-color: {APRICOT_PRIMARY_COLOR} !important;
+        color: white !important;
+        border: 1px solid {APRICOT_PRIMARY_COLOR} !important;
+    }}
+    div[data-testid="stLinkButton"] > a:hover {{
+        background-color: #FFA04D !important;
+        border: 1px solid #FFA04D !important;
+        color: white !important;
+    }}
+    /* Slider track color */
+    .stSlider [data-baseweb="slider"] div[role="slider"] {{
+        background-color: {APRICOT_PRIMARY_COLOR};
+    }}
+    /* Radio button selected color */
+     div[data-baseweb="radio"] input:checked + div {{
+        background-color: {APRICOT_PRIMARY_COLOR} !important;
+        border-color: {APRICOT_PRIMARY_COLOR} !important;
+    }}
+    /* Multiselect selected items */
+    .stMultiSelect [data-baseweb="tag"] {{
+        background-color: {APRICOT_PRIMARY_COLOR} !important;
+    }}
+
+</style>
+""", unsafe_allow_html=True)
+
 
 # --- Global Configuration & Initial Values ---
 INITIAL_LAT = 47.17
 INITIAL_LON = 8.01
-INITIAL_HEIGHT = 550
+INITIAL_HEIGHT = 500 # Changed from 550 to 500 as requested
 INITIAL_TIMEZONE = "Europe/Zurich"
 
 # --- Path to Catalog File ---
@@ -65,7 +115,7 @@ OMEGA_LAMBDA_DEFAULT = 0.685
 
 # --- Initialize TimezoneFinder ---
 @st.cache_resource
-def get_timezone_finder_instance(): # Renamed to avoid conflict if tf is used as a variable elsewhere
+def get_timezone_finder_instance(): 
     if 'TimezoneFinder' in globals(): 
         try: return TimezoneFinder(in_memory=True)
         except Exception as e: print(f"Error initializing TimezoneFinder: {e}"); st.warning(f"TimezoneFinder initialization failed: {e}. Automatic timezone detection disabled."); return None
@@ -78,11 +128,14 @@ def initialize_session_state():
         # DSO Finder State
         'language': 'de', 'plot_object_name': None, 'show_plot': False, 'active_result_plot_data': None,
         'last_results': [], 'find_button_pressed': False, 'location_choice_key': 'Search',
-        'manual_lat_val': INITIAL_LAT, 'manual_lon_val': INITIAL_LON, 'manual_height_val': INITIAL_HEIGHT,
+        'manual_lat_val': INITIAL_LAT, 'manual_lon_val': INITIAL_LON, 'manual_height_val': INITIAL_HEIGHT, # Uses updated INITIAL_HEIGHT
         'location_search_query': "", 'searched_location_name': None, 'location_search_status_msg': "",
         'location_search_success': False, 'selected_timezone': INITIAL_TIMEZONE, 'manual_min_mag_slider': 0.0,
         'manual_max_mag_slider': 16.0, 'object_type_filter_exp': [], 'mag_filter_mode_exp': 'Bortle Scale',
-        'bortle_slider': 5, 'min_alt_slider': 20, 'max_alt_slider': 90, 'moon_phase_slider': 35,
+        'bortle_slider': 5, 
+        'min_alt_slider': 0,  # Changed default from 20 to 0
+        'max_alt_slider': 90, # Default remains 90
+        'moon_phase_slider': 35,
         'size_arcmin_range': [1.0, 120.0], 'sort_method': 'Duration & Altitude',
         'selected_peak_direction': ALL_DIRECTIONS_KEY, 'plot_type_selection': 'Sky Path', 'custom_target_ra': "",
         'custom_target_dec': "", 'custom_target_name': "", 'custom_target_error': "", 'custom_target_plot_data': None,
@@ -402,13 +455,22 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
         plot_times_mpl = times_astropy.plot_date
         try: is_streamlit_dark_theme = (st.get_option("theme.base") == "dark")
         except Exception: is_streamlit_dark_theme = False; print("Warning: Could not determine Streamlit theme. Defaulting to light plot style.")
+        
+        # Define theme-specific colors
+        # Apricot-like color for primary elements if light theme, otherwise use a contrasting color for dark theme
+        apricot_color = APRICOT_PRIMARY_COLOR # Defined globally
+        plot_primary_color = apricot_color if not is_streamlit_dark_theme else 'deepskyblue' # Use apricot on light, skyblue on dark for contrast
+
         plt.style.use('dark_background' if is_streamlit_dark_theme else 'seaborn-v0_8-whitegrid')
         label_color = '#FAFAFA' if is_streamlit_dark_theme else '#333333'; title_color = '#FFFFFF' if is_streamlit_dark_theme else '#000000'; grid_color = '#444444' if is_streamlit_dark_theme else 'darkgray'
-        primary_line_color = 'deepskyblue' if is_streamlit_dark_theme else 'dodgerblue'; min_alt_line_color = 'tomato' if is_streamlit_dark_theme else 'red'; max_alt_line_color = 'orange' if is_streamlit_dark_theme else 'darkorange'
+        # primary_line_color is now plot_primary_color
+        min_alt_line_color = 'tomato' if is_streamlit_dark_theme else 'red'; max_alt_line_color = 'orange' if is_streamlit_dark_theme else 'darkorange'
         spine_color = '#AAAAAA' if is_streamlit_dark_theme else '#555555'; legend_face_color = '#262730' if is_streamlit_dark_theme else '#F0F0F0'; figure_face_color = '#0E1117' if is_streamlit_dark_theme else '#FFFFFF'
+        
         fig, ax = plt.subplots(figsize=(10, 6), facecolor=figure_face_color, constrained_layout=True); ax.set_facecolor(figure_face_color)
+        
         if plot_type == 'Altitude Plot':
-            ax.plot(plot_times_mpl, altitudes_np, color=primary_line_color, alpha=0.9, linewidth=1.5, label=obj_name)
+            ax.plot(plot_times_mpl, altitudes_np, color=plot_primary_color, alpha=0.9, linewidth=1.5, label=obj_name)
             ax.axhline(min_altitude_deg, color=min_alt_line_color, linestyle='--', linewidth=1.2, label=t_loader.get('graph_min_altitude_label', "Min Alt ({:.0f}°)").format(min_altitude_deg), alpha=0.8)
             if max_altitude_deg < 90: ax.axhline(max_altitude_deg, color=max_alt_line_color, linestyle=':', linewidth=1.2, label=t_loader.get('graph_max_altitude_label', "Max Alt ({:.0f}°)").format(max_altitude_deg), alpha=0.8)
             ax.set_xlabel(t_loader.get("graph_xlabel_time_utc", "Time (UTC)"), color=label_color); ax.set_ylabel(t_loader.get('graph_ylabel_altitude', "Altitude (°)"), color=label_color)
@@ -419,9 +481,11 @@ def create_plot(plot_data: dict, min_altitude_deg: float, max_altitude_deg: floa
             ax.remove(); ax = fig.add_subplot(111, projection='polar', facecolor=figure_face_color)
             azimuths_rad = np.deg2rad(azimuths_np); radii_polar = 90 - altitudes_np 
             time_jd_normalized = (times_astropy.jd - times_astropy.jd.min()) / (times_astropy.jd.max() - times_astropy.jd.min() + 1e-9)
-            point_colors = plt.cm.viridis(time_jd_normalized)
+            # Use a colormap that works well with both light and dark themes, or adjust based on theme
+            colormap_for_path = plt.cm.viridis if not is_streamlit_dark_theme else plt.cm.plasma
+            point_colors = colormap_for_path(time_jd_normalized)
             scatter = ax.scatter(azimuths_rad, radii_polar, c=point_colors, s=20, alpha=0.8, edgecolors='none', label=obj_name)
-            ax.plot(azimuths_rad, radii_polar, color=primary_line_color, alpha=0.5, linewidth=0.8)
+            ax.plot(azimuths_rad, radii_polar, color=plot_primary_color, alpha=0.5, linewidth=0.8) # Path line
             ax.plot(np.linspace(0, 2*np.pi, 100), np.full(100, 90 - min_altitude_deg), color=min_alt_line_color, linestyle='--', linewidth=1.2, label=t_loader.get('graph_min_altitude_label', "Min Alt ({:.0f}°)").format(min_altitude_deg), alpha=0.8)
             if max_altitude_deg < 90: ax.plot(np.linspace(0, 2*np.pi, 100), np.full(100, 90 - max_altitude_deg), color=max_alt_line_color, linestyle=':', linewidth=1.2, label=t_loader.get('graph_max_altitude_label', "Max Alt ({:.0f}°)").format(max_altitude_deg), alpha=0.8)
             ax.set_theta_zero_location('N'); ax.set_theta_direction(-1); ax.set_yticks(np.arange(0, 91, 15)); ax.set_yticklabels([f"{90-alt}°" for alt in np.arange(0, 91, 15)], color=label_color)
@@ -457,8 +521,6 @@ def main():
         # Attempt to import from user's localization.py
         from localization import get_translation as get_translation_from_file
         
-        # Assuming get_translation_from_file returns a dictionary for the selected language
-        # (already handling its own DEFAULT_LANG fallback as per user's localization.py structure)
         t_dict_user = get_translation_from_file(lang)
         
         if not isinstance(t_dict_user, dict):
@@ -470,9 +532,6 @@ def main():
                 self.lang_dict = lang_dict_from_user_file
             
             def get(self, key, default_value=None):
-                # The user's get_translation should already handle fallback to their DEFAULT_LANG.
-                # This .get() is a simple wrapper. If key is still not in the user's dict,
-                # then use the default_value provided in the main script's code.
                 return self.lang_dict.get(key, default_value if default_value is not None else key)
         
         t = UserProvidedTranslator(t_dict_user)
@@ -481,7 +540,6 @@ def main():
     except ImportError:
         warning_message = "Warning: localization.py not found or error during import. Using internal fallback translations."
         print(warning_message)
-        # Fallback to internal translations if localization.py is not available or fails
         _translations_fallback = {
             'de': {
                 "app_title": "Advanced DSO Finder (Intern DE)", 'settings_header': "Einstellungen", 'language_select_label': "Sprache", 
@@ -762,9 +820,11 @@ def main():
                 if st.session_state.manual_min_mag_slider > st.session_state.manual_max_mag_slider: st.warning(t.get('mag_filter_warning_min_max', "Min. Magnitude is greater than Max. Magnitude!"))
             st.markdown("---"); st.markdown(t.get('min_alt_header', "**Object Altitude Above Horizon**"))
             current_min_alt, current_max_alt = st.session_state.min_alt_slider, st.session_state.max_alt_slider
-            if current_min_alt > current_max_alt: st.session_state.min_alt_slider = current_max_alt; current_min_alt = current_max_alt
-            st.slider(t.get('min_alt_label', "Min. Object Altitude (°):"), 0, 90, key='min_alt_slider', step=1); st.slider(t.get('max_alt_label', "Max. Object Altitude (°):"), 0, 90, key='max_alt_slider', step=1)
+            # No need to re-assign if min > max, slider itself handles bounds. Warning is enough.
+            st.slider(t.get('min_alt_label', "Min. Object Altitude (°):"), 0, 90, value=st.session_state.min_alt_slider, key='min_alt_slider_widget', step=1) # Use new key if needed, or ensure state is updated
+            st.slider(t.get('max_alt_label', "Max. Object Altitude (°):"), 0, 90, value=st.session_state.max_alt_slider, key='max_alt_slider_widget', step=1)
             if st.session_state.min_alt_slider > st.session_state.max_alt_slider: st.warning(t.get("alt_filter_warning_min_max", "Minimum altitude is greater than maximum altitude!"))
+            
             st.markdown("---"); st.markdown(t.get('moon_warning_header', "**Moon Warning**")); st.slider(t.get('moon_warning_label', "Warn if Moon > (% Illumination):"), 0, 100, key='moon_phase_slider', step=5)
             st.markdown("---"); st.markdown(t.get('object_types_header', "**Object Types**")); catalog_all_types = []
             if df_catalog_data is not None and 'Type' in df_catalog_data.columns:
@@ -783,7 +843,7 @@ def main():
                     if clamped_min_size > clamped_max_size: clamped_min_size = clamped_max_size
                     if (clamped_min_size, clamped_max_size) != st.session_state.size_arcmin_range: st.session_state.size_arcmin_range = (clamped_min_size, clamped_max_size)
                     slider_step_val = 0.1 if max_slider_val <= 20 else (0.5 if max_slider_val <= 100 else 1.0)
-                    st.slider(t.get('size_filter_label', "Object Size (arcminutes):"), min_slider_val, max_slider_val, step=slider_step_val, format="%.1f'", key='size_arcmin_range', help=t.get('size_filter_help', "Filter objects by their apparent size (major axis). 1 arcminute = 1/60 degree."), disabled=size_slider_disabled)
+                    st.slider(t.get('size_filter_label', "Object Size (arcminutes):"), min_slider_val, max_slider_val, value=st.session_state.size_arcmin_range, step=slider_step_val, format="%.1f'", key='size_arcmin_range_widget', help=t.get('size_filter_help', "Filter objects by their apparent size (major axis). 1 arcminute = 1/60 degree."), disabled=size_slider_disabled)
                 except Exception as e_size_slider: st.error(f"{t.get('size_slider_error', 'Error creating size slider.')}: {e_size_slider}"); size_slider_disabled = True
             else: st.info(t.get("size_data_not_available", "Size data not available in catalog.")); size_slider_disabled = True
             if size_slider_disabled: st.slider(t.get('size_filter_label', "Object Size (arcminutes):"), 0.0, 1.0, (0.0, 1.0), key='size_disabled_placeholder', disabled=True)
@@ -806,20 +866,8 @@ def main():
             sort_options_map = {'Duration & Altitude': t.get('results_options_sort_duration', "Duration & Altitude"), 'Brightness': t.get('results_options_sort_magnitude', "Brightness")}
             st.radio(t.get('results_options_sort_method_label', "Sort Results By:"), options=list(sort_options_map.keys()), format_func=sort_options_map.get, key='sort_method', horizontal=True)
         
-        st.sidebar.markdown("---")
-        # Modernized Bug Report Button (Styled Markdown for mailto)
-        bug_report_email = "debrun2005@gmail.com"
-        bug_report_subject = urllib.parse.quote(t.get("bug_report_subject", "Bug Report: Advanced DSO Finder"))
-        bug_report_body_template = urllib.parse.quote(t.get('bug_report_body', "\n\n(Please describe the bug and the steps to reproduce it)\n\nApp Version: X.Y.Z\nOS: ...\nBrowser: ...")) 
-        bug_report_mailto_link = f"mailto:{bug_report_email}?subject={bug_report_subject}&body={bug_report_body_template}"
-        st.sidebar.markdown(f"""
-        <a href="{bug_report_mailto_link}" target="_blank" style="display: inline-block; padding: 0.5em 1em; background-color: #FF4B4B; color: white; text-align: center; border-radius: 0.25rem; text-decoration: none; font-weight: bold;">
-        🐞 {t.get('bug_report_button', "Report Bug")}
-        </a>""", unsafe_allow_html=True)
-
-        # Modernized Donation Button (using st.link_button)
-        donation_url = t.get("donation_url", "https://ko-fi.com/advanceddsofinder") 
-        st.link_button(f"☕ {t.get('donation_button_text', 'Support on Ko-fi')}", donation_url, use_container_width=True)
+        # Bug Report Button (moved to main area later)
+        st.sidebar.markdown("---") # Keep a separator in sidebar if other items remain or are added
 
 
     st.subheader(t.get('search_params_header', "Search Parameters"))
@@ -1038,8 +1086,7 @@ def main():
                 st.text(f"  {comov_gly_res:,.4f} {t.get('unit_Gly', 'Gly (Billion Lightyears)')}")
                 comoving_example_key = get_comoving_comparison_key(comov_mpc_res)
                 st.caption(f"*{t.get(comoving_example_key, 'Contextual example for comoving distance...')}*")
-                # Removed nested expander here
-                st.markdown(f"_{t.get('comoving_other_units_expander', 'Other Units (Comoving)')}_:") # Label for the section
+                st.markdown(f"_{t.get('comoving_other_units_expander', 'Other Units (Comoving)')}_:") 
                 st.text(f"  {comov_km_formatted_res} {t.get('unit_km_full', 'km')}")
                 st.text(f"  {comov_ly_res:,.2e} {t.get('unit_LJ', 'ly')}")
                 st.text(f"  {comov_au_res:,.2e} {t.get('unit_AE', 'AU')}")
@@ -1055,8 +1102,28 @@ def main():
                 st.text(f"  {angd_gly_res:,.4f} {t.get('unit_Gly', 'Gly (Billion Lightyears)')}")
                 st.caption(f"*{t.get('explanation_angular', 'Relevant for size: Objects have the expected apparent size at this distance (important for standard rulers).')}*")
             st.caption(t.get("calculation_note", "Calculation based on the ΛCDM model. For non-flat models, Ωk is derived from Ωm and ΩΛ."))
+    
+    # Footer section in the main area
     st.markdown("---")
-    st.caption(t.get('donation_text', "Like the DSO Finder? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)"), unsafe_allow_html=True)
+    # Modernized Bug Report Button (Styled Markdown for mailto) - Moved to main area
+    bug_report_email = "debrun2005@gmail.com"
+    bug_report_subject = urllib.parse.quote(t.get("bug_report_subject", "Bug Report: Advanced DSO Finder"))
+    bug_report_body_template = urllib.parse.quote(t.get('bug_report_body', "\n\n(Please describe the bug and the steps to reproduce it)\n\nApp Version: X.Y.Z\nOS: ...\nBrowser: ...")) 
+    bug_report_mailto_link = f"mailto:{bug_report_email}?subject={bug_report_subject}&body={bug_report_body_template}"
+    
+    # Modernized Donation Button (using st.link_button) - Moved to main area
+    donation_url = t.get("donation_url", "https://ko-fi.com/advanceddsofinder") 
+    
+    footer_col1, footer_col2 = st.columns([3,1]) # Give more space to donation text
+    with footer_col1:
+        st.link_button(f"☕ {t.get('donation_button_text', 'Support on Ko-fi')}", donation_url, use_container_width=False) # False to make it not full width
+    with footer_col2:
+        st.markdown(f"""
+        <a href="{bug_report_mailto_link}" target="_blank" style="display: inline-block; padding: 0.5em 1em; background-color: #FF4B4B; color: white; text-align: center; border-radius: 0.25rem; text-decoration: none; font-weight: bold; float: right;">
+        🐞 {t.get('bug_report_button', "Report Bug")}
+        </a>""", unsafe_allow_html=True)
+    
+    # Removed the old st.caption for donation as it's now a button above.
 
 if __name__ == "__main__":
     main()
