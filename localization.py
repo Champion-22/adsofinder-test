@@ -4,6 +4,7 @@
 translations = {
     'de': {
         # === DSO Finder Keys ===
+        'app_title': "Advanced DSO Finder", # Hinzugefügt für Konsistenz
         'settings_header': "Einstellungen",
         'language_select_label': "Sprache",
         'location_expander': "📍 Standort",
@@ -41,6 +42,9 @@ translations = {
         'timezone_auto_set_label': "Erkannte Zeitzone:",
         'timezone_auto_fail_label': "Zeitzone:",
         'timezone_auto_fail_msg': "Zeitzone konnte nicht erkannt werden, UTC wird verwendet.",
+        'timezone_error_invalid': "Ungültig",
+        'timezone_auto_na': "Automatische TZ nicht verfügbar",
+        'timezone_loc_invalid': "Standort ungültig für TZ-Ermittlung",
         'filters_expander': "✨ Filter & Bedingungen",
         'mag_filter_header': "**Magnitude Filter**",
         'mag_filter_method_label': "Filter Methode:",
@@ -56,14 +60,18 @@ translations = {
         'min_alt_header': "**Objekthöhe über Horizont**",
         'min_alt_label': "Min. Objekthöhe (°):",
         'max_alt_label': "Max. Objekthöhe (°):",
+        'alt_filter_warning_min_max': "Minimale Höhe ist größer als maximale Höhe!",
         'moon_warning_header': "**Mond Warnung**",
         'moon_warning_label': "Warnen wenn Mond > (% Beleuchtung):",
         'object_types_header': "**Objekttypen**",
         'object_types_error_extract': "Objekttypen konnten nicht aus dem Katalog extrahiert werden.",
         'object_types_label': "Typen filtern (leer lassen für alle):",
+        'object_types_not_found': "Keine Objekttypen im Katalog gefunden.",
         'size_filter_header': "**Winkelgrößen Filter**",
         'size_filter_label': "Objektgröße (Bogenminuten):",
         'size_filter_help': "Objekte nach ihrer scheinbaren Größe filtern (Hauptachse). 1 Bogenminute = 1/60 Grad.",
+        'size_slider_error': "Fehler bei der Erstellung des Größen-Sliders.",
+        'size_data_not_available': "Größendaten im Katalog nicht verfügbar.",
         'direction_filter_header': "**Filter nach Himmelsrichtung**",
         'direction_filter_label': "Zeige Objekte mit höchstem Stand in Richtung:",
         'direction_option_all': "Alle",
@@ -74,6 +82,8 @@ translations = {
             "Neb": "Nebel (allgemein)", "EmN": "Emissionsnebel", "RfN": "Reflexionsnebel",
             "HII": "HII-Region", "AGN": "Aktiver Galaxienkern"
         },
+        'glossary_not_available': "Glossar ist nicht verfügbar oder leer für die gewählte Sprache.",
+        'glossary_format_error': "Glossardaten haben nicht das erwartete Format.",
         'results_options_expander': "⚙️ Ergebnisoptionen",
         'results_options_max_objects_label': "Max. Anzahl anzuzeigender Objekte:",
         'results_options_sort_method_label': "Ergebnisse sortieren nach:",
@@ -82,12 +92,16 @@ translations = {
         'moon_metric_label': "Mondbeleuchtung (ca.)",
         'moon_warning_message': "Warnung: Mond ist heller ({:.0f}%) als Schwellenwert ({:.0f}%)!",
         'moon_phase_error': "Fehler bei Mondphasenberechnung: {}",
+        'moon_phase_not_available': "Mondphaseninformation nicht verfügbar.",
         'find_button_label': "🔭 Beobachtbare Objekte finden",
         'search_params_header': "Suchparameter",
         'search_params_location': "📍 Standort: {}",
+        'location_not_set': "Nicht festgelegt",
+        'observer_creation_failed': "Erstellung des Beobachterobjekts fehlgeschlagen",
         'search_params_time': "⏱️ Zeit: {}",
-        'search_params_timezone': "🌍 Zeitzone: {}",
-        'search_params_time_now': "Kommende Nacht (ab {} UTC)",
+        'search_params_timezone': "🌍 Zeitzone: {}", # Bereits vorhanden, aber zur Vollständigkeit
+        'search_params_time_now': "Kommende Nacht (ab {} {})", # Angepasst für lokale TZ Anzeige
+        'search_params_time_now_utc': "Kommende Nacht (ab {} UTC)", # Fallback falls lokale TZ nicht geht
         'search_params_time_specific': "Nacht nach {}",
         'search_params_filter_mag': "✨ Filter: {}",
         'search_params_filter_mag_bortle': "Bortle {} (<= {:.1f} mag)",
@@ -101,25 +115,30 @@ translations = {
         'spinner_geocoding': "Suche nach Standort...",
         'window_info_template': "Beobachtungsfenster: {} bis {} UTC (Astronomische Dämmerung)",
         'window_already_passed': "Berechnetes Nachtfenster für 'Jetzt' ist bereits vorbei. Berechne für nächste Nacht.",
+        'warning_window_too_short': "Beobachtungsfenster zu kurz für detaillierte Berechnung.",
         'error_no_window': "Kein gültiges astronomisches Dunkelheitsfenster für das gewählte Datum und den Standort gefunden.",
+        'error_cannot_search': "Suche kann nicht durchgeführt werden.",
         'error_polar_night': "Astronomische Dunkelheit dauert >24h an (Polarnacht?). Fallback-Fenster wird verwendet.",
         'error_polar_day': "Keine astronomische Dunkelheit tritt ein (Polartag?). Fallback-Fenster wird verwendet.",
+        'window_fallback_info': "\nFallback-Fenster wird verwendet: {} bis {} UTC",
+        'window_fallback_info_short': "Fallback: {} bis {} UTC",
         'success_objects_found': "{} passende Objekte gefunden.",
         'info_showing_list_duration': "Zeige {} Objekte, sortiert nach Sichtbarkeitsdauer und Kulminationshöhe:",
         'info_showing_list_magnitude': "Zeige {} Objekte, sortiert nach Helligkeit (hellstes zuerst):",
         'error_search_unexpected': "Ein unerwarteter Fehler ist während der Suche aufgetreten:",
+        'error_search_no_catalog': "Suche nicht möglich: Katalog fehlt.",
+        'error_search_no_location': "Suche nicht möglich: Standort ungültig.",
         'results_list_header': "Ergebnisliste",
         'results_export_name': "Name", 'results_export_type': "Typ", 'results_export_constellation': "Sternbild",
         'results_export_mag': "Magnitude", 'results_export_size': "Größe (arcmin)", 'results_export_ra': "RA",
         'results_export_dec': "Dec", 'results_export_max_alt': "Max Höhe (°)", 'results_export_az_at_max': "Azimut bei Max (°)",
         'results_export_direction_at_max': "Richtung bei Max", 'results_export_time_max_utc': "Zeit bei Max (UTC)",
         'results_export_time_max_local': "Zeit bei Max (Lokale TZ)", 'results_export_cont_duration': "Max Kont Dauer (h)",
-        # === KORREKTUR HIER ===
-        'results_expander_title': '{} ({}) - Mag: {}', # Erwartet jetzt String für Mag
-        # =======================
+        'results_expander_title': '{} ({}) - Mag: {}',
         'google_link_text': "Google", 'simbad_link_text': "SIMBAD",
         'results_coords_header': "**Details:**", 'results_constellation_label': "Sternbild:", 'results_size_label': "Größe (Hauptachse):",
         'results_size_value': "{:.1f} arcmin", 'results_max_alt_header': "**Max. Höhe:**", 'results_azimuth_label': "(Azimut: {:.1f}°{})",
+        'azimuth_not_available': "(Azimut: N/A)",
         'results_direction_label': ", Richtung: {}", 'results_best_time_header': "**Beste Zeit (Lokale TZ):**",
         'results_cont_duration_header': "**Max. Kont. Dauer:**", 'results_duration_value': "{:.1f} Stunden",
         'graph_type_label': "Grafiktyp (für alle Grafiken):", 'graph_type_sky_path': "Himmelsbahn (Az/Alt)", 'graph_type_alt_time': "Höhenverlauf (Alt/Zeit)",
@@ -127,76 +146,122 @@ translations = {
         'results_graph_not_created': "Grafik konnte nicht erstellt werden.", 'results_close_graph_button': "Grafik schliessen",
         'results_save_csv_button': "💾 Ergebnisliste als CSV speichern", 'results_csv_filename': "dso_beobachtungsliste_{}.csv", 'results_csv_export_error': "CSV Export Fehler: {}",
         'warning_no_objects_found': "Keine Objekte gefunden, die allen Kriterien für das berechnete Beobachtungsfenster entsprechen.",
+        'warning_no_objects_found_filters': "Keine Objekte mit aktuellen Filtern gefunden (Vorfilterung).",
+        'warning_no_objects_found_after_search': "Keine Objekte gefunden, die Ihren Kriterien entsprechen.",
         'info_initial_prompt': "Willkommen! Bitte **Koordinaten eingeben** oder **Ort suchen**, um die Objektsuche zu aktivieren.",
         'graph_altitude_label': "Höhe (°)", 'graph_azimuth_label': "Azimut (°)", 'graph_min_altitude_label': "Mindesthöhe ({:.0f}°)",
         'graph_max_altitude_label': "Maximalhöhe ({:.0f}°)", 'graph_title_sky_path': "Himmelsbahn für {}", 'graph_title_alt_time': "Höhenverlauf für {}",
-        'graph_ylabel': "Höhe (°)", 'custom_target_expander': "Eigenes Ziel grafisch darstellen",
+        'graph_ylabel_altitude': "Höhe (°)", 'graph_xlabel_time_utc': "Zeit (UTC)",
+        'graph_colorbar_label_time_utc': "Zeit (UTC)",
+        'custom_target_expander': "Eigenes Ziel grafisch darstellen",
         'custom_target_ra_label': "Rektaszension (RA):", 'custom_target_dec_label': "Deklination (Dec):", 'custom_target_name_label': "Ziel-Name (Optional):",
+        'custom_target_name_placeholder': "Mein Komet", 'custom_target_default_name': "Eigenes Ziel",
         'custom_target_ra_placeholder': "z.B. 10:45:03.6 oder 161.265", 'custom_target_dec_placeholder': "z.B. -16:42:58 oder -16.716",
         'custom_target_button': "Eigene Grafik erstellen", 'custom_target_error_coords': "Ungültiges RA/Dec Format. Verwende HH:MM:SS.s / DD:MM:SS oder Dezimalgrad.",
         'custom_target_error_window': "Grafik kann nicht erstellt werden. Stelle sicher, dass Ort und Zeitfenster gültig sind (ggf. zuerst 'Beobachtbare Objekte finden' klicken).",
-        'error_processing_object': "Fehler bei der Verarbeitung von {}: {}", 'window_calc_error': "Fehler bei der Berechnung des Beobachtungsfensters: {}\n{}",
-        'window_fallback_info': "\nFallback-Fenster wird verwendet: {} bis {} UTC", 'error_loading_catalog': "Fehler beim Laden der Katalogdatei: {}",
-        'info_catalog_loaded': "Katalog geladen: {} Objekte.", 'warning_catalog_empty': "Katalogdatei geladen, aber keine passenden Objekte nach Filterung gefunden.",
-        'donation_text': "Gefällt dir der DSO Finder? [Unterstütze die Entwicklung auf Ko-fi ☕](https://ko-fi.com/advanceddsofinder)", # DSO Finder Donation
-        'bug_report_button': "🐞 Fehler melden", 'bug_report_body': "\n\n(Bitte beschreiben Sie den Fehler und die Schritte zur Reproduktion)",
+        'custom_target_error_invalid_window_order': "Ungültige Reihenfolge der Fensterzeiten für benutzerdefiniertes Ziel.",
+        'custom_target_error_window_short': "Zeitfenster zu kurz für benutzerdefinierten Plot.",
+        'custom_target_error_general': "Allgemeiner Fehler beim Plotten des benutzerdefinierten Ziels",
+        'error_processing_object': "Fehler bei der Verarbeitung von {}: {}",
+        'window_calc_error': "Fehler bei der Berechnung des Beobachtungsfensters: {}\n{}",
+        'error_observer_type_invalid': "Ungültiger Beobachtertyp für Fensterberechnung.",
+        'error_twilight_calc_unexpected_polar': "Unerwarteter Fehler bei Dämmerungsberechnung in polaren Regionen.",
+        'error_twilight_calc_failed': "Dämmerungszeiten konnten nicht berechnet werden.",
+        'error_morning_before_evening_twilight': "Morgendämmerung vor Abenddämmerung - prüfen Sie Datum/polare Bedingungen.",
+        'error_twilight_calc_next_night_failed': "Dämmerungsberechnung für nächste Nacht fehlgeschlagen.",
+        'error_twilight_recalc_failed_fallback': "Neuberechnung der Dämmerung fehlgeschlagen, Fallback aktiv.",
+        'error_no_window_final_fallback': "Kein gültiges Fenster, finaler Fallback verwendet.",
+        'error_internal_observer_location_type': "Interner Fehler: observer_location Typ.",
+        'error_internal_observing_times_type': "Interner Fehler: observing_times Typ.",
+        'error_internal_min_altitude_type': "Interner Fehler: min_altitude_limit Typ.",
+        'error_internal_catalog_df_type': "Interner Fehler: catalog_df Typ.",
+        'warning_obs_window_too_few_points': "Beobachtungsfenster hat weniger als 2 Zeitpunkte.",
+        'unknown_type_placeholder': "Unbekannt",
+        'constellation_not_available': "N/A",
+        'plot_error_invalid_data_type': "Plot Fehler: Ungültiger Datentyp.",
+        'plot_default_object_name': "Objekt",
+        'plot_error_invalid_times_data': "Plot Fehler: Ungültige Zeitdaten.",
+        'plot_error_invalid_altitudes_data': "Plot Fehler: Ungültige Höhendaten.",
+        'plot_error_invalid_azimuths_data_sky_path': "Plot Fehler: Azimutdaten für Himmelsbahn benötigt.",
+        'plot_error_data_array_length_mismatch': "Plot Fehler: Datenarray-Längen stimmen nicht überein.",
+        'plot_info_no_data_to_plot': "Plot Info: Keine Datenpunkte zum Plotten vorhanden.",
+        'plot_error_azimuths_missing_sky_path_final': "Plot Fehler: Azimutdaten fehlen für Himmelsbahn.",
+        'plot_error_unknown_plot_type': "Plot Fehler: Unbekannter Plot-Typ '{}'.",
+        'plot_error_unexpected': "Plot Fehler: Unerwartet: {}",
+        'error_loading_catalog_file_not_found': "Fehler: Katalogdatei nicht gefunden: {}",
+        'error_missing_catalog_columns': "Fehler: Katalog fehlende Spalten: {}",
+        'error_no_usable_magnitude_column': "Fehler: Keine Magnitude Spalte: {}",
+        'warning_size_column_missing': "Warnung: Größen-Spalte '{}' fehlt.",
+        'warning_size_column_no_valid_data': "Warnung: Größen-Spalte '{}' ohne Daten.",
+        'error_type_column_missing_critical': "Kritischer Fehler: 'Type' Spalte fehlt.",
+        'warning_catalog_empty_after_filters': "Warnung: Katalog leer nach Filterung.",
+        'error_catalog_empty_data': "Fehler: Katalogdatei ist leer.",
+        'error_loading_catalog_generic': "Katalog Ladefehler: {}",
+        'error_catalog_failed': "Katalogfehler.",
+        'donation_text': "Gefällt dir der DSO Finder? [Unterstütze die Entwicklung auf Ko-fi ☕](https://ko-fi.com/advanceddsofinder)",
+        'bug_report_button': "🐞 Fehler melden",
+        'bug_report_body': "\n\n(Bitte beschreiben Sie den Fehler und die Schritte zur Reproduktion)",
 
-        # === Redshift Calculator Keys ===
-        'redshift_calculator_title': "Rotverschiebungs-Rechner", # Hinzugefügt
-        'redshift_z_tooltip': "Geben Sie die kosmologische Rotverschiebung ein (negativ für Blauverschiebung).", # Hinzugefügt
-        "lang_select": "Sprache wählen", # Already exists
-        "input_params": "Eingabeparameter", # RC Key
-        "redshift_z": "Rotverschiebung (z)", # RC Key
-        "cosmo_params": "Kosmologische Parameter", # RC Key
-        "hubble_h0": "Hubble-Konstante (H₀) [km/s/Mpc]", # RC Key
-        "omega_m": "Materiedichte (Ωm)", # RC Key
-        "omega_lambda": "Dunkle Energie (ΩΛ)", # RC Key
-        "flat_universe_warning": "Ωm + ΩΛ ≉ 1. Berechnungen gehen von flachem Universum aus (Ωk=0).", # RC Key
-        "results_for": "Ergebnisse für z = {z:.5f}", # RC Key
-        "error_invalid_input": "Ungültige Eingabe. Bitte Zahlen verwenden.", # RC Key
-        "error_h0_positive": "Hubble-Konstante muss positiv sein.", # RC Key
-        "error_omega_negative": "Omega-Parameter dürfen nicht negativ sein.", # RC Key
-        "warn_blueshift": "Warnung: Rotverschiebung ist negativ (Blueshift). Kosmologische Distanzen sind hier 0 oder nicht direkt anwendbar.", # RC Key
-        "error_dep_scipy": "Abhängigkeit 'scipy' nicht gefunden. Bitte installieren.", # RC Key
-        "error_calc_failed": "Berechnung fehlgeschlagen: {e}", # RC Key
-        "warn_integration_accuracy": "Warnung: Relative Integrationsgenauigkeit möglicherweise nicht erreicht (Fehler: DC={err_dc:.2e}, LT={err_lt:.2e}).", # RC Key
-        "lookback_time": "Rückblickzeit (Lookback Time)", # RC Key
-        "cosmo_distances": "Kosmologische Distanzen", # RC Key
-        "comoving_distance_title": "**Mitbewegte Distanz (Comoving Distance):**", # RC Key
-        "luminosity_distance_title": "**Leuchtkraftdistanz (Luminosity Distance):**", # RC Key
-        "angular_diameter_distance_title": "**Winkeldurchmesserdistanz (Angular Diameter Distance):**", # RC Key
-        "unit_Gyr": "Gyr (Milliarden Jahre)", # RC Key
-        "unit_Mpc": "Mpc", # RC Key
-        "unit_Gly": "Gly (Milliarden Lichtjahre)", # RC Key
-        "unit_km": "km", # RC Key
-        "unit_km_sci": "km (wiss.)", # RC Key
-        "unit_km_full": "km (ausgeschr.)", # RC Key
-        "unit_LJ": "LJ", # RC Key
-        "unit_AE": "AE", # RC Key
-        "unit_Ls": "Ls", # RC Key
-        "calculation_note": "Berechnung basiert auf dem flachen ΛCDM-Modell unter Vernachlässigung der Strahlungsdichte.", # RC Key
-        "rc_donate_text": "Gefällt Ihnen dieser Rechner? Unterstützen Sie die Entwicklung mit einer kleinen Spende!", # Hinzugefügt (RC Key)
-        "rc_donate_button": "Spenden via Ko-fi", # Hinzugefügt (RC Key)
-        "bug_report": "Fehler gefunden?", # RC Key
-        #"bug_report_button": "Problem melden", # Using DSO Finder version
-        "glossary": "Glossar", # RC Key
-        "example_lookback_recent": "Vor Kurzem (kosmologisch gesehen).", # RC Key
-        "example_lookback_humans": "Entwicklung des modernen Menschen.", # RC Key
-        "example_lookback_dinos": "Zeitalter der Dinosaurier.", # RC Key
-        "example_lookback_multicellular": "Entstehung komplexen mehrzelligen Lebens.", # RC Key
-        "example_lookback_earth": "Entstehung der Erde und des Sonnensystems.", # RC Key
-        "example_lookback_early_univ": "Frühes Universum, Bildung erster Sterne/Galaxien.", # RC Key
-        "example_comoving_local": "Innerhalb unserer lokalen Galaxiengruppe.", # RC Key
-        "example_comoving_virgo": "Entfernung zum Virgo-Galaxienhaufen.", # RC Key
-        "example_comoving_coma": "Entfernung zum Coma-Galaxienhaufen.", # RC Key
-        "example_comoving_lss": "Skala von Superhaufen und Filamenten.", # RC Key
-        "example_comoving_quasars": "Distanz zu fernen Quasaren.", # RC Key
-        "example_comoving_cmb": "Entfernung zum 'Rand' des beobachtbaren Universums (CMB).", # RC Key
-        "explanation_luminosity": "Relevant für Helligkeit: Objekte erscheinen bei dieser Distanz so hell wie erwartet (wichtig für Standardkerzen wie Supernovae).", # RC Key
-        "explanation_angular": "Relevant für Größe: Objekte haben bei dieser Distanz die erwartete scheinbare Größe (wichtig für Standardlineale wie BAO).", # RC Key
+        # === Redshift Calculator Keys (Updated & New) ===
+        'redshift_calculator_title': "Rotverschiebungs-Rechner",
+        'input_params': "Eingabeparameter",
+        'redshift_z': "Rotverschiebung (z)",
+        'redshift_z_tooltip': "Kosmologische Rotverschiebung (negativ für Blauverschiebung).",
+        'cosmo_params': "Kosmologische Parameter",
+        'hubble_h0': "Hubble-Konstante (H₀) [km/s/Mpc]",
+        'omega_m': "Materiedichte (Ωm)",
+        'omega_lambda': "Dunkle Energiedichte (ΩΛ)",
+        'non_flat_universe_info': "Hinweis: Ωm + ΩΛ = {sum_omega:.3f}. Dies impliziert ein nicht-flaches Universum (Ωk = {omega_k:.3f}). Berechnungen verwenden diese Geometrie.",
+        'flat_universe_assumed': "Annahme eines flachen Universums (Ωk ≈ 0).",
+        'results_for': "Ergebnisse für z = {z:.5f}",
+        'recessional_velocity': "Fluchtgeschwindigkeit",
+        'unit_km_s': "km/s",
+        'velocity_positive_caption': "Positiv: Objekt entfernt sich (Rotverschiebung)",
+        'velocity_negative_caption': "Negativ: Objekt nähert sich (Blauverschiebung)",
+        'velocity_zero_caption': "Keine signifikante kosmologische Relativbewegung",
+        'lookback_time': "Rückblickzeit (Lookback Time)",
+        'unit_Gyr': "Gyr (Milliarden Jahre)",
+        'cosmo_distances': "Kosmologische Distanzen",
+        'comoving_distance_title': "**Mitbewegte Distanz:**",
+        'unit_Mpc': "Mpc",
+        'unit_Gly': "Gly (Milliarden Lichtjahre)",
+        'comoving_other_units_expander': "Weitere Einheiten (Mitbewegt)",
+        'unit_km_full': "km",
+        'unit_LJ': "Lj",
+        'unit_AE': "AE",
+        'unit_Ls': "Ls",
+        'luminosity_distance_title': "**Leuchtkraftdistanz:**",
+        'explanation_luminosity': "Relevant für Helligkeit: Objekte erscheinen bei dieser Distanz so hell wie erwartet (wichtig für Standardkerzen).",
+        'angular_diameter_distance_title': "**Winkeldurchmesserdistanz:**",
+        'explanation_angular': "Relevant für Größe: Objekte haben bei dieser Distanz die erwartete scheinbare Größe (wichtig für Standardlineale).",
+        'calculation_note': "Berechnung basiert auf dem ΛCDM-Modell. Für nicht-flache Modelle wird Ωk aus Ωm und ΩΛ abgeleitet.",
+        'error_invalid_input': "Ungültige Eingabe. Bitte Zahlen verwenden.",
+        'error_h0_positive': "Hubble-Konstante muss positiv sein.",
+        'error_omega_negative': "Omega-Parameter dürfen nicht negativ sein.",
+        'error_redshift_too_negative': "Rotverschiebung z={z} ist physikalisch nicht sinnvoll (< -1).",
+        'warn_blueshift': "Warnung: Rotverschiebung ist negativ (Blauverschiebung). Kosmologische Distanzen sind hier 0 oder nicht direkt anwendbar.",
+        'warn_integration_accuracy': "Warnung: Relative Integrationsgenauigkeit möglicherweise nicht erreicht (Fehler: DC={err_dc}, LT={err_lt}).",
+        'error_dep_scipy': "Abhängigkeit 'scipy' nicht gefunden. Bitte installieren.",
+        'error_calc_failed': "Berechnung fehlgeschlagen: {e}",
+        'example_lookback_recent': "Nahezu Gegenwart (kosmologisch).",
+        'example_lookback_humans': "Entwicklung des modernen Menschen (~0.2-0.3 Mio. Jahre).",
+        'example_lookback_dinos_extinction': "Aussterben der Dinosaurier (~66 Mio. Jahre).",
+        'example_lookback_multicellular': "Kambrische Explosion, Entstehung komplexen Lebens (~540 Mio. Jahre).",
+        'example_lookback_earth_formation': "Entstehung der Erde (~4.5 Mrd. Jahre).",
+        'example_lookback_early_universe_galaxies': "Bildung erster Galaxien nach dem Dunklen Zeitalter.",
+        'example_lookback_very_early_universe': "Sehr frühes Universum, nahe am Urknall / CMB.",
+        'example_comoving_local_group': "Innerhalb der Lokalen Gruppe (z.B. Andromeda-Galaxie).",
+        'example_comoving_virgo_cluster': "Entfernung zum Virgo-Galaxienhaufen.",
+        'example_comoving_coma_cluster': "Entfernung zum Coma-Galaxienhaufen.",
+        'example_comoving_laniakea_supercluster': "Durchmesser des Laniakea Superhaufens.",
+        'example_comoving_large_scale_structure': "Skala von kosmischen Filamenten und Voids.",
+        'example_comoving_distant_quasars': "Typische Entfernung zu sehr weit entfernten Quasaren.",
+        'example_comoving_observable_universe_horizon': "Bis zum Horizont des beobachtbaren Universums.",
+        # 'rc_donate_text', 'rc_donate_button', 'bug_report', 'glossary' - diese sind optional oder können generische Versionen verwenden
     },
     'en': {
         # === DSO Finder Keys ===
+        'app_title': "Advanced DSO Finder",
         'settings_header': "Settings", 'language_select_label': "Language", 'location_expander': "📍 Location",
         'location_select_label': "Select Location Method", 'location_option_manual': "Enter Manually", 'location_option_search': "Search by Name",
         'location_search_label': "Enter location name:", 'location_search_submit_button': "Find Coordinates", 'location_search_placeholder': "e.g., London, UK",
@@ -209,108 +274,134 @@ translations = {
         'location_error_fallback': "ERROR - Fallback used", 'location_error_manual_none': "Manual location fields cannot be empty or invalid.", 'time_expander': "⏱️ Time & Timezone",
         'time_select_label': "Select Time", 'time_option_now': "Now (Upcoming Night)", 'time_option_specific': "Specific Night", 'time_date_select_label': "Select Date:",
         'timezone_auto_set_label': "Detected Timezone:", 'timezone_auto_fail_label': "Timezone:", 'timezone_auto_fail_msg': "Could not detect timezone, using UTC.",
+        'timezone_error_invalid': "Invalid", 'timezone_auto_na': "Auto TZ N/A", 'timezone_loc_invalid': "Location invalid for TZ",
         'filters_expander': "✨ Filters & Conditions", 'mag_filter_header': "**Magnitude Filter**", 'mag_filter_method_label': "Filter Method:", 'mag_filter_option_bortle': "Bortle Scale",
         'mag_filter_option_manual': "Manual", 'mag_filter_bortle_label': "Bortle Scale:", 'mag_filter_bortle_help': "Sky darkness: 1=Excellent Dark, 9=Inner-city Sky",
         'mag_filter_min_mag_label': "Min. Magnitude:", 'mag_filter_min_mag_help': "Brightest object magnitude to include", 'mag_filter_max_mag_label': "Max. Magnitude:",
         'mag_filter_max_mag_help': "Dimest object magnitude to include", 'mag_filter_warning_min_max': "Min. Magnitude is greater than Max. Magnitude!",
-        'min_alt_header': "**Object Altitude Above Horizon**", 'min_alt_label': "Min. Object Altitude (°):", 'max_alt_label': "Max. Object Altitude (°):", 'moon_warning_header': "**Moon Warning**",
-        'moon_warning_label': "Warn if Moon > (% Illumination):", 'object_types_header': "**Object Types**", 'object_types_error_extract': "Could not extract object types from catalog.",
-        'object_types_label': "Filter Types (leave empty for all):", 'size_filter_header': "**Angular Size Filter**", 'size_filter_label': "Object Size (arcminutes):",
-        'size_filter_help': "Filter objects by their apparent size (major axis). 1 arcminute = 1/60 degree.", 'direction_filter_header': "**Filter by Cardinal Direction**",
-        'direction_filter_label': "Show objects culminating towards:", 'direction_option_all': "All", 'object_type_glossary_title': "Object Type Glossary",
+        'min_alt_header': "**Object Altitude Above Horizon**", 'min_alt_label': "Min. Object Altitude (°):", 'max_alt_label': "Max. Object Altitude (°):", 'alt_filter_warning_min_max': "Minimum altitude is greater than maximum altitude!",
+        'moon_warning_header': "**Moon Warning**", 'moon_warning_label': "Warn if Moon > (% Illumination):", 'object_types_header': "**Object Types**", 'object_types_error_extract': "Could not extract object types from catalog.",
+        'object_types_label': "Filter Types (leave empty for all):", 'object_types_not_found': "No object types found in catalog.",
+        'size_filter_header': "**Angular Size Filter**", 'size_filter_label': "Object Size (arcminutes):", 'size_filter_help': "Filter objects by their apparent size (major axis). 1 arcminute = 1/60 degree.",
+        'size_slider_error': "Error creating size slider.", 'size_data_not_available': "Size data not available in catalog.",
+        'direction_filter_header': "**Filter by Cardinal Direction**", 'direction_filter_label': "Show objects culminating towards:", 'direction_option_all': "All",
+        'object_type_glossary_title': "Object Type Glossary",
         'object_type_glossary': { "OCl": "Open Cluster", "GCl": "Globular Cluster", "Cl+N": "Cluster + Nebula", "Gal": "Galaxy", "PN": "Planetary Nebula", "SNR": "Supernova Remnant", "Neb": "Nebula (general)", "EmN": "Emission Nebula", "RfN": "Reflection Nebula", "HII": "HII Region", "AGN": "Active Galactic Nucleus" },
+        'glossary_not_available': "Glossary is not available or empty for the selected language.", 'glossary_format_error': "Glossary data is not in the expected format.",
         'results_options_expander': "⚙️ Result Options", 'results_options_max_objects_label': "Max. Number of Objects to Display:", 'results_options_sort_method_label': "Sort Results By:",
         'results_options_sort_duration': "Duration & Altitude", 'results_options_sort_magnitude': "Brightness", 'moon_metric_label': "Moon Illumination (approx.)",
-        'moon_warning_message': "Warning: Moon is brighter ({:.0f}%) than threshold ({:.0f}%)!", 'moon_phase_error': "Error calculating moon phase: {}", 'find_button_label': "🔭 Find Observable Objects",
-        'search_params_header': "Search Parameters", 'search_params_location': "📍 Location: {}", 'search_params_time': "⏱️ Time: {}", 'search_params_timezone': "🌍 Timezone: {}",
-        'search_params_time_now': "Upcoming Night (from {} UTC)", 'search_params_time_specific': "Night after {}", 'search_params_filter_mag': "✨ Filter: {}",
-        'search_params_filter_mag_bortle': "Bortle {} (<= {:.1f} mag)", 'search_params_filter_mag_manual': "Manual ({:.1f}-{:.1f} mag)", 'search_params_filter_alt_types': "🔭 Filter: Alt {}-{}°, Types: {}",
-        'search_params_filter_size': "📐 Filter: Size {:.1f} - {:.1f} arcmin", 'search_params_filter_direction': "🧭 Filter: Direction at Max: {}", 'search_params_types_all': "All",
-        'search_params_direction_all': "All", 'spinner_searching': "Calculating window & searching objects...", 'spinner_geocoding': "Searching for location...",
+        'moon_warning_message': "Warning: Moon is brighter ({:.0f}%) than threshold ({:.0f}%)!", 'moon_phase_error': "Error calculating moon phase: {}", 'moon_phase_not_available': "Moon phase information not available.",
+        'find_button_label': "🔭 Find Observable Objects", 'search_params_header': "Search Parameters", 'search_params_location': "📍 Location: {}", 'location_not_set': "Not Set",
+        'observer_creation_failed': "Observer object creation failed", 'search_params_time': "⏱️ Time: {}", 'search_params_timezone': "🌍 Timezone: {}",
+        'search_params_time_now': "Upcoming Night (from {} {})", 'search_params_time_now_utc': "Upcoming Night (from {} UTC)", 'search_params_time_specific': "Night after {}",
+        'search_params_filter_mag': "✨ Filter: {}", 'search_params_filter_mag_bortle': "Bortle {} (<= {:.1f} mag)", 'search_params_filter_mag_manual': "Manual ({:.1f}-{:.1f} mag)",
+        'search_params_filter_alt_types': "🔭 Filter: Alt {}-{}°, Types: {}", 'search_params_filter_size': "📐 Filter: Size {:.1f} - {:.1f} arcmin", 'search_params_filter_direction': "🧭 Filter: Direction at Max: {}",
+        'search_params_types_all': "All", 'search_params_direction_all': "All", 'spinner_searching': "Calculating window & searching objects...", 'spinner_geocoding': "Searching for location...",
         'window_info_template': "Observation window: {} to {} UTC (Astronomical Twilight)", 'window_already_passed': "Calculated night window for 'Now' has already passed. Calculating for next night.",
-        'error_no_window': "No valid astronomical darkness window found for the selected date and location.", 'error_polar_night': "Astronomical darkness lasts >24h (Polar night?). Using fallback window.",
-        'error_polar_day': "No astronomical darkness occurs (Polar day?). Using fallback window.", 'success_objects_found': "{} matching objects found.",
-        'info_showing_list_duration': "Showing {} objects, sorted by visibility duration and culmination altitude:", 'info_showing_list_magnitude': "Showing {} objects, sorted by brightness (brightest first):",
-        'error_search_unexpected': "An unexpected error occurred during the search:", 'results_list_header': "Result List",
+        'warning_window_too_short': "Observation window too short for detailed calculation.", 'error_no_window': "No valid astronomical darkness window found for the selected date and location.",
+        'error_cannot_search': "Cannot perform search.", 'error_polar_night': "Astronomical darkness lasts >24h (Polar night?). Using fallback window.",
+        'error_polar_day': "No astronomical darkness occurs (Polar day?). Using fallback window.", 'window_fallback_info': "\nUsing fallback window: {} to {} UTC", 'window_fallback_info_short': "Fallback: {} to {} UTC",
+        'success_objects_found': "{} matching objects found.", 'info_showing_list_duration': "Showing {} objects, sorted by visibility duration and culmination altitude:",
+        'info_showing_list_magnitude': "Showing {} objects, sorted by brightness (brightest first):", 'error_search_unexpected': "An unexpected error occurred during the search:",
+        'error_search_no_catalog': "Cannot search: Catalog missing.", 'error_search_no_location': "Cannot search: Location invalid.", 'results_list_header': "Result List",
         'results_export_name': "Name", 'results_export_type': "Type", 'results_export_constellation': "Constellation", 'results_export_mag': "Magnitude", 'results_export_size': "Size (arcmin)",
         'results_export_ra': "RA", 'results_export_dec': "Dec", 'results_export_max_alt': "Max Altitude (°)", 'results_export_az_at_max': "Azimuth at Max (°)", 'results_export_direction_at_max': "Direction at Max",
         'results_export_time_max_utc': "Time at Max (UTC)", 'results_export_time_max_local': "Time at Max (Local TZ)", 'results_export_cont_duration': "Max Cont Duration (h)",
-        # === KORREKTUR HIER ===
-        'results_expander_title': '{} ({}) - Mag: {}', # Expects string for Mag now
-        # =======================
-        'google_link_text': "Google", 'simbad_link_text': "SIMBAD", 'results_coords_header': "**Details:**", 'results_constellation_label': "Constellation:",
+        'results_expander_title': '{} ({}) - Mag: {}', 'google_link_text': "Google", 'simbad_link_text': "SIMBAD", 'results_coords_header': "**Details:**", 'results_constellation_label': "Constellation:",
         'results_size_label': "Size (Major Axis):", 'results_size_value': "{:.1f} arcmin", 'results_max_alt_header': "**Max. Altitude:**", 'results_azimuth_label': "(Azimuth: {:.1f}°{})",
-        'results_direction_label': ", Direction: {}", 'results_best_time_header': "**Best Time (Local TZ):**", 'results_cont_duration_header': "**Max. Cont. Duration:**", 'results_duration_value': "{:.1f} hours",
-        'graph_type_label': "Graph Type (for all plots):", 'graph_type_sky_path': "Sky Path (Az/Alt)", 'graph_type_alt_time': "Altitude Plot (Alt/Time)", 'results_graph_button': "📈 Show Plot",
-        'results_spinner_plotting': "Creating plot...", 'results_graph_error': "Plot Error: {}", 'results_graph_not_created': "Plot could not be created.", 'results_close_graph_button': "Close Plot",
-        'results_save_csv_button': "💾 Save Result List as CSV", 'results_csv_filename': "dso_observation_list_{}.csv", 'results_csv_export_error': "CSV Export Error: {}",
-        'warning_no_objects_found': "No objects found matching all criteria for the calculated observation window.", 'info_initial_prompt': "Welcome! Please **Enter Coordinates** or **Search Location** to enable object search.",
-        'graph_altitude_label': "Altitude (°)", 'graph_azimuth_label': "Azimuth (°)", 'graph_min_altitude_label': "Min Altitude ({:.0f}°)", 'graph_max_altitude_label': "Max Altitude ({:.0f}°)",
-        'graph_title_sky_path': "Sky Path for {}", 'graph_title_alt_time': "Altitude Plot for {}", 'graph_ylabel': "Altitude (°)", 'custom_target_expander': "Plot Custom Target",
-        'custom_target_ra_label': "Right Ascension (RA):", 'custom_target_dec_label': "Declination (Dec):", 'custom_target_name_label': "Target Name (Optional):",
-        'custom_target_ra_placeholder': "e.g., 10:45:03.6 or 161.265", 'custom_target_dec_placeholder': "e.g., -16:42:58 or -16.716", 'custom_target_button': "Create Custom Plot",
-        'custom_target_error_coords': "Invalid RA/Dec format. Use HH:MM:SS.s / DD:MM:SS or decimal degrees.", 'custom_target_error_window': "Cannot create plot. Ensure location and time window are valid (try clicking 'Find Observable Objects' first).",
-        'error_processing_object': "Error processing {}: {}", 'window_calc_error': "Error calculating observation window: {}\n{}", 'window_fallback_info': "\nUsing fallback window: {} to {} UTC",
-        'error_loading_catalog': "Error loading catalog file: {}", 'info_catalog_loaded': "Catalog loaded: {} objects.", 'warning_catalog_empty': "Catalog file loaded, but no matching objects found after filtering.",
-        'donation_text': "Like the DSO Finder? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)", # DSO Finder Donation
+        'azimuth_not_available': "(Azimuth: N/A)", 'results_direction_label': ", Direction: {}", 'results_best_time_header': "**Best Time (Local TZ):**",
+        'results_cont_duration_header': "**Max. Cont. Duration:**", 'results_duration_value': "{:.1f} hours", 'graph_type_label': "Graph Type (for all plots):",
+        'graph_type_sky_path': "Sky Path (Az/Alt)", 'graph_type_alt_time': "Altitude Plot (Alt/Time)", 'results_graph_button': "📈 Show Plot", 'results_spinner_plotting': "Creating plot...",
+        'results_graph_error': "Plot Error: {}", 'results_graph_not_created': "Plot could not be created.", 'results_close_graph_button': "Close Plot", 'results_save_csv_button': "💾 Save Result List as CSV",
+        'results_csv_filename': "dso_observation_list_{}.csv", 'results_csv_export_error': "CSV Export Error: {}", 'warning_no_objects_found': "No objects found matching all criteria for the calculated observation window.",
+        'warning_no_objects_found_filters': "No objects found with current filters (pre-filter).", 'warning_no_objects_found_after_search': "No objects found matching your criteria.",
+        'info_initial_prompt': "Welcome! Please **Enter Coordinates** or **Search Location** to enable object search.", 'graph_altitude_label': "Altitude (°)", 'graph_azimuth_label': "Azimuth (°)",
+        'graph_min_altitude_label': "Min Altitude ({:.0f}°)", 'graph_max_altitude_label': "Max Altitude ({:.0f}°)", 'graph_title_sky_path': "Sky Path for {}", 'graph_title_alt_time': "Altitude Plot for {}",
+        'graph_ylabel_altitude': "Altitude (°)", 'graph_xlabel_time_utc': "Time (UTC)", 'graph_colorbar_label_time_utc': "Time (UTC)",
+        'custom_target_expander': "Plot Custom Target", 'custom_target_ra_label': "Right Ascension (RA):", 'custom_target_dec_label': "Declination (Dec):", 'custom_target_name_label': "Target Name (Optional):",
+        'custom_target_name_placeholder': "My Comet", 'custom_target_default_name': "Custom Target", 'custom_target_ra_placeholder': "e.g., 10:45:03.6 or 161.265",
+        'custom_target_dec_placeholder': "e.g., -16:42:58 or -16.716", 'custom_target_button': "Create Custom Plot", 'custom_target_error_coords': "Invalid RA/Dec format. Use HH:MM:SS.s / DD:MM:SS or decimal degrees.",
+        'custom_target_error_window': "Cannot create plot. Ensure location and time window are valid (try clicking 'Find Observable Objects' first).",
+        'custom_target_error_invalid_window_order': "Invalid window time order for custom target.", 'custom_target_error_window_short': "Time window too short for custom plot.",
+        'custom_target_error_general': "General error plotting custom target", 'error_processing_object': "Error processing {}: {}", 'window_calc_error': "Error calculating observation window: {}\n{}",
+        'error_observer_type_invalid': "Invalid observer type for window calculation.", 'error_twilight_calc_unexpected_polar': "Unexpected error in twilight calculation in polar regions.",
+        'error_twilight_calc_failed': "Could not calculate twilight times.", 'error_morning_before_evening_twilight': "Morning twilight before evening - check date/polar conditions.",
+        'error_twilight_calc_next_night_failed': "Twilight calculation for next night failed.", 'error_twilight_recalc_failed_fallback': "Twilight recalculation failed, fallback active.",
+        'error_no_window_final_fallback': "No valid window, final fallback used.", 'error_internal_observer_location_type': "Internal Error: observer_location type.",
+        'error_internal_observing_times_type': "Internal Error: observing_times type.", 'error_internal_min_altitude_type': "Internal Error: min_altitude_limit type.",
+        'error_internal_catalog_df_type': "Internal Error: catalog_df type.", 'warning_obs_window_too_few_points': "Observation window has fewer than 2 time points.",
+        'unknown_type_placeholder': "Unknown", 'constellation_not_available': "N/A", 'plot_error_invalid_data_type': "Plot Error: Invalid data type.", 'plot_default_object_name': "Object",
+        'plot_error_invalid_times_data': "Plot Error: Invalid time data.", 'plot_error_invalid_altitudes_data': "Plot Error: Invalid altitude data.",
+        'plot_error_invalid_azimuths_data_sky_path': "Plot Error: Azimuth data required for Sky Path.", 'plot_error_data_array_length_mismatch': "Plot Error: Data array lengths do not match.",
+        'plot_info_no_data_to_plot': "Plot Info: No data points to plot.", 'plot_error_azimuths_missing_sky_path_final': "Plot Error: Azimuth data missing for Sky Path.",
+        'plot_error_unknown_plot_type': "Plot Error: Unknown plot type '{}'.", 'plot_error_unexpected': "Plot Error: Unexpected: {}",
+        'error_loading_catalog_file_not_found': "Error: Catalog file not found: {}", 'error_missing_catalog_columns': "Error: Catalog missing columns: {}",
+        'error_no_usable_magnitude_column': "Error: No usable magnitude column: {}", 'warning_size_column_missing': "Warning: Size column '{}' missing.",
+        'warning_size_column_no_valid_data': "Warning: Size column '{}' no valid data.", 'error_type_column_missing_critical': "Critical Error: 'Type' column missing.",
+        'warning_catalog_empty_after_filters': "Warning: Catalog empty after filtering.", 'error_catalog_empty_data': "Error: Catalog file is empty.",
+        'error_loading_catalog_generic': "Catalog loading error: {}", 'error_catalog_failed': "Catalog error.",
+        'donation_text': "Like the DSO Finder? [Support the development on Ko-fi ☕](https://ko-fi.com/advanceddsofinder)",
         'bug_report_button': "🐞 Report Bug", 'bug_report_body': "\n\n(Please describe the bug and the steps to reproduce it)",
 
-        # === Redshift Calculator Keys ===
-        'redshift_calculator_title': "Redshift Calculator", # Added
-        'redshift_z_tooltip': "Enter cosmological redshift (negative for blueshift).", # Added
-        "lang_select": "Select Language", # RC Key
-        "input_params": "Input Parameters", # RC Key
-        "redshift_z": "Redshift (z)", # RC Key
-        "cosmo_params": "Cosmological Parameters", # RC Key
-        "hubble_h0": "Hubble Constant (H₀) [km/s/Mpc]", # RC Key
-        "omega_m": "Matter Density (Ωm)", # RC Key
-        "omega_lambda": "Dark Energy Density (ΩΛ)", # RC Key
-        "flat_universe_warning": "Ωm + ΩΛ ≉ 1. Calculations assume a flat universe (Ωk=0).", # RC Key
-        "results_for": "Results for z = {z:.5f}", # RC Key
-        "error_invalid_input": "Invalid input. Please use numbers.", # RC Key
-        "error_h0_positive": "Hubble constant must be positive.", # RC Key
-        "error_omega_negative": "Omega parameters cannot be negative.", # RC Key
-        "warn_blueshift": "Warning: Redshift is negative (Blueshift). Cosmological distances are 0 or not directly applicable here.", # RC Key
-        "error_dep_scipy": "Dependency 'scipy' not found. Please install.", # RC Key
-        "error_calc_failed": "Calculation failed: {e}", # RC Key
-        "warn_integration_accuracy": "Warning: Relative integration accuracy might not be achieved (Error: DC={err_dc:.2e}, LT={err_lt:.2e}).", # RC Key
-        "lookback_time": "Lookback Time", # RC Key
-        "cosmo_distances": "Cosmological Distances", # RC Key
-        "comoving_distance_title": "**Comoving Distance:**", # RC Key
-        "luminosity_distance_title": "**Luminosity Distance:**", # RC Key
-        "angular_diameter_distance_title": "**Angular Diameter Distance:**", # RC Key
-        "unit_Gyr": "Gyr (Billion Years)", # RC Key
-        "unit_Mpc": "Mpc", # RC Key
-        "unit_Gly": "Gly (Billion Lightyears)", # RC Key
-        "unit_km": "km", # RC Key
-        "unit_km_sci": "km (sci.)", # RC Key
-        "unit_km_full": "km (full)", # RC Key
-        "unit_LJ": "ly", # RC Key
-        "unit_AE": "AU", # RC Key
-        "unit_Ls": "Ls", # RC Key
-        "calculation_note": "Calculation based on the flat ΛCDM model, neglecting radiation density.", # RC Key
-        "rc_donate_text": "Like this calculator? Support its development with a small donation!", # Added (RC Key)
-        "rc_donate_button": "Donate via Ko-fi", # Added (RC Key)
-        "bug_report": "Found a bug?", # RC Key
-        #"bug_report_button": "Report Issue", # Using DSO Finder version
-        "glossary": "Glossary", # RC Key
-        "example_lookback_recent": "Recently (cosmologically speaking).", # RC Key
-        "example_lookback_humans": "Evolution of modern humans.", # RC Key
-        "example_lookback_dinos": "Age of the dinosaurs.", # RC Key
-        "example_lookback_multicellular": "Emergence of complex multicellular life.", # RC Key
-        "example_lookback_earth": "Formation of the Earth and Solar System.", # RC Key
-        "example_lookback_early_univ": "Early universe, formation of first stars/galaxies.", # RC Key
-        "example_comoving_local": "Within our Local Group of galaxies.", # RC Key
-        "example_comoving_virgo": "Distance to the Virgo Cluster.", # RC Key
-        "example_comoving_coma": "Distance to the Coma Cluster.", # RC Key
-        "example_comoving_lss": "Scale of superclusters and filaments.", # RC Key
-        "example_comoving_quasars": "Distance to distant quasars.", # RC Key
-        "example_comoving_cmb": "Distance to the 'edge' of the observable universe (CMB).", # RC Key
-        "explanation_luminosity": "Relevant for brightness: Objects appear as bright as expected at this distance (important for standard candles like supernovae).", # RC Key
-        "explanation_angular": "Relevant for size: Objects have the expected apparent size at this distance (important for standard rulers like BAO).", # RC Key
+        # === Redshift Calculator Keys (Updated & New) ===
+        'redshift_calculator_title': "Redshift Calculator",
+        'input_params': "Input Parameters",
+        'redshift_z': "Redshift (z)",
+        'redshift_z_tooltip': "Cosmological redshift (negative for blueshift).",
+        'cosmo_params': "Cosmological Parameters",
+        'hubble_h0': "Hubble Constant (H₀) [km/s/Mpc]",
+        'omega_m': "Matter Density (Ωm)",
+        'omega_lambda': "Dark Energy Density (ΩΛ)",
+        'non_flat_universe_info': "Note: Ωm + ΩΛ = {sum_omega:.3f}. This implies a non-flat universe (Ωk = {omega_k:.3f}). Calculations will use this geometry.",
+        'flat_universe_assumed': "Assuming a flat universe (Ωk ≈ 0).",
+        'results_for': "Results for z = {z:.5f}",
+        'recessional_velocity': "Recessional Velocity",
+        'unit_km_s': "km/s",
+        'velocity_positive_caption': "Positive: Object is receding (redshift)",
+        'velocity_negative_caption': "Negative: Object is approaching (blueshift)",
+        'velocity_zero_caption': "No significant cosmological relative motion",
+        'lookback_time': "Lookback Time",
+        'unit_Gyr': "Gyr (Billion Years)",
+        'cosmo_distances': "Cosmological Distances",
+        'comoving_distance_title': "**Comoving Distance:**",
+        'unit_Mpc': "Mpc",
+        'unit_Gly': "Gly (Billion Lightyears)",
+        'comoving_other_units_expander': "Other Units (Comoving)",
+        'unit_km_full': "km",
+        'unit_LJ': "ly",
+        'unit_AE': "AU",
+        'unit_Ls': "Ls",
+        'luminosity_distance_title': "**Luminosity Distance:**",
+        'explanation_luminosity': "Relevant for brightness: Objects appear as bright as expected at this distance (important for standard candles).",
+        'angular_diameter_distance_title': "**Angular Diameter Distance:**",
+        'explanation_angular': "Relevant for size: Objects have the expected apparent size at this distance (important for standard rulers).",
+        'calculation_note': "Calculation based on the ΛCDM model. For non-flat models, Ωk is derived from Ωm and ΩΛ.",
+        'error_invalid_input': "Invalid input. Please use numbers.",
+        'error_h0_positive': "Hubble constant must be positive.",
+        'error_omega_negative': "Omega parameters cannot be negative.",
+        'error_redshift_too_negative': "Redshift z={z} is physically implausible (< -1).",
+        'warn_blueshift': "Warning: Redshift is negative (Blueshift). Cosmological distances are 0 or not directly applicable here.",
+        'warn_integration_accuracy': "Warning: Relative integration accuracy might not be achieved (Error: DC={err_dc}, LT={err_lt}).",
+        'error_dep_scipy': "Dependency 'scipy' not found. Please install.",
+        'error_calc_failed': "Calculation failed: {e}",
+        'example_lookback_recent': "Almost present day (cosmologically).",
+        'example_lookback_humans': "Evolution of modern humans (~0.2-0.3 Myr ago).",
+        'example_lookback_dinos_extinction': "Extinction of dinosaurs (~66 Myr ago).",
+        'example_lookback_multicellular': "Cambrian explosion, emergence of complex life (~540 Myr ago).",
+        'example_lookback_earth_formation': "Formation of Earth (~4.5 Gyr ago).",
+        'example_lookback_early_universe_galaxies': "Formation of first galaxies after the Dark Ages.",
+        'example_lookback_very_early_universe': "Very early universe, approaching Big Bang / CMB.",
+        'example_comoving_local_group': "Within the Local Group (e.g., Andromeda Galaxy).",
+        'example_comoving_virgo_cluster': "Distance to the Virgo Cluster.",
+        'example_comoving_coma_cluster': "Distance to the Coma Cluster.",
+        'example_comoving_laniakea_supercluster': "Diameter of the Laniakea Supercluster.",
+        'example_comoving_large_scale_structure': "Scale of cosmic filaments and voids.",
+        'example_comoving_distant_quasars': "Typical distance to very distant quasars.",
+        'example_comoving_observable_universe_horizon': "To the horizon of the observable universe.",
     },
     'fr': {
         # === DSO Finder Keys ===
+        'app_title': "Advanced DSO Finder",
         'settings_header': "Paramètres", 'language_select_label': "Langue", 'location_expander': "📍 Emplacement", 'location_select_label': "Choisir la méthode d'emplacement",
         'location_option_manual': "Saisir manuellement", 'location_option_search': "Rechercher par nom", 'location_search_label': "Entrer le nom du lieu :",
         'location_search_submit_button': "Trouver les coordonnées", 'location_search_placeholder': "p.ex. Paris, France", 'location_search_found': "Trouvé (Nominatim) : {}",
@@ -323,109 +414,137 @@ translations = {
         'location_error_fallback': "ERREUR - Utilisation du fallback", 'location_error_manual_none': "Les champs d'emplacement manuel ne peuvent pas être vides ou invalides.", 'time_expander': "⏱️ Heure & Fuseau horaire",
         'time_select_label': "Choisir l'heure", 'time_option_now': "Maintenant (nuit prochaine)", 'time_option_specific': "Nuit spécifique", 'time_date_select_label': "Choisir la date :",
         'timezone_auto_set_label': "Fuseau horaire détecté :", 'timezone_auto_fail_label': "Fuseau horaire :", 'timezone_auto_fail_msg': "Impossible de détecter le fuseau horaire, UTC est utilisé.",
+        'timezone_error_invalid': "Invalide", 'timezone_auto_na': "TZ Auto N/A", 'timezone_loc_invalid': "Emplacement invalide pour TZ",
         'filters_expander': "✨ Filtres & Conditions", 'mag_filter_header': "**Filtre de Magnitude**", 'mag_filter_method_label': "Méthode de filtrage :", 'mag_filter_option_bortle': "Échelle de Bortle",
         'mag_filter_option_manual': "Manuel", 'mag_filter_bortle_label': "Échelle de Bortle :", 'mag_filter_bortle_help': "Obscurité du ciel : 1=Excellent ciel noir, 9=Ciel de centre-ville",
         'mag_filter_min_mag_label': "Magnitude Min. :", 'mag_filter_min_mag_help': "Magnitude de l'objet le plus brillant à inclure", 'mag_filter_max_mag_label': "Magnitude Max. :",
         'mag_filter_max_mag_help': "Magnitude de l'objet le plus faible à inclure", 'mag_filter_warning_min_max': "Magnitude Min. est supérieure à la Magnitude Max. !",
-        'min_alt_header': "**Altitude de l'objet au-dessus de l'horizon**", 'min_alt_label': "Altitude Min. de l'objet (°) :", 'max_alt_label': "Altitude Max. de l'objet (°) :", 'moon_warning_header': "**Avertissement Lunaire**",
-        'moon_warning_label': "Avertir si Lune > (% Illumination) :", 'object_types_header': "**Types d'objets**", 'object_types_error_extract': "Impossible d'extraire les types d'objets du catalogue.",
-        'object_types_label': "Filtrer les types (laisser vide pour tous) :", 'size_filter_header': "**Filtre de Taille Angulaire**", 'size_filter_label': "Taille de l'objet (minutes d'arc) :",
-        'size_filter_help': "Filtrer les objets par leur taille apparente (axe majeur). 1 minute d'arc = 1/60 degré.", 'direction_filter_header': "**Filtre par Direction Cardinale**",
-        'direction_filter_label': "Afficher les objets culminant vers :", 'direction_option_all': "Toutes", 'object_type_glossary_title': "Glossaire des types d'objets",
+        'min_alt_header': "**Altitude de l'objet au-dessus de l'horizon**", 'min_alt_label': "Altitude Min. de l'objet (°) :", 'max_alt_label': "Altitude Max. de l'objet (°) :", 'alt_filter_warning_min_max': "L'altitude minimale est supérieure à l'altitude maximale !",
+        'moon_warning_header': "**Avertissement Lunaire**", 'moon_warning_label': "Avertir si Lune > (% Illumination) :", 'object_types_header': "**Types d'objets**", 'object_types_error_extract': "Impossible d'extraire les types d'objets du catalogue.",
+        'object_types_label': "Filtrer les types (laisser vide pour tous) :", 'object_types_not_found': "Aucun type d'objet trouvé dans le catalogue.",
+        'size_filter_header': "**Filtre de Taille Angulaire**", 'size_filter_label': "Taille de l'objet (minutes d'arc) :", 'size_filter_help': "Filtrer les objets par leur taille apparente (axe majeur). 1 minute d'arc = 1/60 degré.",
+        'size_slider_error': "Erreur lors de la création du curseur de taille.", 'size_data_not_available': "Données de taille non disponibles dans le catalogue.",
+        'direction_filter_header': "**Filtre par Direction Cardinale**", 'direction_filter_label': "Afficher les objets culminant vers :", 'direction_option_all': "Toutes",
+        'object_type_glossary_title': "Glossaire des types d'objets",
         'object_type_glossary': { "OCl": "Amas Ouvert", "GCl": "Amas Globulaire", "Cl+N": "Amas + Nébuleuse", "Gal": "Galaxie", "PN": "Nébuleuse Planétaire", "SNR": "Rémanent de Supernova", "Neb": "Nébuleuse (général)", "EmN": "Nébuleuse en Émission", "RfN": "Nébuleuse par Réflexion", "HII": "Région HII", "AGN": "Noyau Actif de Galaxie" },
+        'glossary_not_available': "Le glossaire n'est pas disponible ou est vide pour la langue sélectionnée.", 'glossary_format_error': "Les données du glossaire ne sont pas au format attendu.",
         'results_options_expander': "⚙️ Options de Résultats", 'results_options_max_objects_label': "Nombre max. d'objets à afficher :", 'results_options_sort_method_label': "Trier les résultats par :",
         'results_options_sort_duration': "Durée & Altitude", 'results_options_sort_magnitude': "Luminosité", 'moon_metric_label': "Illumination lunaire (env.)",
-        'moon_warning_message': "Attention : La Lune est plus brillante ({:.0f}%) que le seuil ({:.0f}%) !", 'moon_phase_error': "Erreur lors du calcul de la phase lunaire : {}", 'find_button_label': "🔭 Trouver les objets observables",
-        'search_params_header': "Paramètres de recherche", 'search_params_location': "📍 Emplacement : {}", 'search_params_time': "⏱️ Heure : {}", 'search_params_timezone': "🌍 Fuseau horaire : {}",
-        'search_params_time_now': "Nuit prochaine (à partir de {} UTC)", 'search_params_time_specific': "Nuit après {}", 'search_params_filter_mag': "✨ Filtre : {}",
-        'search_params_filter_mag_bortle': "Bortle {} (<= {:.1f} mag)", 'search_params_filter_mag_manual': "Manuel ({:.1f}-{:.1f} mag)", 'search_params_filter_alt_types': "🔭 Filtre : Alt {}-{}°, Types : {}",
-        'search_params_filter_size': "📐 Filtre : Taille {:.1f} - {:.1f} arcmin", 'search_params_filter_direction': "🧭 Filtre : Direction à l'apogée : {}", 'search_params_types_all': "Tous",
-        'search_params_direction_all': "Toutes", 'spinner_searching': "Calcul de la fenêtre & recherche d'objets...", 'spinner_geocoding': "Recherche de l'emplacement...",
+        'moon_warning_message': "Attention : La Lune est plus brillante ({:.0f}%) que le seuil ({:.0f}%) !", 'moon_phase_error': "Erreur lors du calcul de la phase lunaire : {}", 'moon_phase_not_available': "Information sur la phase lunaire non disponible.",
+        'find_button_label': "🔭 Trouver les objets observables", 'search_params_header': "Paramètres de recherche", 'search_params_location': "📍 Emplacement : {}", 'location_not_set': "Non défini",
+        'observer_creation_failed': "La création de l'objet observateur a échoué", 'search_params_time': "⏱️ Heure : {}", 'search_params_timezone': "🌍 Fuseau horaire : {}",
+        'search_params_time_now': "Nuit prochaine (à partir de {} {})", 'search_params_time_now_utc': "Nuit prochaine (à partir de {} UTC)", 'search_params_time_specific': "Nuit après {}",
+        'search_params_filter_mag': "✨ Filtre : {}", 'search_params_filter_mag_bortle': "Bortle {} (<= {:.1f} mag)", 'search_params_filter_mag_manual': "Manuel ({:.1f}-{:.1f} mag)",
+        'search_params_filter_alt_types': "🔭 Filtre : Alt {}-{}°, Types : {}", 'search_params_filter_size': "📐 Filtre : Taille {:.1f} - {:.1f} arcmin", 'search_params_filter_direction': "🧭 Filtre : Direction à l'apogée : {}",
+        'search_params_types_all': "Tous", 'search_params_direction_all': "Toutes", 'spinner_searching': "Calcul de la fenêtre & recherche d'objets...", 'spinner_geocoding': "Recherche de l'emplacement...",
         'window_info_template': "Fenêtre d'observation : {} à {} UTC (Crépuscule Astronomique)", 'window_already_passed': "La fenêtre nocturne calculée pour 'Maintenant' est déjà passée. Calcul pour la nuit suivante.",
-        'error_no_window': "Aucune fenêtre de noirceur astronomique valide trouvée pour la date et l'emplacement sélectionnés.", 'error_polar_night': "La noirceur astronomique dure >24h (Nuit polaire ?). Fenêtre de secours utilisée.",
-        'error_polar_day': "Aucune noirceur astronomique ne se produit (Jour polaire ?). Fenêtre de secours utilisée.", 'success_objects_found': "{} objets correspondants trouvés.",
-        'info_showing_list_duration': "Affichage de {} objets, triés par durée de visibilité et altitude de culmination :", 'info_showing_list_magnitude': "Affichage de {} objets, triés par luminosité (le plus brillant en premier) :",
-        'error_search_unexpected': "Une erreur inattendue s'est produite lors de la recherche :", 'results_list_header': "Liste des résultats",
+        'warning_window_too_short': "Fenêtre d'observation trop courte pour un calcul détaillé.", 'error_no_window': "Aucune fenêtre de noirceur astronomique valide trouvée pour la date et l'emplacement sélectionnés.",
+        'error_cannot_search': "Impossible d'effectuer la recherche.", 'error_polar_night': "La noirceur astronomique dure >24h (Nuit polaire ?). Fenêtre de secours utilisée.",
+        'error_polar_day': "Aucune noirceur astronomique ne se produit (Jour polaire ?). Fenêtre de secours utilisée.", 'window_fallback_info': "\nFenêtre de secours utilisée : {} à {} UTC", 'window_fallback_info_short': "Secours : {} à {} UTC",
+        'success_objects_found': "{} objets correspondants trouvés.", 'info_showing_list_duration': "Affichage de {} objets, triés par durée de visibilité et altitude de culmination :",
+        'info_showing_list_magnitude': "Affichage de {} objets, triés par luminosité (le plus brillant en premier) :", 'error_search_unexpected': "Une erreur inattendue s'est produite lors de la recherche :",
+        'error_search_no_catalog': "Recherche impossible : Catalogue manquant.", 'error_search_no_location': "Recherche impossible : Emplacement invalide.", 'results_list_header': "Liste des résultats",
         'results_export_name': "Nom", 'results_export_type': "Type", 'results_export_constellation': "Constellation", 'results_export_mag': "Magnitude", 'results_export_size': "Taille (arcmin)",
         'results_export_ra': "AD", 'results_export_dec': "Dec", 'results_export_max_alt': "Altitude Max (°)", 'results_export_az_at_max': "Azimut à l'apogée (°)", 'results_export_direction_at_max': "Direction à l'apogée",
         'results_export_time_max_utc': "Heure à l'apogée (UTC)", 'results_export_time_max_local': "Heure à l'apogée (Fuseau local)", 'results_export_cont_duration': "Durée cont. max (h)",
-        # === KORREKTUR HIER ===
-        'results_expander_title': '{} ({}) - Mag : {}', # Attend maintenant une chaîne pour Mag
-        # =======================
-        'google_link_text': "Google", 'simbad_link_text': "SIMBAD", 'results_coords_header': "**Détails :**", 'results_constellation_label': "Constellation :",
+        'results_expander_title': '{} ({}) - Mag : {}', 'google_link_text': "Google", 'simbad_link_text': "SIMBAD", 'results_coords_header': "**Détails :**", 'results_constellation_label': "Constellation :",
         'results_size_label': "Taille (axe majeur) :", 'results_size_value': "{:.1f} arcmin", 'results_max_alt_header': "**Altitude Max. :**", 'results_azimuth_label': "(Azimut : {:.1f}°{})",
-        'results_direction_label': ", Direction : {}", 'results_best_time_header': "**Meilleure heure (Fuseau local) :**", 'results_cont_duration_header': "**Durée cont. max :**", 'results_duration_value': "{:.1f} heures",
-        'graph_type_label': "Type de graphique (pour tous) :", 'graph_type_sky_path': "Trajectoire céleste (Az/Alt)", 'graph_type_alt_time': "Courbe d'altitude (Alt/Temps)", 'results_graph_button': "📈 Afficher le graphique",
-        'results_spinner_plotting': "Création du graphique...", 'results_graph_error': "Erreur de graphique : {}", 'results_graph_not_created': "Le graphique n'a pas pu être créé.", 'results_close_graph_button': "Fermer le graphique",
+        'azimuth_not_available': "(Azimut : N/A)", 'results_direction_label': ", Direction : {}", 'results_best_time_header': "**Meilleure heure (Fuseau local) :**",
+        'results_cont_duration_header': "**Durée cont. max :**", 'results_duration_value': "{:.1f} heures", 'graph_type_label': "Type de graphique (pour tous) :",
+        'graph_type_sky_path': "Trajectoire céleste (Az/Alt)", 'graph_type_alt_time': "Courbe d'altitude (Alt/Temps)", 'results_graph_button': "📈 Afficher le graphique", 'results_spinner_plotting': "Création du graphique...",
+        'results_graph_error': "Erreur de graphique : {}", 'results_graph_not_created': "Le graphique n'a pas pu être créé.", 'results_close_graph_button': "Fermer le graphique",
         'results_save_csv_button': "💾 Enregistrer la liste en CSV", 'results_csv_filename': "liste_observation_dso_{}.csv", 'results_csv_export_error': "Erreur d'exportation CSV : {}",
-        'warning_no_objects_found': "Aucun objet trouvé correspondant à tous les critères pour la fenêtre d'observation calculée.", 'info_initial_prompt': "Bienvenue ! Veuillez **saisir les coordonnées** ou **rechercher un lieu** pour activer la recherche d'objets.",
+        'warning_no_objects_found': "Aucun objet trouvé correspondant à tous les critères pour la fenêtre d'observation calculée.", 'warning_no_objects_found_filters': "Aucun objet trouvé avec les filtres actuels (pré-filtre).",
+        'warning_no_objects_found_after_search': "Aucun objet trouvé correspondant à vos critères.", 'info_initial_prompt': "Bienvenue ! Veuillez **saisir les coordonnées** ou **rechercher un lieu** pour activer la recherche d'objets.",
         'graph_altitude_label': "Altitude (°)", 'graph_azimuth_label': "Azimut (°)", 'graph_min_altitude_label': "Altitude minimale ({:.0f}°)", 'graph_max_altitude_label': "Altitude maximale ({:.0f}°)",
-        'graph_title_sky_path': "Trajectoire céleste pour {}", 'graph_title_alt_time': "Courbe d'altitude pour {}", 'graph_ylabel': "Altitude (°)", 'custom_target_expander': "Tracer une cible personnalisée",
-        'custom_target_ra_label': "Ascension droite (AD) :", 'custom_target_dec_label': "Déclinaison (Dec) :", 'custom_target_name_label': "Nom de la cible (Optionnel) :",
+        'graph_title_sky_path': "Trajectoire céleste pour {}", 'graph_title_alt_time': "Courbe d'altitude pour {}", 'graph_ylabel_altitude': "Altitude (°)", 'graph_xlabel_time_utc': "Temps (UTC)",
+        'graph_colorbar_label_time_utc': "Temps (UTC)", 'custom_target_expander': "Tracer une cible personnalisée", 'custom_target_ra_label': "Ascension droite (AD) :",
+        'custom_target_dec_label': "Déclinaison (Dec) :", 'custom_target_name_label': "Nom de la cible (Optionnel) :", 'custom_target_name_placeholder': "Ma Comète", 'custom_target_default_name': "Cible personnalisée",
         'custom_target_ra_placeholder': "p.ex. 10:45:03.6 ou 161.265", 'custom_target_dec_placeholder': "p.ex. -16:42:58 ou -16.716", 'custom_target_button': "Créer un graphique personnalisé",
         'custom_target_error_coords': "Format AD/Dec invalide. Utilisez HH:MM:SS.s / DD:MM:SS ou degrés décimaux.", 'custom_target_error_window': "Impossible de créer le graphique. Assurez-vous que l'emplacement et la fenêtre temporelle sont valides (essayez d'abord de cliquer sur 'Trouver les objets observables').",
-        'error_processing_object': "Erreur lors du traitement de {}: {}", 'window_calc_error': "Erreur lors du calcul de la fenêtre d'observation : {}\n{}", 'window_fallback_info': "\nFenêtre de secours utilisée : {} à {} UTC",
-        'error_loading_catalog': "Erreur lors du chargement du fichier catalogue : {}", 'info_catalog_loaded': "Catalogue chargé : {} objets.", 'warning_catalog_empty': "Fichier catalogue chargé, mais aucun objet correspondant trouvé après filtrage.",
-        'donation_text': "Vous aimez l'application DSO Finder ? [Soutenez le développement sur Ko-fi ☕](https://ko-fi.com/advanceddsofinder)", # DSO Finder Donation
+        'custom_target_error_invalid_window_order': "Ordre invalide des temps de la fenêtre pour la cible personnalisée.", 'custom_target_error_window_short': "Fenêtre temporelle trop courte pour le tracé personnalisé.",
+        'custom_target_error_general': "Erreur générale lors du tracé de la cible personnalisée", 'error_processing_object': "Erreur lors du traitement de {}: {}", 'window_calc_error': "Erreur lors du calcul de la fenêtre d'observation : {}\n{}",
+        'error_observer_type_invalid': "Type d'observateur invalide pour le calcul de la fenêtre.", 'error_twilight_calc_unexpected_polar': "Erreur inattendue dans le calcul du crépuscule en régions polaires.",
+        'error_twilight_calc_failed': "Impossible de calculer les heures de crépuscule.", 'error_morning_before_evening_twilight': "Crépuscule du matin avant celui du soir - vérifiez date/conditions polaires.",
+        'error_twilight_calc_next_night_failed': "Échec du calcul du crépuscule pour la nuit suivante.", 'error_twilight_recalc_failed_fallback': "Échec du recalcul du crépuscule, secours activé.",
+        'error_no_window_final_fallback': "Pas de fenêtre valide, secours final utilisé.", 'error_internal_observer_location_type': "Erreur interne : type observer_location.",
+        'error_internal_observing_times_type': "Erreur interne : type observing_times.", 'error_internal_min_altitude_type': "Erreur interne : type min_altitude_limit.",
+        'error_internal_catalog_df_type': "Erreur interne : type catalog_df.", 'warning_obs_window_too_few_points': "La fenêtre d'observation a moins de 2 points temporels.",
+        'unknown_type_placeholder': "Inconnu", 'constellation_not_available': "N/A", 'plot_error_invalid_data_type': "Erreur de tracé : Type de données invalide.", 'plot_default_object_name': "Objet",
+        'plot_error_invalid_times_data': "Erreur de tracé : Données temporelles invalides.", 'plot_error_invalid_altitudes_data': "Erreur de tracé : Données d'altitude invalides.",
+        'plot_error_invalid_azimuths_data_sky_path': "Erreur de tracé : Données d'azimut requises pour Trajectoire céleste.", 'plot_error_data_array_length_mismatch': "Erreur de tracé : Les longueurs des tableaux de données ne correspondent pas.",
+        'plot_info_no_data_to_plot': "Info tracé : Aucun point de données à tracer.", 'plot_error_azimuths_missing_sky_path_final': "Erreur de tracé : Données d'azimut manquantes pour Trajectoire céleste.",
+        'plot_error_unknown_plot_type': "Erreur de tracé : Type de tracé '{}' inconnu.", 'plot_error_unexpected': "Erreur de tracé : Inattendue : {}",
+        'error_loading_catalog_file_not_found': "Erreur : Fichier catalogue non trouvé : {}", 'error_missing_catalog_columns': "Erreur : Colonnes manquantes dans le catalogue : {}",
+        'error_no_usable_magnitude_column': "Erreur : Aucune colonne de magnitude utilisable : {}", 'warning_size_column_missing': "Avertissement : Colonne de taille '{}' manquante.",
+        'warning_size_column_no_valid_data': "Avertissement : Colonne de taille '{}' sans données valides.", 'error_type_column_missing_critical': "Erreur critique : Colonne 'Type' manquante.",
+        'warning_catalog_empty_after_filters': "Avertissement : Catalogue vide après filtrage.", 'error_catalog_empty_data': "Erreur : Le fichier catalogue est vide.",
+        'error_loading_catalog_generic': "Erreur de chargement du catalogue : {}", 'error_catalog_failed': "Erreur de catalogue.",
+        'donation_text': "Vous aimez l'application DSO Finder ? [Soutenez le développement sur Ko-fi ☕](https://ko-fi.com/advanceddsofinder)",
         'bug_report_button': "🐞 Signaler un bug", 'bug_report_body': "\n\n(Veuillez décrire le bug et les étapes pour le reproduire)",
 
-        # === Redshift Calculator Keys ===
-        'redshift_calculator_title': "Calculateur de Décalage Rouge", # Added
-        'redshift_z_tooltip': "Entrez le décalage cosmologique vers le rouge (négatif pour le décalage vers le bleu).", # Added
-        "lang_select": "Choisir la langue", # RC Key
-        "input_params": "Paramètres d'entrée", # RC Key
-        "redshift_z": "Décalage vers le rouge (z)", # RC Key
-        "cosmo_params": "Paramètres Cosmologiques", # RC Key
-        "hubble_h0": "Constante de Hubble (H₀) [km/s/Mpc]", # RC Key
-        "omega_m": "Densité de matière (Ωm)", # RC Key
-        "omega_lambda": "Densité d'énergie noire (ΩΛ)", # RC Key
-        "flat_universe_warning": "Ωm + ΩΛ ≉ 1. Les calculs supposent un univers plat (Ωk=0).", # RC Key
-        "results_for": "Résultats pour z = {z:.5f}", # RC Key
-        "error_invalid_input": "Entrée invalide. Veuillez utiliser des chiffres.", # RC Key
-        "error_h0_positive": "La constante de Hubble doit être positive.", # RC Key
-        "error_omega_negative": "Les paramètres Omega ne peuvent pas être négatifs.", # RC Key
-        "warn_blueshift": "Avertissement : Décalage vers le rouge négatif (Blueshift). Les distances cosmologiques sont 0 ou non directement applicables ici.", # RC Key
-        "error_dep_scipy": "Dépendance 'scipy' introuvable. Veuillez l'installer.", # RC Key
-        "error_calc_failed": "Le calcul a échoué : {e}", # RC Key
-        "warn_integration_accuracy": "Avertissement : La précision relative de l'intégration pourrait ne pas être atteinte (Erreur : DC={err_dc:.2e}, LT={err_lt:.2e}).", # RC Key
-        "lookback_time": "Temps de regard en arrière", # RC Key
-        "cosmo_distances": "Distances Cosmologiques", # RC Key
-        "comoving_distance_title": "**Distance comobile :**", # RC Key
-        "luminosity_distance_title": "**Distance de luminosité :**", # RC Key
-        "angular_diameter_distance_title": "**Distance de diamètre angulaire :**", # RC Key
-        "unit_Gyr": "Ga (Milliards d'années)", # RC Key
-        "unit_Mpc": "Mpc", # RC Key
-        "unit_Gly": "Gal (Milliards d'années-lumière)", # RC Key
-        "unit_km": "km", # RC Key
-        "unit_km_sci": "km (sci.)", # RC Key
-        "unit_km_full": "km (complet)", # RC Key
-        "unit_LJ": "al", # RC Key
-        "unit_AE": "UA", # RC Key
-        "unit_Ls": "sl", # RC Key
-        "calculation_note": "Calcul basé sur le modèle ΛCDM plat, négligeant la densité de rayonnement.", # RC Key
-        "rc_donate_text": "Vous aimez ce calculateur ? Soutenez son développement avec un petit don !", # Added (RC Key)
-        "rc_donate_button": "Faire un don via Ko-fi", # Added (RC Key)
-        "bug_report": "Trouvé un bug ?", # RC Key
-        #"bug_report_button": "Signaler un problème", # Using DSO Finder version
-        "glossary": "Glossaire", # RC Key
-        "example_lookback_recent": "Récemment (en termes cosmologiques).", # RC Key
-        "example_lookback_humans": "Évolution des humains modernes.", # RC Key
-        "example_lookback_dinos": "Ère des dinosaures.", # RC Key
-        "example_lookback_multicellular": "Apparition de la vie multicellulaire complexe.", # RC Key
-        "example_lookback_earth": "Formation de la Terre et du Système Solaire.", # RC Key
-        "example_lookback_early_univ": "Univers primordial, formation des premières étoiles/galaxies.", # RC Key
-        "example_comoving_local": "Au sein de notre Groupe Local de galaxies.", # RC Key
-        "example_comoving_virgo": "Distance de l'amas de la Vierge.", # RC Key
-        "example_comoving_coma": "Distance de l'amas de Coma.", # RC Key
-        "example_comoving_lss": "Échelle des superamas et filaments.", # RC Key
-        "example_comoving_quasars": "Distance des quasars lointains.", # RC Key
-        "example_comoving_cmb": "Distance du 'bord' de l'univers observable (FDC).", # RC Key
-        "explanation_luminosity": "Pertinent pour la luminosité : les objets apparaissent aussi brillants que prévu à cette distance (important pour les chandelles standard comme les supernovae).", # RC Key
-        "explanation_angular": "Pertinent pour la taille : les objets ont la taille apparente attendue à cette distance (important pour les règles standard comme les BAO).", # RC Key
+        # === Redshift Calculator Keys (Updated & New) ===
+        'redshift_calculator_title': "Calculateur de Décalage vers le Rouge",
+        'input_params': "Paramètres d'Entrée",
+        'redshift_z': "Décalage vers le Rouge (z)",
+        'redshift_z_tooltip': "Décalage cosmologique vers le rouge (négatif pour décalage vers le bleu).",
+        'cosmo_params': "Paramètres Cosmologiques",
+        'hubble_h0': "Constante de Hubble (H₀) [km/s/Mpc]",
+        'omega_m': "Densité de Matière (Ωm)",
+        'omega_lambda': "Densité d'Énergie Noire (ΩΛ)",
+        'non_flat_universe_info': "Note : Ωm + ΩΛ = {sum_omega:.3f}. Ceci implique un univers non plat (Ωk = {omega_k:.3f}). Les calculs utiliseront cette géométrie.",
+        'flat_universe_assumed': "Hypothèse d'un univers plat (Ωk ≈ 0).",
+        'results_for': "Résultats pour z = {z:.5f}",
+        'recessional_velocity': "Vitesse de Récession",
+        'unit_km_s': "km/s",
+        'velocity_positive_caption': "Positif : L'objet s'éloigne (décalage vers le rouge)",
+        'velocity_negative_caption': "Négatif : L'objet s'approche (décalage vers le bleu)",
+        'velocity_zero_caption': "Aucun mouvement cosmologique relatif significatif",
+        'lookback_time': "Temps de Regard en Arrière",
+        'unit_Gyr': "Ga (Milliards d'années)",
+        'cosmo_distances': "Distances Cosmologiques",
+        'comoving_distance_title': "**Distance Comobile :**",
+        'unit_Mpc': "Mpc",
+        'unit_Gly': "Gal (Milliards d'années-lumière)",
+        'comoving_other_units_expander': "Autres Unités (Comobile)",
+        'unit_km_full': "km",
+        'unit_LJ': "al",
+        'unit_AE': "UA",
+        'unit_Ls': "sl",
+        'luminosity_distance_title': "**Distance de Luminosité :**",
+        'explanation_luminosity': "Pertinent pour la luminosité : les objets apparaissent aussi brillants que prévu à cette distance (important pour les chandelles standard).",
+        'angular_diameter_distance_title': "**Distance de Diamètre Angulaire :**",
+        'explanation_angular': "Pertinent pour la taille : les objets ont la taille apparente attendue à cette distance (important pour les règles standard).",
+        'calculation_note': "Calcul basé sur le modèle ΛCDM. Pour les modèles non plats, Ωk est dérivé de Ωm et ΩΛ.",
+        'error_invalid_input': "Entrée invalide. Veuillez utiliser des chiffres.",
+        'error_h0_positive': "La constante de Hubble doit être positive.",
+        'error_omega_negative': "Les paramètres Omega ne peuvent pas être négatifs.",
+        'error_redshift_too_negative': "Le décalage z={z} est physiquement invraisemblable (< -1).",
+        'warn_blueshift': "Avertissement : Décalage vers le rouge négatif (Blueshift). Les distances cosmologiques sont 0 ou non directement applicables ici.",
+        'warn_integration_accuracy': "Avertissement : La précision relative de l'intégration pourrait ne pas être atteinte (Erreur : DC={err_dc}, LT={err_lt}).",
+        'error_dep_scipy': "Dépendance 'scipy' introuvable. Veuillez l'installer.",
+        'error_calc_failed': "Le calcul a échoué : {e}",
+        'example_lookback_recent': "Presque aujourd'hui (cosmologiquement).",
+        'example_lookback_humans': "Évolution des humains modernes (~0.2-0.3 Ma avant).",
+        'example_lookback_dinos_extinction': "Extinction des dinosaures (~66 Ma avant).",
+        'example_lookback_multicellular': "Explosion cambrienne, apparition de la vie complexe (~540 Ma avant).",
+        'example_lookback_earth_formation': "Formation de la Terre (~4.5 Ga avant).",
+        'example_lookback_early_universe_galaxies': "Formation des premières galaxies après les Âges Sombres.",
+        'example_lookback_very_early_universe': "Univers très primordial, proche du Big Bang / FDC.",
+        'example_comoving_local_group': "Au sein du Groupe Local (ex : Galaxie d'Andromède).",
+        'example_comoving_virgo_cluster': "Distance de l'Amas de la Vierge.",
+        'example_comoving_coma_cluster': "Distance de l'Amas de Coma.",
+        'example_comoving_laniakea_supercluster': "Diamètre du Superamas de Laniakea.",
+        'example_comoving_large_scale_structure': "Échelle des filaments et vides cosmiques.",
+        'example_comoving_distant_quasars': "Distance typique des quasars très lointains.",
+        'example_comoving_observable_universe_horizon': "Jusqu'à l'horizon de l'univers observable.",
     },
 }
 
 DEFAULT_LANG = 'de' # Standardmäßig Deutsch
+
+# Die `translations`-Variable ist nun das Haupt-Dictionary, das alle Sprachen enthält.
+# Die `get_translation`-Funktion greift auf dieses Dictionary zu.
 
 def get_translation(lang: str) -> dict:
     """
@@ -438,8 +557,5 @@ def get_translation(lang: str) -> dict:
     Returns:
         dict: Das Dictionary mit den Übersetzungen für die gewählte Sprache.
     """
-    # Stelle sicher, dass der Schlüssel existiert, bevor darauf zugegriffen wird.
-    # Gib das Dictionary für die angeforderte Sprache zurück oder das für die Standardsprache.
-    # Achte darauf, dass die Schlüssel im translations-Dict Kleinbuchstaben sind ('de', 'en', 'fr').
-    lang_lower = lang.lower() # Sicherstellen, dass der angeforderte Key klein ist
+    lang_lower = lang.lower()
     return translations.get(lang_lower, translations[DEFAULT_LANG])
