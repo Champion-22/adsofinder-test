@@ -561,7 +561,9 @@ def main():
                 'warning_size_column_no_valid_data': "Warnung: Größen-Spalte '{}' ohne Daten.", 'error_type_column_missing_critical': "Kritischer Fehler: 'Type' Spalte fehlt.",
                 'warning_catalog_empty_after_filters': "Warnung: Katalog leer nach Filterung.", 'error_catalog_empty_data': "Fehler: Katalogdatei ist leer.",
                 'error_loading_catalog_generic': "Katalog Ladefehler: {}", 'error_catalog_failed': "Katalogfehler.",
-                'donation_text': "Gefällt der DSO Finder? [Unterstütze die Entwicklung!](https://ko-fi.com/skyobserver)", 'bug_report_button': "🐞 Fehler melden",
+                'donation_text': "Gefällt der DSO Finder? [Unterstütze die Entwicklung!](https://ko-fi.com/skyobserver)", 
+                'donation_url': "https://ko-fi.com/skyobserver", 'donation_button_text': "Unterstütze auf Ko-fi", 'bug_report_button': "🐞 Fehler melden",
+                'bug_report_subject': "Fehlerbericht: Advanced DSO Finder",
                 'bug_report_body': "\n\n(Fehlerbeschreibung)", 'recessional_velocity': "Fluchtgeschwindigkeit", 'unit_km_s': "km/s",
                 'redshift_calculator_title': "Rotverschiebungsrechner", 'input_params': "Eingabeparameter", 'redshift_z': "Rotverschiebung (z)",
                 'redshift_z_tooltip': "Kosmologische Rotverschiebung (negativ für Blauverschiebung)", 'cosmo_params': "Kosmologische Parameter",
@@ -584,12 +586,14 @@ def main():
                 'example_comoving_local_group': "Lokale Gruppe.", 'example_comoving_virgo_cluster': "Virgo-Haufen.", 'example_comoving_coma_cluster': "Coma-Haufen.",
                 'example_comoving_laniakea_supercluster': "Laniakea Superhaufen.", 'example_comoving_large_scale_structure': "Großräumige Strukturen.",
                 'example_comoving_distant_quasars': "Ferne Quasare.", 'example_comoving_observable_universe_horizon': "Beobachtbares Universum.",
-                'thousands_separator': " " # For German number formatting
+                'thousands_separator': " " 
             },
-            'en': { # Basic English fallbacks
+            'en': { 
                 "app_title": "Advanced DSO Finder (Internal EN)", 'settings_header': "Settings", 'language_select_label': "Language",
                 'object_type_glossary_title': "Object Type Glossary", 'donation_text': "Like the DSO Finder? [Support its development!](https://ko-fi.com/skyobserver)",
-                'bug_report_button': "🐞 Report Bug", 'bug_report_body': "\n\n(Describe bug)", 'recessional_velocity': "Recessional Velocity",
+                'donation_url': "https://ko-fi.com/skyobserver", 'donation_button_text': "Support on Ko-fi", 'bug_report_button': "🐞 Report Bug", 
+                'bug_report_subject': "Bug Report: Advanced DSO Finder",
+                'bug_report_body': "\n\n(Describe bug)", 'recessional_velocity': "Recessional Velocity",
                 'unit_km_s': "km/s", 'redshift_calculator_title': "Redshift Calculator", 'input_params': "Input Parameters", 'redshift_z': "Redshift (z)",
                 'redshift_z_tooltip': "Cosmological redshift (negative for blueshift)", 'cosmo_params': "Cosmological Parameters", 'hubble_h0': "H₀ [km/s/Mpc]",
                 'omega_m': "Ωm (Matter Density)", 'omega_lambda': "ΩΛ (Dark Energy Density)", 
@@ -608,15 +612,15 @@ def main():
                 'example_lookback_very_early_universe': "Very early universe.", 'example_comoving_local_group': "Local Group.", 'example_comoving_virgo_cluster': "Virgo Cluster.",
                 'example_comoving_coma_cluster': "Coma Cluster.", 'example_comoving_laniakea_supercluster': "Laniakea Supercluster.",
                 'example_comoving_large_scale_structure': "Large scale structure.", 'example_comoving_distant_quasars': "Distant quasars.",
-                'example_comoving_observable_universe_horizon': "Observable universe.", 'thousands_separator': "," # For English number formatting
-                 # ... (add all other keys as in 'de', translated)
+                'example_comoving_observable_universe_horizon': "Observable universe.", 'thousands_separator': "," 
             },
-            'fr': { # Basic French fallbacks
+            'fr': { 
                 "app_title": "Advanced DSO Finder (Interne FR)", 'settings_header': "Paramètres", 'language_select_label': "Langue",
                 'object_type_glossary_title': "Glossaire des types d'objets", 'donation_text': "Vous aimez le DSO Finder? [Soutenez le développement!](https://ko-fi.com/skyobserver)",
-                'bug_report_button': "🐞 Signaler un bug", 'bug_report_body': "\n\n(Décrire le bug)", 'recessional_velocity': "Vitesse de Récession",
-                'unit_km_s': "km/s", # ... (add all other keys as in 'de', translated)
-                'thousands_separator': " " # For French number formatting
+                'donation_url': "https://ko-fi.com/skyobserver", 'donation_button_text': "Soutenir sur Ko-fi", 'bug_report_button': "🐞 Signaler un bug", 
+                'bug_report_subject': "Rapport de bug: Advanced DSO Finder",
+                'bug_report_body': "\n\n(Décrire le bug)", 'recessional_velocity': "Vitesse de Récession",
+                'unit_km_s': "km/s", 'thousands_separator': " " 
             }
         }
         class FallbackTranslationProvider:
@@ -635,7 +639,7 @@ def main():
             class EmergencyDummyTranslator:
                 def get(self, key, default_value=None): return default_value if default_value is not None else str(key)
             t = EmergencyDummyTranslator()
-    if t is None: # Should be caught by the above, but as a last resort.
+    if t is None: 
         st.error("CRITICAL: Translator 't' could not be initialized AT ALL.")
         class FinalEmergencyDummyTranslator:
             def get(self, key, default_value=None): return default_value if default_value is not None else str(key)
@@ -652,10 +656,18 @@ def main():
         elif not glossary_items: st.info(t.get("glossary_not_available", "Glossary is not available or empty for the selected language."))
         elif isinstance(glossary_items, str): st.info(glossary_items)
     st.markdown("---")
+
+    # --- Cached Data Loading ---
+    # The translator object 't' is complex and can cause issues with st.cache_data if not handled.
+    # We pass 'lang' to the cached function for cache invalidation on language change.
+    # The translator object itself is passed with a leading underscore to tell Streamlit not to hash it.
     @st.cache_data
-    def cached_load_ongc_data(path, current_lang_for_cache_key, translator_obj_for_func):
-        return load_ongc_data(path, current_lang_for_cache_key, translator_obj_for_func)
+    def cached_load_ongc_data(path, current_lang_for_cache_key, _translator_obj_for_func):
+        # The translator is used inside load_ongc_data for messages
+        return load_ongc_data(path, current_lang_for_cache_key, _translator_obj_for_func)
+    
     df_catalog_data = cached_load_ongc_data(CATALOG_FILEPATH, lang, t)
+
 
     with st.sidebar:
         st.header(t.get('settings_header', "Settings"))
@@ -698,7 +710,7 @@ def main():
                                 print(f"Attempting geocoding with {service_name} for query: '{search_query}'"); geocoded_location = geolocator.geocode(search_query)
                                 if geocoded_location: geocoding_service_name = service_name; break
                             except (GeocoderTimedOut, GeocoderServiceError) as e_geo: geocoding_error = e_geo; print(f"{service_name} failed: {e_geo}"); status_message_placeholder.info(t.get(f'location_search_info_fallback{"" if service_name == "Nominatim" else ("2" if service_name == "ArcGIS" else "")}', f"Trying next geocoder..."))
-                            except Exception as e_gen: geocoding_error = e_gen; print(f"Generic error with {service_name}: {e_gen}"); break # Stop on unexpected error
+                            except Exception as e_gen: geocoding_error = e_gen; print(f"Generic error with {service_name}: {e_gen}"); break 
                         if geocoded_location and geocoding_service_name:
                             f_lat, f_lon, f_name = geocoded_location.latitude, geocoded_location.longitude, geocoded_location.address
                             st.session_state.update({'searched_location_name': f_name, 'location_search_success': True, 'manual_lat_val': f_lat, 'manual_lon_val': f_lon})
@@ -713,7 +725,7 @@ def main():
                             if geocoding_error:
                                 if isinstance(geocoding_error, GeocoderTimedOut): e_key_loc = 'location_search_error_timeout'; fmt_arg_loc = None
                                 elif isinstance(geocoding_error, GeocoderServiceError): e_key_loc = 'location_search_error_service'; fmt_arg_loc = str(geocoding_error)
-                                else: e_key_loc = 'location_search_error_fallback2_failed'; fmt_arg_loc = str(geocoding_error) # Assuming all failed if error is generic
+                                else: e_key_loc = 'location_search_error_fallback2_failed'; fmt_arg_loc = str(geocoding_error) 
                                 st.session_state.location_search_status_msg = t.get(e_key_loc, "Geocoding Error: {}").format(fmt_arg_loc) if fmt_arg_loc else t.get(e_key_loc, "Geocoding Error")
                             else: st.session_state.location_search_status_msg = t.get('location_search_error_not_found', "Location not found.")
                             status_message_placeholder.error(st.session_state.location_search_status_msg)
@@ -735,7 +747,7 @@ def main():
             elif not tf_instance: tz_display_msg = f"{t.get('timezone_auto_fail_label', 'Timezone:')} **{INITIAL_TIMEZONE}** ({t.get('timezone_auto_na', 'Automatic TZ detection N/A')})"; st.session_state.selected_timezone = INITIAL_TIMEZONE
             else: tz_display_msg = f"{t.get('timezone_auto_fail_label', 'Timezone:')} **{st.session_state.selected_timezone}** ({t.get('timezone_loc_invalid', 'Location Invalid for TZ lookup')})"
             st.markdown(tz_display_msg, unsafe_allow_html=True)
-        with st.expander(t.get('time_expander', "⏱️ Time & Timezone"), expanded=False): # Note: Timezone display is above this expander now
+        with st.expander(t.get('time_expander', "⏱️ Time & Timezone"), expanded=False): 
             time_opts_map = {'Now': t.get('time_option_now', "Now (Upcoming Night)"), 'Specific': t.get('time_option_specific', "Specific Night")}
             st.radio(t.get('time_select_label', "Select Time"), options=list(time_opts_map.keys()), format_func=time_opts_map.get, key="time_choice_exp", horizontal=True)
             if st.session_state.time_choice_exp == "Now": st.caption(f"Current UTC: {Time.now().iso}")
@@ -798,7 +810,7 @@ def main():
         # Modernized Bug Report Button (Styled Markdown for mailto)
         bug_report_email = "debrun2005@gmail.com"
         bug_report_subject = urllib.parse.quote(t.get("bug_report_subject", "Bug Report: Advanced DSO Finder"))
-        bug_report_body_template = urllib.parse.quote(t.get('bug_report_body', "\n\n(Please describe the bug and the steps to reproduce it)\n\nApp Version: X.Y.Z\nOS: ...\nBrowser: ...")) # Add placeholders
+        bug_report_body_template = urllib.parse.quote(t.get('bug_report_body', "\n\n(Please describe the bug and the steps to reproduce it)\n\nApp Version: X.Y.Z\nOS: ...\nBrowser: ...")) 
         bug_report_mailto_link = f"mailto:{bug_report_email}?subject={bug_report_subject}&body={bug_report_body_template}"
         st.sidebar.markdown(f"""
         <a href="{bug_report_mailto_link}" target="_blank" style="display: inline-block; padding: 0.5em 1em; background-color: #FF4B4B; color: white; text-align: center; border-radius: 0.25rem; text-decoration: none; font-weight: bold;">
@@ -806,7 +818,7 @@ def main():
         </a>""", unsafe_allow_html=True)
 
         # Modernized Donation Button (using st.link_button)
-        donation_url = t.get("donation_url", "https://ko-fi.com/advanceddsofinder") # Get URL from translations
+        donation_url = t.get("donation_url", "https://ko-fi.com/advanceddsofinder") 
         st.link_button(f"☕ {t.get('donation_button_text', 'Support on Ko-fi')}", donation_url, use_container_width=True)
 
 
@@ -819,7 +831,7 @@ def main():
             observer_for_run = Observer(latitude=lat*u.deg, longitude=lon*u.deg, elevation=h*u.m, timezone=tz_str)
             if st.session_state.location_choice_key == "Manual": location_display_str = t.get('location_manual_display', "Manual ({:.4f}, {:.4f})").format(lat, lon)
             elif st.session_state.searched_location_name: location_display_str = t.get('location_search_display', "Searched: {} ({:.4f}, {:.4f})").format(st.session_state.searched_location_name, lat, lon)
-            else: location_display_str = f"Lat: {lat:.4f}, Lon: {lon:.4f}" # Fallback if name somehow missing
+            else: location_display_str = f"Lat: {lat:.4f}, Lon: {lon:.4f}" 
         except Exception as e_obs: location_display_str = t.get('location_error', "Location Error: {}").format(f"{t.get('observer_creation_failed', 'Observer creation failed')}: {e_obs}"); st.session_state.location_is_valid_for_run = False; observer_for_run = None
     param_col1.markdown(t.get('search_params_location', "📍 Location: {}").format(location_display_str))
     time_display_str = ""; is_now_mode_main = (st.session_state.time_choice_exp == "Now"); ref_time_for_run = Time.now() if is_now_mode_main else Time(datetime.combine(st.session_state.selected_date_widget, time(12,0)), scale='utc')
@@ -828,7 +840,7 @@ def main():
         except Exception: time_display_str = t.get('search_params_time_now_utc', "Upcoming Night (from {} UTC)").format(f"{ref_time_for_run.to_datetime(timezone.utc):%Y-%m-%d %H:%M:%S}")
     else: selected_date_for_run = st.session_state.selected_date_widget; time_display_str = t.get('search_params_time_specific', "Night after {}").format(f"{selected_date_for_run:%Y-%m-%d}")
     param_col1.markdown(t.get('search_params_time', "⏱️ Time: {}").format(time_display_str))
-    param_col1.markdown(f"{t.get('search_params_timezone', '🌍 Timezone:')} {st.session_state.selected_timezone}") # Display timezone
+    param_col1.markdown(f"{t.get('search_params_timezone', '🌍 Timezone:')} {st.session_state.selected_timezone}") 
     magnitude_display_str = ""; min_mag_filter, max_mag_filter = -np.inf, np.inf
     if st.session_state.mag_filter_mode_exp == "Bortle Scale": max_mag_filter = get_magnitude_limit(st.session_state.bortle_slider); magnitude_display_str = t.get('search_params_filter_mag_bortle', "Bortle {} (<= {:.1f} mag)").format(st.session_state.bortle_slider, max_mag_filter)
     else: min_mag_filter, max_mag_filter = st.session_state.manual_min_mag_slider, st.session_state.manual_max_mag_slider; magnitude_display_str = t.get('search_params_filter_mag_manual', "Manual ({:.1f}-{:.1f} mag)").format(min_mag_filter, max_mag_filter)
